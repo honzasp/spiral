@@ -1,9 +1,4 @@
-#[derive(PartialEq, Debug)]
-pub enum Elem {
-  List(Vec<Elem>),
-  Identifier(String),
-  Number(f32),
-}
+use sexpr::{Elem};
 
 pub fn parse_sexpr(input: &str) -> Result<Elem, String> {
   match read_element(input) {
@@ -99,7 +94,8 @@ fn read_list<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
 
 #[cfg(test)]
 mod test {
-  use super::{parse_sexpr, Elem};
+  use sexpr::{Elem};
+  use super::{parse_sexpr};
 
   fn f(x: f32) -> Elem { Elem::Number(x) }
   fn i(x: i32) -> Elem { Elem::Number(x as f32) }

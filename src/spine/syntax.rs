@@ -8,12 +8,6 @@ pub struct ProgDef {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct ExternDef {
-  pub name: FunName,
-  pub raw_name: String,
-}
-
-#[derive(PartialEq, Debug)]
 pub struct FunDef {
   pub name: FunName,
   pub ret: ContName,

@@ -253,23 +253,22 @@ fn vars_from_sexpr(elem: &sexpr::Elem) -> Result<Vec<Var>, String> {
 
 #[cfg(test)]
 mod test {
-  use spiralize;
   use sexpr;
   use spiral as s;
 
   fn parse_prog(txt: &str) -> s::Prog {
-    let sexpr = sexpr::parse_sexpr(txt).unwrap();
-    spiralize::prog_from_sexpr(&sexpr).unwrap()
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    sexpr::to_spiral::prog_from_sexpr(&sexpr).unwrap()
   }
 
   fn parse_stmt(txt: &str) -> s::Stmt {
-    let sexpr = sexpr::parse_sexpr(txt).unwrap();
-    spiralize::stmt_from_sexpr(&sexpr).unwrap()
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    sexpr::to_spiral::stmt_from_sexpr(&sexpr).unwrap()
   }
 
   fn parse_expr(txt: &str) -> s::Expr {
-    let sexpr = sexpr::parse_sexpr(txt).unwrap();
-    spiralize::expr_from_sexpr(&sexpr).unwrap()
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    sexpr::to_spiral::expr_from_sexpr(&sexpr).unwrap()
   }
 
   fn fun_name(id: &str) -> s::FunName {
