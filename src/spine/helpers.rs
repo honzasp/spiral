@@ -20,6 +20,10 @@ pub fn fun(id: &str) -> spine::FunName {
   spine::FunName(id.to_string())
 }
 
+pub fn ext_name(id: &str) -> spine::ExternName {
+  spine::ExternName(id.to_string())
+}
+
 pub fn add_e(l: spine::Expr, r: spine::Expr) -> spine::Expr {
   spine::Expr::Binary(spine::Binop::Add, box l, box r)
 }

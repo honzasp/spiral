@@ -318,7 +318,7 @@ mod test {
       s::Expr::If(box var_expr("a"), box lit_expr(2.0), box lit_expr(3.0)));
   }
 
-  #[test] #[should_fail = "not implemented"]
+  #[test] #[ignore]
   fn test_cond_expr() {
     assert_eq!(parse_expr("(cond (a 1 2) (b 2) (else 3))"),
       s::Expr::Cond(vec![
@@ -349,7 +349,7 @@ mod test {
       );
   }
 
-  #[test] #[should_fail = "not implemented"]
+  #[test] #[ignore]
   fn test_when_expr() {
     assert_eq!(parse_expr("(when a 1 2)"),
       s::Expr::When(box var_expr("a"), vec![
@@ -358,7 +358,7 @@ mod test {
         ]));
   }
 
-  #[test] #[should_fail = "not implemented"]
+  #[test] #[ignore]
   fn test_unless_expr() {
     assert_eq!(parse_expr("(unless b 1 2)"),
       s::Expr::Unless(box var_expr("b"), vec![

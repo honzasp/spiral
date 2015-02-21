@@ -585,6 +585,7 @@ fn bind_global_env<'p>(parent: &'p Env) -> Env<'p> {
 
   let externs = &[
       ("println", "spiral_ext_println", 1),
+      ("__out", "__test_out", 1),
     ];
 
   let mut global_funs = Vec::new();
@@ -597,4 +598,129 @@ fn bind_global_env<'p>(parent: &'p Env) -> Env<'p> {
       FunBind::ExternName(extern_name, argc)));
   }
   parent.bind_funs(global_funs)
+}
+
+#[cfg(test)]
+mod test {
+  use sexpr;
+  use spine;
+  use spiral;
+
+  fn run(txt: &str) -> Vec<f32> {
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    let spiral = sexpr::to_spiral::prog_from_sexpr(&sexpr).unwrap();
+    let spine = spiral::to_spine::spine_from_spiral(&spiral).unwrap();
+    let errors = spine::check::check_prog(&spine);
+    if !errors.is_empty() {
+      panic!("spine invalid: {:?}", errors)
+    }
+    println!("{:?}", spine);
+    spine::eval::eval(&spine)
+  }
+
+  #[test]
+  fn test_empty_program() {
+    assert_eq!(run("(program)"), vec![]);
+  }
+
+  #[test]
+  fn test_output() {
+    assert_eq!(run("(program (__out 1) (__out 2))"), vec![1.0, 2.0]);
+  }
+
+  #[test]
+  fn test_if() {
+    assert_eq!(run("(program (__out (if 0 10 20)) (__out (if 4 10 20)))"),
+      vec![20.0, 10.0]);
+  }
+
+  #[test] #[ignore]
+  fn test_cond() {
+    assert_eq!(run("(program (__out (cond ((= 1 2) 99) ((< 1 2) 42) (1 66))))"),
+      vec![42.0]);
+    assert_eq!(run("(program (__out (cond ((= 1 2) 99) ((> 1 2) 33) (else 42))))"),
+      vec![42.0]);
+  }
+
+  #[test] #[ignore]
+  fn test_when() {
+    assert_eq!(run("(program (when (= 2 2) (__out 4)) (when 0 (__out 3)))"),
+      vec![4.0]);
+    assert_eq!(run("(program (when (= 4 4) (__out 1) (__out 2)) (__out 4))"),
+      vec![1.0, 2.0, 4.0]);
+    assert_eq!(run("(program (when (< 4 4) (__out 1) (__out 2)) (__out 4))"),
+      vec![4.0]);
+  }
+
+  #[test] #[ignore]
+  fn test_unless() {
+    assert_eq!(run("(program (unless (= 2 2) (__out 4)) (unless 0 (__out 3)))"),
+      vec![4.0]);
+    assert_eq!(run("(program (unless (= 4 4) (__out 1) (__out 2)) (__out 4))"),
+      vec![4.0]);
+    assert_eq!(run("(program (unless (< 4 4) (__out 1) (__out 2)) (__out 4))"),
+      vec![1.0, 2.0, 4.0]);
+  }
+
+  #[test]
+  fn test_do() {
+    assert_eq!(run(
+      "(program (do ((f1 0 f2) (f2 1 (+ f1 f2)) (i 0 (+ i 1)))
+                    ((>= i 10))
+                  (__out f1)))"),
+      vec![0.0, 1.0, 1.0, 2.0, 3.0, 5.0, 8.0, 13.0, 21.0, 34.0]);
+  }
+
+  #[test]
+  fn test_begin() {
+    assert_eq!(run("(program 
+        (__out 2)
+        (begin
+          (var x 1)
+          (var y 3)
+          (__out (+ x y)))
+        (__out 8))"),
+      vec![2.0, 4.0, 8.0]);
+  }
+
+  #[test]
+  fn test_let() {
+    assert_eq!(run("(program
+        (__out
+          (let ((x 1) (y (+ x 1)) (z (+ y 1)) (w (+ z 1)))
+              w)))"),
+      vec![4.0]);
+  }
+
+  #[test]
+  fn test_call() {
+    assert_eq!(run("(program
+        (fun square (x) (* x x))
+        (fun neg (x) (- 0 x))
+        (__out (neg (square 2))))"),
+      vec![-4.0]);
+  }
+
+  #[test]
+  fn test_recursive_fun() {
+    assert_eq!(run("(program
+        (fun fac (x)
+          (if (<= x 1) 1
+            (* x (fac (- x 1)))))
+        (__out (fac 6))) "),
+      vec![720.0]);
+  }
+
+  #[test] #[ignore]
+  fn test_mutually_recursive_funs() {
+    assert_eq!(run("(program
+        (fun ping (a b)
+          (__out a)
+          (pong b a))
+        (fun pong (a b)
+          (if (= a b) 10
+            (ping (+ a 1) (- b 2))))
+        (__out (pong 6 7)))"),
+      vec![7.0, 6.0, 6.0, 5.0, 5.0, 4.0, 10.0]);
+  }
 }
