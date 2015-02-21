@@ -1,0 +1,6 @@
+target/
+.*.sw*
+*~
+*.spiral
+!examples/*.spiral
+Session.vim
