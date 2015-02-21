@@ -1,8 +1,22 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashSet};
 use spine;
 use spiral;
 
 type Res<T> = Result<T, String>;
+type Env<'p> = spiral::env::Env<'p, spine::Var, FunBind>;
+
+#[derive(Debug, Clone)]
+enum FunBind {
+  FunName(spine::FunName, usize),
+  ExternName(spine::ExternName, usize),
+  Prim(PrimFun),
+}
+
+#[derive(Copy, Debug, Clone)]
+enum PrimFun {
+  Add, Sub, Mul, Div,
+  Less, LessEq, Eq, NotEq, GreaterEq, Greater,
+}
 
 struct ProgSt {
   fun_defs: Vec<spine::FunDef>,
@@ -43,61 +57,8 @@ impl ProgSt {
   }
 }
 
-#[derive(Debug, Clone)]
-enum FunBind {
-  FunName(spine::FunName, usize),
-  ExternName(spine::ExternName, usize),
-  Prim(PrimFun),
-}
-
-#[derive(Copy, Debug, Clone)]
-enum PrimFun {
-  Add, Sub, Mul, Div,
-  Less, LessEq, Eq, NotEq, GreaterEq, Greater,
-}
-
-#[derive(Debug)]
-enum Env<'p> {
-  Empty,
-  BindVars(HashMap<spiral::Var, spine::Var>, &'p Env<'p>),
-  BindFuns(HashMap<spiral::FunName, FunBind>, &'p Env<'p>),
-}
-
-impl<'q> Env<'q> {
-  fn bind_vars<'p>(&'p self, binds: Vec<(spiral::Var, spine::Var)>) -> Env<'p> {
-    Env::BindVars(binds.into_iter().collect(), self)
-  }
-
-  fn bind_funs<'p>(&'p self, binds: Vec<(spiral::FunName, FunBind)>) -> Env<'p> {
-    Env::BindFuns(binds.into_iter().collect(), self)
-  }
-
-  fn lookup_var(&self, var: &spiral::Var) -> Res<spine::Var> {
-    match *self {
-      Env::Empty  => Err(format!("Undefined var '{}'", var.0)),
-      Env::BindVars(ref map, parent) => match map.get(var) {
-        Some(bind) => Ok(bind.clone()),
-        None => parent.lookup_var(var),
-      },
-      Env::BindFuns(_, parent) => parent.lookup_var(var),
-    }
-  }
-
-  fn lookup_fun(&self, name: &spiral::FunName) -> Res<FunBind> {
-    match *self {
-      Env::Empty  => Err(format!("Undefined fun name '{}'", name.0)),
-      Env::BindFuns(ref map, parent) => match map.get(name) {
-        Some(bind) => Ok(bind.clone()),
-        None => parent.lookup_fun(name),
-      },
-      Env::BindVars(_, parent) => parent.lookup_fun(name),
-    }
-  }
-
-}
-
 pub fn spine_from_spiral(prog: &spiral::Prog) -> Result<spine::ProgDef, String> {
-  let empty_env = Env::Empty;
+  let empty_env = spiral::env::Env::new();
   let global_env = bind_global_env(&empty_env);
   let mut st = ProgSt {
       fun_defs: Vec::new(),
@@ -133,10 +94,12 @@ fn translate_expr<F>(st: &mut ProgSt, env: &Env, expr: &spiral::Expr, callback: 
             prim_fun, &args[..], callback),
         _ => { },
       },*/
-    spiral::Expr::Var(ref var) =>
-      return env.lookup_var(var).and_then(|spine_var| {
-          callback(st, env, spine::Expr::Var(spine_var))
-        }),
+    spiral::Expr::Var(ref var) => match env.lookup_var(var) {
+      Some(spine_var) =>
+        return callback(st, env, spine::Expr::Var(spine_var.clone())),
+      None =>
+        return Err(format!("undefined var '{}'", var.0)),
+    },
     _ => { },
   }
 
@@ -306,10 +269,12 @@ fn translate_expr_tail(st: &mut ProgSt, env: &Env,
         |_st, _env, result_expr| Ok(spine::Term::Cont(result_cont, vec![result_expr]))),
     spiral::Expr::Call(ref fun_name, ref args) =>
       translate_call_expr_tail(st, env, fun_name, &args[..], result_cont),
-    spiral::Expr::Var(ref var) =>
-      env.lookup_var(var).and_then(|spine_var| {
-          Ok(spine::Term::Cont(result_cont, vec![spine::Expr::Var(spine_var)]))
-        }),
+    spiral::Expr::Var(ref var) => match env.lookup_var(var) {
+      Some(spine_var) =>
+        Ok(spine::Term::Cont(result_cont, vec![spine::Expr::Var(spine_var.clone())])),
+      None =>
+        Err(format!("undefined var '{}'", var.0)),
+    },
     spiral::Expr::Literal(number) => 
       Ok(spine::Term::Cont(result_cont, vec![spine::Expr::Literal(number)])),
   }
@@ -437,42 +402,45 @@ fn translate_call_expr_tail(st: &mut ProgSt, env: &Env,
 {
   let arg_refs: Vec<_> = args.iter().map(|arg| arg).collect();
   translate_exprs(st, env, &arg_refs[..], |st, env, spine_args| {
-    match try!(env.lookup_fun(fun_name)) {
-      FunBind::FunName(ref spine_name, argc) =>
-        if argc == args.len() {
-          Ok(spine::Term::Call(spine_name.clone(), result_cont, spine_args))
-        } else {
-          Err(format!("fun '{}' expects {} args, got {}",
-                      fun_name.0, argc, args.len()))
+    match env.lookup_fun(fun_name) {
+      None => Err(format!("undefined fun '{}'", fun_name.0)),
+      Some(fun_bind) => match fun_bind {
+        &FunBind::FunName(ref spine_name, argc) =>
+          if argc == args.len() {
+            Ok(spine::Term::Call(spine_name.clone(), result_cont, spine_args))
+          } else {
+            Err(format!("fun '{}' expects {} args, got {}",
+                        fun_name.0, argc, args.len()))
+          },
+        &FunBind::ExternName(ref extern_name, argc) =>
+          if argc == args.len() {
+            Ok(spine::Term::ExternCall(extern_name.clone(), result_cont, spine_args))
+          } else {
+            Err(format!("extern fun '{}' expects {} args, got {}",
+                        fun_name.0, argc, args.len()))
+          },
+        &FunBind::Prim(prim_fun) => match prim_fun {
+          PrimFun::Add => translate_prim_arithmetic_expr_tail(st, env, spine_args,
+              0.0, spine::Binop::Add, result_cont),
+          PrimFun::Sub => translate_prim_arithmetic_expr_tail(st, env, spine_args,
+              0.0, spine::Binop::Sub, result_cont),
+          PrimFun::Mul => translate_prim_arithmetic_expr_tail(st, env, spine_args,
+              1.0, spine::Binop::Mul, result_cont),
+          PrimFun::Div => translate_prim_arithmetic_expr_tail(st, env, spine_args,
+              1.0, spine::Binop::Div, result_cont),
+          PrimFun::Less => translate_prim_cmp_expr_tail(st, env, spine_args,
+              spine::Cmp::Less, result_cont),
+          PrimFun::LessEq => translate_prim_cmp_expr_tail(st, env, spine_args,
+              spine::Cmp::LessEq, result_cont),
+          PrimFun::Eq => translate_prim_cmp_expr_tail(st, env, spine_args,
+              spine::Cmp::Eq, result_cont),
+          PrimFun::NotEq => translate_prim_cmp_expr_tail(st, env, spine_args,
+              spine::Cmp::NotEq, result_cont),
+          PrimFun::GreaterEq => translate_prim_cmp_expr_tail(st, env, spine_args,
+              spine::Cmp::GreaterEq, result_cont),
+          PrimFun::Greater => translate_prim_cmp_expr_tail(st, env, spine_args,
+              spine::Cmp::Greater, result_cont),
         },
-      FunBind::ExternName(ref extern_name, argc) =>
-        if argc == args.len() {
-          Ok(spine::Term::ExternCall(extern_name.clone(), result_cont, spine_args))
-        } else {
-          Err(format!("extern fun '{}' expects {} args, got {}",
-                      fun_name.0, argc, args.len()))
-        },
-      FunBind::Prim(prim_fun) => match prim_fun {
-        PrimFun::Add => translate_prim_arithmetic_expr_tail(st, env, spine_args,
-            0.0, spine::Binop::Add, result_cont),
-        PrimFun::Sub => translate_prim_arithmetic_expr_tail(st, env, spine_args,
-            0.0, spine::Binop::Sub, result_cont),
-        PrimFun::Mul => translate_prim_arithmetic_expr_tail(st, env, spine_args,
-            1.0, spine::Binop::Mul, result_cont),
-        PrimFun::Div => translate_prim_arithmetic_expr_tail(st, env, spine_args,
-            1.0, spine::Binop::Div, result_cont),
-        PrimFun::Less => translate_prim_cmp_expr_tail(st, env, spine_args,
-            spine::Cmp::Less, result_cont),
-        PrimFun::LessEq => translate_prim_cmp_expr_tail(st, env, spine_args,
-            spine::Cmp::LessEq, result_cont),
-        PrimFun::Eq => translate_prim_cmp_expr_tail(st, env, spine_args,
-            spine::Cmp::Eq, result_cont),
-        PrimFun::NotEq => translate_prim_cmp_expr_tail(st, env, spine_args,
-            spine::Cmp::NotEq, result_cont),
-        PrimFun::GreaterEq => translate_prim_cmp_expr_tail(st, env, spine_args,
-            spine::Cmp::GreaterEq, result_cont),
-        PrimFun::Greater => translate_prim_cmp_expr_tail(st, env, spine_args,
-            spine::Cmp::Greater, result_cont),
       },
     }
   })
