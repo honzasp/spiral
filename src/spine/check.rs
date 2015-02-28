@@ -1,6 +1,6 @@
 use spine;
 
-type Env<'p> = spine::env::Env<'p, (), usize, usize>;
+type Env = spine::env::Env<(), usize, usize>;
 
 pub fn check_prog(prog: &spine::ProgDef) -> Vec<String> {
   let fun_binds = prog.fun_defs.iter().map(|fun_def| {

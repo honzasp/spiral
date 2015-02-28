@@ -1,57 +1,61 @@
 use std::collections::{HashMap};
+use std::rc::{Rc};
 use spine;
 
+#[derive(Debug, Clone)]
+pub struct Env<V, F, C>(Rc<Env_<V, F, C>>);
+
 #[derive(Debug)]
-pub enum Env<'p, V: 'static, F: 'static, C: 'static> {
+enum Env_<V, F, C> {
   Empty,
-  BindVars(HashMap<spine::Var, V>, &'p Env<'p, V, F, C>),
-  BindFuns(HashMap<spine::FunName, F>, &'p Env<'p, V, F, C>),
-  BindConts(HashMap<spine::ContName, C>, &'p Env<'p, V, F, C>),
+  BindVars(HashMap<spine::Var, V>, Env<V, F, C>),
+  BindFuns(HashMap<spine::FunName, F>, Env<V, F, C>),
+  BindConts(HashMap<spine::ContName, C>, Env<V, F, C>),
 }
 
-impl<'q, V: Clone, F: Clone, C: Clone> Env<'q, V, F, C> {
-  pub fn new() -> Env<'static, V, F, C> {
-    Env::Empty
+impl<V: Clone, F: Clone, C: Clone> Env<V, F, C> {
+  pub fn new() -> Env<V, F, C> {
+    Env(Rc::new(Env_::Empty))
   }
 
-  pub fn bind_vars<'p>(&'p self, binds: Vec<(spine::Var, V)>) -> Env<'p, V, F, C> {
-    Env::BindVars(binds.into_iter().collect(), self)
+  pub fn bind_vars(&self, binds: Vec<(spine::Var, V)>) -> Env<V, F, C> {
+    Env(Rc::new(Env_::BindVars(binds.into_iter().collect(), self.clone())))
   }
 
-  pub fn bind_funs<'p>(&'p self, binds: Vec<(spine::FunName, F)>) -> Env<'p, V, F, C> {
-    Env::BindFuns(binds.into_iter().collect(), self)
+  pub fn bind_funs<'p>(&self, binds: Vec<(spine::FunName, F)>) -> Env<V, F, C> {
+    Env(Rc::new(Env_::BindFuns(binds.into_iter().collect(), self.clone())))
   }
 
-  pub fn bind_conts<'p>(&'p self, binds: Vec<(spine::ContName, C)>) -> Env<'p, V, F, C> {
-    Env::BindConts(binds.into_iter().collect(), self)
+  pub fn bind_conts<'p>(&self, binds: Vec<(spine::ContName, C)>) -> Env<V, F, C> {
+    Env(Rc::new(Env_::BindConts(binds.into_iter().collect(), self.clone())))
   }
 
   pub fn lookup_var<'r>(&'r self, var: &spine::Var) -> Option<&'r V> {
-    match *self {
-      Env::Empty => None,
-      Env::BindVars(ref binds, parent) =>
+    match *self.0 {
+      Env_::Empty => None,
+      Env_::BindVars(ref binds, ref parent) =>
         binds.get(var).or_else(|| parent.lookup_var(var)),
-      Env::BindFuns(_, parent) | Env::BindConts(_, parent) =>
+      Env_::BindFuns(_, ref parent) | Env_::BindConts(_, ref parent) =>
         parent.lookup_var(var),
     }
   }
 
   pub fn lookup_fun<'r>(&'r self, fun: &spine::FunName) -> Option<&'r F> {
-    match *self {
-      Env::Empty => None,
-      Env::BindFuns(ref binds, parent) =>
+    match *self.0 {
+      Env_::Empty => None,
+      Env_::BindFuns(ref binds, ref parent) =>
         binds.get(fun).or_else(|| parent.lookup_fun(fun)),
-      Env::BindVars(_, parent) | Env::BindConts(_, parent) =>
+      Env_::BindVars(_, ref parent) | Env_::BindConts(_, ref parent) =>
         parent.lookup_fun(fun),
     }
   }
 
   pub fn lookup_cont<'r>(&'r self, cont: &spine::ContName) -> Option<&'r C> {
-    match *self {
-      Env::Empty => None,
-      Env::BindConts(ref binds, parent) =>
+    match *self.0 {
+      Env_::Empty => None,
+      Env_::BindConts(ref binds, ref parent) =>
         binds.get(cont).or_else(|| parent.lookup_cont(cont)),
-      Env::BindFuns(_, parent) | Env::BindVars(_, parent) =>
+      Env_::BindFuns(_, ref parent) | Env_::BindVars(_, ref parent) =>
         parent.lookup_cont(cont),
     }
   }
