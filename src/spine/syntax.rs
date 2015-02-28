@@ -3,8 +3,7 @@
 #[derive(PartialEq, Debug)]
 pub struct ProgDef {
   pub fun_defs: Vec<FunDef>,
-  pub halt_cont: ContName,
-  pub body: Term,
+  pub main_fun: FunName,
 }
 
 #[derive(PartialEq, Debug)]

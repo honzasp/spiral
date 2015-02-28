@@ -2,6 +2,8 @@ use std::collections::{HashMap};
 use spine;
 
 pub fn eval(prog: &spine::ProgDef) -> Vec<f32> {
+  let halt_cont = spine::ContName("halt".to_string());
+  let call_main = spine::Term::Call(prog.main_fun.clone(), halt_cont.clone(), vec![]);
   let mut st = ProgSt {
       steps: 5_000,
       test_output: Vec::new(),
@@ -10,8 +12,8 @@ pub fn eval(prog: &spine::ProgDef) -> Vec<f32> {
         .collect(),
     };
 
-  let jump = eval_term(&mut st, HashMap::new(), &prog.body);
-  assert_eq!(jump.cont, prog.halt_cont);
+  let jump = eval_term(&mut st, HashMap::new(), &call_main);
+  assert_eq!(jump.cont, halt_cont);
   assert_eq!(jump.args.len(), 0);
   st.test_output
 }

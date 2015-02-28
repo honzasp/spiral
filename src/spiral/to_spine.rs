@@ -77,12 +77,22 @@ pub fn spine_from_spiral(prog: &spiral::Prog) -> Result<spine::ProgDef, String> 
     };
 
   let halt_cont = st.gen_cont_name("halt");
-  let (body_onion, _) = try!(translate_stmts(&mut st, &global_env, &prog.body[..]));
+  let main_name = st.gen_fun_name("main");
+  let (main_onion, main_res) = try!(translate_stmts(&mut st, &global_env,
+      &prog.body[..]));
+  let main_term = main_onion.subst_term(
+    spine::Term::Cont(halt_cont.clone(), vec![main_res.into_val()]));
+
+  st.fun_defs.push(spine::FunDef {
+      name: main_name.clone(),
+      ret: halt_cont,
+      args: vec![],
+      body: main_term,
+    });
 
   Ok(spine::ProgDef {
       fun_defs: st.fun_defs,
-      halt_cont: halt_cont.clone(),
-      body: body_onion.subst_term(spine::Term::Cont(halt_cont, vec![])),
+      main_fun: main_name.clone(),
     })
 }
 
@@ -90,35 +100,32 @@ fn translate_expr(st: &mut ProgSt, env: &Env, expr: &spiral::Expr)
   -> Res<(Onion, spine::Val)>
 {
   match *expr {
-    /* TODO: monomorphisation hell
-    spiral::Expr::Begin(ref stmts) =>
-      return translate_stmts(st, env, &stmts[..], callback),
+    spiral::Expr::Begin(ref stmts) => {
+      let (onion, stmt_res) = try!(translate_stmts(st, env, &stmts[..]));
+      Ok((onion, stmt_res.into_val()))
+    },
     spiral::Expr::Let(ref var_binds, ref body_stmts) =>
-      return translate_let_expr(st, env, &var_binds[..], &body_stmts[..], callback), 
-    spiral::Expr::Call(ref fun_name, ref args) =>
-      match try!(env.lookup_fun(fun_name)) {
-        FunBind::Prim(prim_fun) => return translate_prim_call_expr(st, env, 
-            prim_fun, &args[..], callback),
-        _ => { },
-      },*/
+      translate_let_expr(st, env, &var_binds[..], &body_stmts[..]), 
+    spiral::Expr::Literal(number) =>
+      Ok((Onion::Hole, spine::Val::Literal(number))),
     spiral::Expr::Var(ref var) => match env.lookup_var(var) {
       Some(spine_val) =>
         return Ok((Onion::Hole, spine_val.clone())),
       None =>
         return Err(format!("undefined var '{}'", var.0)),
     },
-    _ => { },
+    _ => {
+      let join_cont_name = st.gen_cont_name("join");
+      let join_cont_arg = st.gen_var("result");
+
+      Ok((Onion::Letjoin(box OnionContDef {
+            name: join_cont_name.clone(),
+            args: vec![join_cont_arg.clone()],
+            body: Onion::Hole,
+          }, box try!(translate_expr_tail(st, env, expr, join_cont_name))), 
+        spine::Val::Var(join_cont_arg)))
+    },
   }
-
-  let join_cont_name = st.gen_cont_name("join");
-  let join_cont_arg = st.gen_var("result");
-
-  Ok((Onion::Letjoin(box OnionContDef {
-        name: join_cont_name.clone(),
-        args: vec![join_cont_arg.clone()],
-        body: Onion::Hole,
-      }, box try!(translate_expr_tail(st, env, expr, join_cont_name))), 
-    spine::Val::Var(join_cont_arg)))
 }
 
 fn translate_exprs(st: &mut ProgSt, env: &Env, exprs: &[&spiral::Expr])

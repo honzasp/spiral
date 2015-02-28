@@ -2,7 +2,7 @@ use std::collections::{HashMap};
 use std::rc::{Rc};
 use spine;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Env<V, F, C>(Rc<Env_<V, F, C>>);
 
 #[derive(Debug)]
@@ -13,7 +13,13 @@ enum Env_<V, F, C> {
   BindConts(HashMap<spine::ContName, C>, Env<V, F, C>),
 }
 
-impl<V: Clone, F: Clone, C: Clone> Env<V, F, C> {
+impl<V, F, C> Clone for Env<V, F, C> {
+  fn clone(&self) -> Self {
+    Env(self.0.clone())
+  }
+}
+
+impl<V, F, C> Env<V, F, C> {
   pub fn new() -> Env<V, F, C> {
     Env(Rc::new(Env_::Empty))
   }

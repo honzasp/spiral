@@ -6,18 +6,18 @@ pub fn check_prog(prog: &spine::ProgDef) -> Vec<String> {
   let fun_binds = prog.fun_defs.iter().map(|fun_def| {
       (fun_def.name.clone(), fun_def.args.len())
     }).collect();
-  let cont_binds = vec![
-      (prog.halt_cont.clone(), 0),
-    ];
   let empty_env = spine::env::Env::new();
   let fun_env = empty_env.bind_funs(fun_binds);
-  let cont_env = fun_env.bind_conts(cont_binds);
 
   let mut errors = Vec::new();
   for fun_def in prog.fun_defs.iter() {
-    errors.extend(check_fun_def(&cont_env, fun_def).into_iter());
+    errors.extend(check_fun_def(&fun_env, fun_def).into_iter());
   }
-  errors.extend(check_term(&cont_env, &prog.body).into_iter());
+
+  if fun_env.lookup_fun(&prog.main_fun).is_none() {
+    errors.push(format!("undefined main function: '{}'", prog.main_fun.0));
+  }
+
   errors
 }
 

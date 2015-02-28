@@ -3,16 +3,18 @@
 mod sexpr;
 mod spiral;
 mod spine;
+mod grit;
 
 pub fn main() {
   use std::old_io as io;
   use std::str;
 
   let input = io::stdin().read_to_end().unwrap();
-  let input_str = str::from_utf8(&input[..]).unwrap();
-  let input_sexpr = sexpr::parse::parse_sexpr(input_str).unwrap();
-  let input_spiral = sexpr::to_spiral::prog_from_sexpr(&input_sexpr).unwrap();
-  let input_spine = spiral::to_spine::spine_from_spiral(&input_spiral).unwrap();
-  println!("{:?}", input_spine);
-  println!("{:?}", spine::check::check_prog(&input_spine));
+  let str = str::from_utf8(&input[..]).unwrap();
+  let sexpr = sexpr::parse::parse_sexpr(str).unwrap();
+  let spiral = sexpr::to_spiral::prog_from_sexpr(&sexpr).unwrap();
+  let spine = spiral::to_spine::spine_from_spiral(&spiral).unwrap();
+  let grit = spine::to_grit::grit_from_spine(&spine);
+  println!("{:?}", grit);
+  println!("{:?}", spine::check::check_prog(&spine));
 }
