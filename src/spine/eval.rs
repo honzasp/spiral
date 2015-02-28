@@ -27,7 +27,7 @@ struct Jump {
   args: Vec<f32>,
 }
 
-fn eval_term<'g>(st: &mut ProgSt<'g>, mut vars: HashMap<spine::Var, f32>,
+fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, f32>,
   term: &'g spine::Term) -> Jump 
 {
   if st.steps <= 0 {
@@ -37,11 +37,6 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, mut vars: HashMap<spine::Var, f32>,
   }
 
   match *term {
-    spine::Term::Letval(ref var, ref expr, ref body) => {
-      let value = eval_expr(&vars, expr);
-      vars.insert(var.clone(), value);
-      eval_term(st, vars, &**body)
-    },
     spine::Term::Letcont(ref cont_defs, ref body) => {
       let mut jump = eval_term(st, vars.clone(), &**body);
       'jumper: loop {
@@ -62,7 +57,7 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, mut vars: HashMap<spine::Var, f32>,
     spine::Term::Call(ref fun_name, ref ret_cont, ref args) => {
       let fun_def = *st.fun_defs.get(fun_name).unwrap();
       let inner_vars = fun_def.args.iter().zip(args.iter())
-        .map(|(arg_var, arg_expr)| (arg_var.clone(), eval_expr(&vars, arg_expr)))
+        .map(|(arg_var, arg_val)| (arg_var.clone(), eval_val(&vars, arg_val)))
         .collect();
       let jump = eval_term(st, inner_vars, &fun_def.body);
       assert_eq!(jump.cont, fun_def.ret);
@@ -70,73 +65,69 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, mut vars: HashMap<spine::Var, f32>,
       Jump { cont: ret_cont.clone(), args: jump.args }
     },
     spine::Term::ExternCall(ref ext_name, ref ret_cont, ref args) => {
-      if ext_name.0 == "__test_out" {
-        assert_eq!(args.len(), 1);
-        let value = eval_expr(&vars, &args[0]);
-        st.test_output.push(value);
-        Jump { cont: ret_cont.clone(), args: vec![0.0] }
-      } else {
-        panic!("extern call to '{}'", ext_name.0);
+      use std::{ops, cmp};
+
+      let binop = |op: fn(f32, f32) -> f32| {
+          assert_eq!(args.len(), 2);
+          let a = eval_val(&vars, &args[0]);
+          let b = eval_val(&vars, &args[1]);
+          Jump { cont: ret_cont.clone(), args: vec![op(a, b)] }
+        };
+
+      let binop_bool = |op: fn(&f32, &f32) -> bool| {
+          assert_eq!(args.len(), 2);
+          let a = eval_val(&vars, &args[0]);
+          let b = eval_val(&vars, &args[1]);
+          Jump { cont: ret_cont.clone(), args: vec![if op(&a, &b) { 1.0 } else { 0.0 }] }
+        };
+
+      match &ext_name.0[..] {
+         "__test_out" => {
+          assert_eq!(args.len(), 1);
+          let value = eval_val(&vars, &args[0]);
+          st.test_output.push(value);
+          Jump { cont: ret_cont.clone(), args: vec![0.0] }
+        },
+        "spiral_ext_add" => binop(<f32 as ops::Add>::add),
+        "spiral_ext_sub" => binop(<f32 as ops::Sub>::sub),
+        "spiral_ext_mul" => binop(<f32 as ops::Mul>::mul),
+        "spiral_ext_div" => binop(<f32 as ops::Div>::div),
+        "spiral_ext_lt" => binop_bool(<f32 as cmp::PartialOrd>::lt),
+        "spiral_ext_le" => binop_bool(<f32 as cmp::PartialOrd>::le),
+        "spiral_ext_gt" => binop_bool(<f32 as cmp::PartialOrd>::gt),
+        "spiral_ext_ge" => binop_bool(<f32 as cmp::PartialOrd>::ge),
+        "spiral_ext_eq" => binop_bool(<f32 as cmp::PartialEq>::eq),
+        "spiral_ext_ne" => binop_bool(<f32 as cmp::PartialEq>::ne),
+        _ =>
+          panic!("extern call to '{}'", ext_name.0)
       }
     },
     spine::Term::Cont(ref cont_name, ref args) => 
       Jump {
         cont: cont_name.clone(),
-        args: args.iter().map(|arg| eval_expr(&vars, arg)).collect(),
+        args: args.iter().map(|arg| eval_val(&vars, arg)).collect(),
       },
-    spine::Term::Branch(ref boolexpr, ref then_cont, ref else_cont) =>
+    spine::Term::Branch(ref boolval, ref then_cont, ref else_cont) =>
       Jump {
-        cont: if eval_boolexpr(&vars, boolexpr) { then_cont } else { else_cont }.clone(),
+        cont: if eval_boolval(&vars, boolval) { then_cont } else { else_cont }.clone(),
         args: vec![],
       },
   }
 }
 
-fn eval_expr(vars: &HashMap<spine::Var, f32>, expr: &spine::Expr) -> f32 {
-  use std::mem;
-  fn ftu(f: f32) -> u32 { unsafe { mem::transmute::<f32, u32>(f) } }
-  fn utf(u: u32) -> f32 { unsafe { mem::transmute::<u32, f32>(u) } }
-
-  match *expr {
-    spine::Expr::Binary(ref binop, ref left, ref right) => {
-      let l = eval_expr(vars, &**left);
-      let r = eval_expr(vars, &**right);
-      match *binop {
-        spine::Binop::Add => l + r,
-        spine::Binop::Sub => l - r,
-        spine::Binop::Mul => l * r,
-        spine::Binop::Div => l / r,
-        spine::Binop::Max => if l > r { l } else { r },
-        spine::Binop::Min => if l < r { l } else { r },
-        spine::Binop::Bitand => utf(ftu(l) & ftu(r)),
-        spine::Binop::Bitor => utf(ftu(l) | ftu(r)),
-        spine::Binop::Bitxor => utf(ftu(l) ^ ftu(r)),
-        spine::Binop::Bitandn => utf(ftu(l) & (!ftu(r))),
-      }
-    },
-    spine::Expr::Literal(number) => number,
-    spine::Expr::Var(ref var) => *vars.get(var).unwrap(),
+fn eval_val(vars: &HashMap<spine::Var, f32>, val: &spine::Val) -> f32 {
+  match *val {
+    spine::Val::Literal(number) => number,
+    spine::Val::Var(ref var) => *vars.get(var).unwrap(),
   }
 }
 
-fn eval_boolexpr(vars: &HashMap<spine::Var, f32>, boolexpr: &spine::Boolexpr) -> bool {
-  use std::num::Float;
-
-  match *boolexpr {
-    spine::Boolexpr::Compare(ref cmp, ref left, ref right) => {
-      let l = eval_expr(vars, &**left);
-      let r = eval_expr(vars, &**right);
-      match *cmp {
-        spine::Cmp::Ordered => !l.is_nan() && !r.is_nan(),
-        spine::Cmp::Unordered => l.is_nan() || r.is_nan(),
-        spine::Cmp::Less => l < r,
-        spine::Cmp::LessEq => l <= r,
-        spine::Cmp::Eq => l == r,
-        spine::Cmp::NotEq => l != r,
-        spine::Cmp::GreaterEq => l >= r,
-        spine::Cmp::Greater => l > r,
-      }
-    },
+fn eval_boolval(vars: &HashMap<spine::Var, f32>, boolval: &spine::Boolval) -> bool {
+  match *boolval {
+    spine::Boolval::IsTrue(ref val) =>
+      eval_val(vars, val) != 0.0,
+    spine::Boolval::IsFalse(ref val) =>
+      eval_val(vars, val) == 0.0,
   }
 }
 

@@ -1,12 +1,9 @@
 #![allow(dead_code)]
 use spine;
 pub use spine::{ProgDef, FunDef, ContDef};
-pub use spine::Term::{Letval, Letcont, Call, ExternCall, Cont, Branch};
-pub use spine::Expr::{Binary, Literal, Var};
-pub use spine::Binop::{Add, Sub, Mul, Div, Max, Min,
-  Bitand, Bitor, Bitxor, Bitandn};
-pub use spine::Boolexpr::{Compare};
-pub use spine::Cmp::{Ordered, Unordered, Less, LessEq, Eq, NotEq, GreaterEq, Greater};
+pub use spine::Term::{Letcont, Call, ExternCall, Cont, Branch};
+pub use spine::Val::{Literal, Var};
+pub use spine::Boolval::{IsTrue, IsFalse};
 
 pub fn var(id: &str) -> spine::Var {
   spine::Var(id.to_string())
@@ -24,10 +21,10 @@ pub fn ext_name(id: &str) -> spine::ExternName {
   spine::ExternName(id.to_string())
 }
 
-pub fn add_e(l: spine::Expr, r: spine::Expr) -> spine::Expr {
-  spine::Expr::Binary(spine::Binop::Add, box l, box r)
+pub fn add_call(ret: &str, l: spine::Val, r: spine::Val) -> spine::Term {
+  spine::Term::ExternCall(ext_name("spiral_ext_add"), cont(ret), vec![l, r])
 }
 
-pub fn var_e(id: &str) -> spine::Expr {
-  spine::Expr::Var(var(id))
+pub fn var_val(id: &str) -> spine::Val {
+  spine::Val::Var(var(id))
 }

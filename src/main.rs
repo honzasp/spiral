@@ -1,5 +1,5 @@
 #![feature(collections, unicode, old_io, box_syntax)]
-#![feature(core, unboxed_closures, std_misc)]
+#![feature(core, unboxed_closures)]
 mod sexpr;
 mod spiral;
 mod spine;

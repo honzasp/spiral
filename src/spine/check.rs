@@ -45,11 +45,6 @@ fn check_term(env: &Env, term: &spine::Term) -> Vec<String> {
   let mut errors = Vec::new();
 
   match *term {
-    spine::Term::Letval(ref var, ref expr, ref body) => {
-      errors.extend(check_expr(env, expr).into_iter());
-      let inner_env = env.bind_vars(vec![(var.clone(), ())]);
-      errors.extend(check_term(&inner_env, &**body).into_iter())
-    },
     spine::Term::Letcont(ref cont_defs, ref body) => {
       let cont_binds = cont_defs.iter()
           .map(|cont_def| (cont_def.name.clone(), cont_def.args.len()))
@@ -78,7 +73,7 @@ fn check_term(env: &Env, term: &spine::Term) -> Vec<String> {
       }
 
       for arg in args.iter() {
-        errors.extend(check_expr(env, arg).into_iter());
+        errors.extend(check_val(env, arg).into_iter());
       }
     },
     spine::Term::ExternCall(ref _extern_name, ref ret_cont, ref args) => {
@@ -91,7 +86,7 @@ fn check_term(env: &Env, term: &spine::Term) -> Vec<String> {
       }
 
       for arg in args.iter() {
-        errors.extend(check_expr(env, arg).into_iter());
+        errors.extend(check_val(env, arg).into_iter());
       }
     },
     spine::Term::Cont(ref cont, ref args) => {
@@ -104,10 +99,10 @@ fn check_term(env: &Env, term: &spine::Term) -> Vec<String> {
       }
 
       for arg in args.iter() {
-        errors.extend(check_expr(env, arg).into_iter());
+        errors.extend(check_val(env, arg).into_iter());
       }
     },
-    spine::Term::Branch(ref boolexpr, ref then_cont, ref else_cont) => {
+    spine::Term::Branch(ref boolval, ref then_cont, ref else_cont) => {
       match env.lookup_cont(then_cont) {
         Some(&argc) => if argc != 0 {
           errors.push(format!("then-branch args mismatch: '{}' expects {} args",
@@ -124,37 +119,27 @@ fn check_term(env: &Env, term: &spine::Term) -> Vec<String> {
         None => errors.push(format!("else-branch to undefined cont: '{}'", else_cont.0)),
       }
 
-      errors.extend(check_boolexpr(env, boolexpr).into_iter());
+      errors.extend(check_boolval(env, boolval).into_iter());
     }
   }
 
   errors
 }
 
-fn check_expr(env: &Env, expr: &spine::Expr) -> Vec<String> {
-  match *expr {
-    spine::Expr::Binary(_, ref left, ref right) => {
-      let mut errors = Vec::new();
-      errors.extend(check_expr(env, left).into_iter());
-      errors.extend(check_expr(env, right).into_iter());
-      errors
-    },
-    spine::Expr::Literal(_) => vec![],
-    spine::Expr::Var(ref var) => match env.lookup_var(var) {
+fn check_val(env: &Env, val: &spine::Val) -> Vec<String> {
+  match *val {
+    spine::Val::Literal(_) => vec![],
+    spine::Val::Var(ref var) => match env.lookup_var(var) {
       Some(&()) => vec![],
       None => vec![format!("undefined var: '{}'", var.0)],
     },
   }
 }
 
-fn check_boolexpr(env: &Env, boolexpr: &spine::Boolexpr) -> Vec<String> {
-  match *boolexpr {
-    spine::Boolexpr::Compare(_, ref left, ref right) => {
-      let mut errors = Vec::new();
-      errors.extend(check_expr(env, left).into_iter());
-      errors.extend(check_expr(env, right).into_iter());
-      errors
-    },
+fn check_boolval(env: &Env, boolval: &spine::Boolval) -> Vec<String> {
+  match *boolval {
+    spine::Boolval::IsTrue(ref val) => check_val(env, val),
+    spine::Boolval::IsFalse(ref val) => check_val(env, val),
   }
 }
 
@@ -189,7 +174,7 @@ mod test {
         fun_defs: vec![
           FunDef { name: fun("f"), ret: cont("ret"), 
             args: vec![var("a"), var("b")],
-            body: Cont(cont("ret"), vec![add_e(var_e("a"), var_e("c"))]),
+            body: Cont(cont("ret"), vec![var_val("c")]),
           },
         ],
         halt_cont: cont("halt"),
@@ -197,18 +182,6 @@ mod test {
       });
     assert_eq!(errors.len(), 1);
     assert!(errors[0].contains("undefined var: 'c'"));
-  }
-
-  #[test]
-  fn test_recursive_var() {
-    let errors = check_prog(&ProgDef {
-        fun_defs: vec![ ],
-        halt_cont: cont("halt"),
-        body: Letval(var("x"), add_e(Literal(1.0), var_e("x")),
-          box Cont(cont("halt"), vec![])),
-      });
-    assert_eq!(errors.len(), 1);
-    assert!(errors[0].contains("undefined var: 'x'"));
   }
 
   // TODO :-)

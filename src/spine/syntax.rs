@@ -24,12 +24,11 @@ pub struct ContDef {
 
 #[derive(PartialEq, Debug)]
 pub enum Term {
-  Letval(Var, Expr, Box<Term>),
   Letcont(Vec<ContDef>, Box<Term>),
-  Call(FunName, ContName, Vec<Expr>),
-  ExternCall(ExternName, ContName, Vec<Expr>),
-  Cont(ContName, Vec<Expr>),
-  Branch(Boolexpr, ContName, ContName),
+  Call(FunName, ContName, Vec<Val>),
+  ExternCall(ExternName, ContName, Vec<Val>),
+  Cont(ContName, Vec<Val>),
+  Branch(Boolval, ContName, ContName),
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
@@ -41,27 +40,14 @@ pub struct ExternName(pub String);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ContName(pub String);
 
-#[derive(PartialEq, Debug)]
-pub enum Expr {
-  Binary(Binop, Box<Expr>, Box<Expr>),
+#[derive(PartialEq, Debug, Clone)]
+pub enum Val {
   Literal(f32),
   Var(Var),
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Binop {
-  Add, Sub, Mul, Div,
-  Max, Min,
-  Bitand, Bitor, Bitxor, Bitandn,
-}
-
-#[derive(PartialEq, Debug)]
-pub enum Boolexpr {
-  Compare(Cmp, Box<Expr>, Box<Expr>),
-}
-
-#[derive(PartialEq, Debug)]
-pub enum Cmp {
-  Ordered, Unordered,
-  Less, LessEq, Eq, NotEq, GreaterEq, Greater,
+pub enum Boolval {
+  IsTrue(Val),
+  IsFalse(Val),
 }
