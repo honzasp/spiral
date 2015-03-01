@@ -1,4 +1,4 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashSet};
 use spine;
 use spine::census;
 use grit;
@@ -130,10 +130,9 @@ fn translate_call(st: &mut FunSt, env: &Env, label: grit::Label,
   st.blocks.push(match *cont_bind {
     ContBind::Cont(ref arg_slots, ref target_label) => {
       assert_eq!(arg_slots.len(), 1);
-      let lval = grit::LVal::Slot(arg_slots[0].clone());
       grit::Block {
         label: label,
-        ops: vec![grit::Op::Call(lval, grit_name, grit_args)],
+        ops: vec![grit::Op::Call(arg_slots[0].clone(), grit_name, grit_args)],
         jump: grit::Jump::Goto(target_label.clone()),
       }
     },
@@ -156,10 +155,9 @@ fn translate_extern_call(st: &mut FunSt, env: &Env, label: grit::Label,
   match *cont_bind {
     ContBind::Cont(ref arg_slots, ref target_label) => {
       assert_eq!(arg_slots.len(), 1);
-      let lval = grit::LVal::Slot(arg_slots[0].clone());
       st.blocks.push(grit::Block {
         label: label,
-        ops: vec![grit::Op::ExternCall(lval, grit_name, grit_args)],
+        ops: vec![grit::Op::ExternCall(arg_slots[0].clone(), grit_name, grit_args)],
         jump: grit::Jump::Goto(target_label.clone()),
       })
     },
@@ -168,8 +166,7 @@ fn translate_extern_call(st: &mut FunSt, env: &Env, label: grit::Label,
       st.use_slot(&slot);
       st.blocks.push(grit::Block {
         label: label,
-        ops: vec![grit::Op::ExternCall(grit::LVal::Slot(slot.clone()),
-          grit_name, grit_args)],
+        ops: vec![grit::Op::ExternCall(slot.clone(), grit_name, grit_args)],
         jump: grit::Jump::Return(grit::Val::Slot(slot)),
       })
     },
@@ -185,10 +182,10 @@ fn translate_cont(st: &mut FunSt, env: &Env, label: grit::Label,
   match *cont_bind {
     ContBind::Cont(ref arg_slots, ref target_label) => {
       assert_eq!(arg_slots.len(), args.len());
-      let lvals = arg_slots.iter().map(|slot| grit::LVal::Slot(slot.clone()));
       st.blocks.push(grit::Block {
         label: label,
-        ops: vec![grit::Op::Assign(lvals.zip(grit_args.into_iter()).collect())],
+        ops: vec![grit::Op::Assign(
+          arg_slots.iter().cloned().zip(grit_args.into_iter()).collect())],
         jump: grit::Jump::Goto(target_label.clone()),
       })
     },
@@ -232,7 +229,7 @@ fn translate_branch(st: &mut FunSt, env: &Env, label: grit::Label,
     });
 }
 
-fn translate_val(st: &mut FunSt, env: &Env, val: &spine::Val) -> grit::Val {
+fn translate_val(_: &mut FunSt, env: &Env, val: &spine::Val) -> grit::Val {
   match *val {
     spine::Val::Literal(num) =>
       grit::Val::Literal(num),

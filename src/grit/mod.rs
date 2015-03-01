@@ -1,2 +1,3 @@
 pub use grit::syntax::*;
-mod syntax;
+pub mod syntax;
+pub mod to_asm;

@@ -2,5 +2,8 @@ target/
 .*.sw*
 *~
 *.spiral
+*.s
+*.o
+!rt/*.s
 !examples/*.spiral
 Session.vim

@@ -24,9 +24,9 @@ pub struct Block {
 
 #[derive(PartialEq, Debug)]
 pub enum Op {
-  Call(LVal, FunName, Vec<Val>),
-  ExternCall(LVal, ExternName, Vec<Val>),
-  Assign(Vec<(LVal, Val)>),
+  Call(Slot, FunName, Vec<Val>),
+  ExternCall(Slot, ExternName, Vec<Val>),
+  Assign(Vec<(Slot, Val)>),
 }
 
 #[derive(PartialEq, Debug)]
@@ -50,24 +50,10 @@ pub struct ExternName(pub String);
 pub enum Val {
   Literal(f32),
   Slot(Slot),
-  Reg(Reg),
 }
-
-#[derive(PartialEq, Debug, Clone)]
-pub enum LVal {
-  Literal(f32),
-  Slot(Slot),
-  Reg(Reg),
-}
-
 
 #[derive(PartialEq, Debug)]
 pub enum Boolval {
   IsTrue(Val),
   IsFalse(Val),
-}
-
-#[derive(PartialEq, Eq, Hash, Debug, Clone)]
-pub enum Reg {
-  Reg1, Reg2, Reg3, Reg4,
 }

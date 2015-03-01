@@ -2,7 +2,7 @@ use spine;
 
 type Env = spine::env::Env<(), usize, usize>;
 
-pub fn check_prog(prog: &spine::ProgDef) -> Vec<String> {
+pub fn check(prog: &spine::ProgDef) -> Vec<String> {
   let fun_binds = prog.fun_defs.iter().map(|fun_def| {
       (fun_def.name.clone(), fun_def.args.len())
     }).collect();
