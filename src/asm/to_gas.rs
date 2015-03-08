@@ -3,8 +3,8 @@ use asm;
 pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
   let mut lines = Vec::new();
   lines.push(format!("  .text"));
-  lines.push(format!("  .globl spr_start"));
-  lines.push(format!("  .set spr_start, {}", fun_name_symbol(&prog.main_fun)));
+  lines.push(format!("  .globl spiral_start"));
+  lines.push(format!("  .set spiral_start, {}", fun_name_symbol(&prog.main_fun)));
   lines.push(format!(""));
 
   for fun_def in prog.fun_defs.iter() {
