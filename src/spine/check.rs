@@ -145,43 +145,21 @@ fn check_boolval(env: &Env, boolval: &spine::Boolval) -> Vec<String> {
 
 #[cfg(test)]
 mod test {
-  use spine::check::{check_prog};
+  use sexpr;
+  use spine;
   use spine::helpers::*;
 
-  #[test]
-  fn test_halt_cont_ok() {
-    assert!(check_prog(&ProgDef {
-        fun_defs: vec![],
-        halt_cont: cont("heaven"),
-        body: Cont(cont("heaven"), vec![]),
-      }).is_empty());
-  }
-
-  #[test]
-  fn test_halt_cont_args_mismatch() {
-    let errors = check_prog(&ProgDef {
-        fun_defs: vec![],
-        halt_cont: cont("emergency"),
-        body: Cont(cont("emergency"), vec![Literal(1.0)]),
-      });
-    assert_eq!(errors.len(), 1);
-    assert!(errors[0].contains("continue args mismatch"));
+  fn parse_check(txt: &str) -> Vec<String> {
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    let spine = sexpr::to_spine::prog_from_sexpr(&sexpr).unwrap();
+    spine::check::check(&spine)
   }
 
   #[test]
   fn test_undefined_var() {
-    let errors = check_prog(&ProgDef {
-        fun_defs: vec![
-          FunDef { name: fun("f"), ret: cont("ret"), 
-            args: vec![var("a"), var("b")],
-            body: Cont(cont("ret"), vec![var_val("c")]),
-          },
-        ],
-        halt_cont: cont("halt"),
-        body: Cont(cont("halt"), vec![]),
-      });
+    let errors = parse_check("(program main (main halt () (cont halt b)))");
     assert_eq!(errors.len(), 1);
-    assert!(errors[0].contains("undefined var: 'c'"));
+    assert!(errors[0].contains("undefined var: 'b'"));
   }
 
   // TODO :-)

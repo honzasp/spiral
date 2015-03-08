@@ -448,7 +448,7 @@ mod test {
     let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
     let spiral = sexpr::to_spiral::prog_from_sexpr(&sexpr).unwrap();
     let spine = spiral::to_spine::spine_from_spiral(&spiral).unwrap();
-    let errors = spine::check::check_prog(&spine);
+    let errors = spine::check::check(&spine);
     if !errors.is_empty() {
       panic!("spine invalid: {:?}", errors)
     }

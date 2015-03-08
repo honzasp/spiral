@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use spine;
-pub use spine::{ProgDef, FunDef, ContDef};
+pub use spine::{ProgDef, FunDef, ContDef, Term, Val, Boolval};
 pub use spine::Term::{Letcont, Call, ExternCall, Cont, Branch};
 pub use spine::Val::{Literal, Var};
 pub use spine::Boolval::{IsTrue, IsFalse};

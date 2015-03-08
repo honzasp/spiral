@@ -14,7 +14,7 @@ pub fn eval(prog: &spine::ProgDef) -> Vec<f32> {
 
   let jump = eval_term(&mut st, HashMap::new(), &call_main);
   assert_eq!(jump.cont, halt_cont);
-  assert_eq!(jump.args.len(), 0);
+  assert_eq!(jump.args.len(), 1);
   st.test_output
 }
 
@@ -141,18 +141,23 @@ mod test {
   #[test]
   fn test_output() {
     assert_eq!(eval(&ProgDef {
-        fun_defs: vec![],
-        halt_cont: cont("halt"),
-        body: Letcont(vec![
-            ContDef { 
-              name: cont("landpad"),
-              args: vec![var("ignored")],
-              body: Cont(cont("halt"), vec![]),
-            }
-          ], box ExternCall(ext_name("__test_out"), cont("landpad"), vec![
-                Literal(42.0)
-              ]))
-      }), vec![42.0]);
+        main_fun: fun("main"),
+        fun_defs: vec![
+          FunDef {
+            name: fun("main"),
+            ret: cont("halt"),
+            args: vec![],
+            body: Letcont(vec![
+              ContDef { 
+                name: cont("landpad"),
+                args: vec![var("ignored")],
+                body: Cont(cont("halt"), vec![Literal(0.0)]),
+              }
+            ], box ExternCall(ext_name("__test_out"), cont("landpad"), vec![
+                  Literal(42.0)
+                ]))
+          }
+        ]}), vec![42.0]);
   }
 }
 

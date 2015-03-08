@@ -8,7 +8,7 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<Prog, String> {
         Ok(Prog { body: try!(stmts_from_sexprs(&list[1..])) }),
       _ => Err(format!("program has to begin with 'program'")),
     },
-    _ => Err(format!("program has to be list")),
+    _ => Err(format!("program has to be a list")),
   }
 }
 
