@@ -215,8 +215,8 @@ fn move_mem_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
       instrs.push(asm::Instr::MoveMemImm(mem, asm::Imm::Float(num)));
     },
     grit::Val::Slot(ref slot) => {
-      instrs.push(asm::Instr::MoveRegMem(asm::Reg::EDX, st.slot_mem(slot)));
-      instrs.push(asm::Instr::MoveMemReg(mem, asm::Reg::EDX));
+      instrs.push(asm::Instr::MoveRegMem(asm::Reg::EAX, st.slot_mem(slot)));
+      instrs.push(asm::Instr::MoveMemReg(mem, asm::Reg::EAX));
     },
   }
 }
@@ -235,50 +235,53 @@ fn move_reg_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
 fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
   slots: &[grit::Slot], vals: &[grit::Val])
 {
-  let mut remaining: HashSet<usize> = range(0, slots.len()).collect();
-  let mut saved_in_reg = None;
+  let mut assigns: HashSet<usize> = range(0, slots.len())
+    .filter(|&i| vals[i] != grit::Val::Slot(slots[i].clone()))
+    .collect();
+  let mut saved_in_reg: Option<grit::Slot> = None;
 
-  while !remaining.is_empty() {
-    let required: HashSet<grit::Slot> = remaining.iter().cloned()
+  while !assigns.is_empty() {
+    let required_slots: HashSet<grit::Slot> = assigns.iter().cloned()
       .filter_map(|i| match vals[i] {
-        grit::Val::Slot(ref src_slot) =>
-          if saved_in_reg != Some(src_slot.clone()) {
-            Some(src_slot.clone()) 
+        grit::Val::Slot(ref slot) =>
+          if Some(slot) != saved_in_reg.as_ref() {
+            Some(slot.clone())
           } else {
-            None 
+            None
           },
         grit::Val::Literal(_) => None,
       }).collect();
-    let mut satisfied = Vec::new();
 
-    for &i in remaining.iter() {
-      if !required.contains(&slots[i]) {
-        match (&saved_in_reg, &vals[i]) {
-          (&Some(ref saved_slot), &grit::Val::Slot(ref read_slot)) => {
-            assert_eq!(saved_slot, read_slot);
-            instrs.push(asm::Instr::MoveMemReg(st.slot_mem(&slots[i]), asm::Reg::EDX));
+    let mut satisfied = Vec::new();
+    for i in assigns.iter().cloned() {
+      let lslot = &slots[i];
+      if !required_slots.contains(lslot) {
+        match vals[i] {
+          grit::Val::Literal(num) => {
+            instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), asm::Imm::Float(num)));
           },
-          (_, &grit::Val::Slot(ref read_slot)) => {
-            instrs.push(asm::Instr::MoveRegMem(asm::Reg::EDX, st.slot_mem(read_slot)));
-            instrs.push(asm::Instr::MoveMemReg(st.slot_mem(&slots[i]), asm::Reg::EDX));
-          },
-          (_, &grit::Val::Literal(num)) => {
-            instrs.push(asm::Instr::MoveMemImm(st.slot_mem(&slots[i]),
-              asm::Imm::Float(num)));
-          },
+          grit::Val::Slot(ref rslot) => {
+            if Some(rslot) == saved_in_reg.as_ref() {
+              instrs.push(asm::Instr::MoveMemReg(st.slot_mem(lslot), asm::Reg::EDX));
+            } else {
+              instrs.push(asm::Instr::MoveRegMem(asm::Reg::EAX, st.slot_mem(rslot)));
+              instrs.push(asm::Instr::MoveMemReg(st.slot_mem(lslot), asm::Reg::EAX));
+            }
+          }
         }
         satisfied.push(i);
       }
     }
 
     if satisfied.is_empty() {
-      let breaker = required.iter().next().unwrap();
-      instrs.push(asm::Instr::MoveRegMem(asm::Reg::EDX, st.slot_mem(breaker)));
-      saved_in_reg = Some(breaker.clone());
-    }
-
-    for i in satisfied.into_iter() {
-      remaining.remove(&i);
+      assert!(!required_slots.is_empty());
+      let save_slot = required_slots.iter().next().unwrap();
+      instrs.push(asm::Instr::MoveRegMem(asm::Reg::EDX, st.slot_mem(save_slot)));
+      saved_in_reg = Some(save_slot.clone());
+    } else {
+      for i in satisfied.iter() {
+        assigns.remove(i);
+      }
     }
   }
 }
