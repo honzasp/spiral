@@ -84,7 +84,8 @@ pub enum Imm {
   Label(Label),
   FunAddr(FunName),
   ExternAddr(ExternName),
-  Float(f32),
   Plus(Box<Imm>, Box<Imm>),
   Minus(Box<Imm>, Box<Imm>),
+  True,
+  False,
 }

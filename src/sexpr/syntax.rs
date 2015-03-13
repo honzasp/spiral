@@ -2,6 +2,7 @@
 pub enum Elem {
   List(Vec<Elem>),
   Identifier(String),
-  Number(f32),
+  Int(i32),
+  Float(f32),
 }
 

@@ -60,8 +60,10 @@ pub fn expr_from_sexpr(expr: &sexpr::Elem) -> Result<Expr, String> {
   match *expr {
     sexpr::Elem::Identifier(ref name) =>
       Ok(Expr::Var(Var(name.clone()))),
-    sexpr::Elem::Number(number) =>
-      Ok(Expr::Literal(number)),
+    sexpr::Elem::Int(number) =>
+      Ok(Expr::Int(number)),
+    sexpr::Elem::Float(_) =>
+      Err(format!("floats are not supported")),
     sexpr::Elem::List(ref list) => match list.get(0) {
       Some(&sexpr::Elem::Identifier(ref id)) => match id.as_slice() {
         "if" => if_from_sexpr(&list[1..]),
@@ -279,8 +281,8 @@ mod test {
     s::Var(id.to_string())
   }
 
-  fn lit_expr(num: f32) -> s::Expr {
-    s::Expr::Literal(num)
+  fn int_expr(num: i32) -> s::Expr {
+    s::Expr::Int(num)
   }
 
   fn var_expr(id: &str) -> s::Expr {
@@ -291,7 +293,7 @@ mod test {
   fn test_prog() {
     assert_eq!(parse_prog("(program (var x 10) (fun get-x () x))"),
       s::Prog { body: vec![
-        s::Stmt::Var(var("x"), lit_expr(10.0)),
+        s::Stmt::Var(var("x"), int_expr(10)),
         s::Stmt::Fun(fun_name("get-x"), vec![], vec![
             s::Stmt::Expr(var_expr("x")),
           ]),
@@ -302,20 +304,20 @@ mod test {
   fn test_fun_def() {
     assert_eq!(parse_stmt("(fun f (a b) 3)"),
       s::Stmt::Fun(fun_name("f"), vec![var("a"), var("b")], vec![
-          s::Stmt::Expr(lit_expr(3.0))
+          s::Stmt::Expr(int_expr(3))
         ]));
   }
 
   #[test]
   fn test_var_def() {
     assert_eq!(parse_stmt("(var x 3)"),
-      s::Stmt::Var(var("x"), lit_expr(3.0)));
+      s::Stmt::Var(var("x"), int_expr(3)));
   }
 
   #[test]
   fn test_if_expr() {
     assert_eq!(parse_expr("(if a 2 3)"),
-      s::Expr::If(box var_expr("a"), box lit_expr(2.0), box lit_expr(3.0)));
+      s::Expr::If(box var_expr("a"), box int_expr(2), box int_expr(3)));
   }
 
   #[test] #[ignore]
@@ -323,26 +325,26 @@ mod test {
     assert_eq!(parse_expr("(cond (a 1 2) (b 2) (else 3))"),
       s::Expr::Cond(vec![
           (var_expr("a"), vec![
-              s::Stmt::Expr(lit_expr(1.0)),
-              s::Stmt::Expr(lit_expr(2.0)),
+              s::Stmt::Expr(int_expr(1)),
+              s::Stmt::Expr(int_expr(2)),
             ]),
           (var_expr("b"), vec![
-              s::Stmt::Expr(lit_expr(1.0)),
+              s::Stmt::Expr(int_expr(1)),
             ]),
         ],
         Some(vec![
-            s::Stmt::Expr(lit_expr(3.0)),
+            s::Stmt::Expr(int_expr(3)),
           ]))
       );
 
     assert_eq!(parse_expr("(cond (a 1 2) (b 2))"),
       s::Expr::Cond(vec![
           (var_expr("a"), vec![
-              s::Stmt::Expr(lit_expr(1.0)),
-              s::Stmt::Expr(lit_expr(2.0)),
+              s::Stmt::Expr(int_expr(1)),
+              s::Stmt::Expr(int_expr(2)),
             ]),
           (var_expr("b"), vec![
-              s::Stmt::Expr(lit_expr(1.0)),
+              s::Stmt::Expr(int_expr(1)),
             ]),
         ],
         None)
@@ -353,8 +355,8 @@ mod test {
   fn test_when_expr() {
     assert_eq!(parse_expr("(when a 1 2)"),
       s::Expr::When(box var_expr("a"), vec![
-          s::Stmt::Expr(lit_expr(1.0)),
-          s::Stmt::Expr(lit_expr(2.0)),
+          s::Stmt::Expr(int_expr(1)),
+          s::Stmt::Expr(int_expr(2)),
         ]));
   }
 
@@ -362,8 +364,8 @@ mod test {
   fn test_unless_expr() {
     assert_eq!(parse_expr("(unless b 1 2)"),
       s::Expr::Unless(box var_expr("b"), vec![
-          s::Stmt::Expr(lit_expr(1.0)),
-          s::Stmt::Expr(lit_expr(2.0)),
+          s::Stmt::Expr(int_expr(1)),
+          s::Stmt::Expr(int_expr(2)),
         ]));
   }
 
@@ -372,16 +374,16 @@ mod test {
     assert_eq!(parse_expr("(do ((i 1 j) (j 0 i)) (x 0) 1 2)"),
       s::Expr::Do(
         vec![
-          (var("i"), lit_expr(1.0), var_expr("j")),
-          (var("j"), lit_expr(0.0), var_expr("i")),
+          (var("i"), int_expr(1), var_expr("j")),
+          (var("j"), int_expr(0), var_expr("i")),
         ],
         box var_expr("x"),
         vec![
-          s::Stmt::Expr(lit_expr(0.0)),
+          s::Stmt::Expr(int_expr(0)),
         ],
         vec![
-          s::Stmt::Expr(lit_expr(1.0)),
-          s::Stmt::Expr(lit_expr(2.0)),
+          s::Stmt::Expr(int_expr(1)),
+          s::Stmt::Expr(int_expr(2)),
         ]
       ));
   }
@@ -389,21 +391,21 @@ mod test {
   #[test]
   fn test_and_expr() {
     assert_eq!(parse_expr("(and 1 2 3)"),
-      s::Expr::And(vec![lit_expr(1.0), lit_expr(2.0), lit_expr(3.0)]));
+      s::Expr::And(vec![int_expr(1), int_expr(2), int_expr(3)]));
   }
 
   #[test]
   fn test_or_expr() {
     assert_eq!(parse_expr("(or 1 b 3)"),
-      s::Expr::Or(vec![lit_expr(1.0), var_expr("b"), lit_expr(3.0)]));
+      s::Expr::Or(vec![int_expr(1), var_expr("b"), int_expr(3)]));
   }
 
   #[test]
   fn test_begin_expr() {
     assert_eq!(parse_expr("(begin 1 2)"),
       s::Expr::Begin(vec![
-        s::Stmt::Expr(lit_expr(1.0)),
-        s::Stmt::Expr(lit_expr(2.0)),
+        s::Stmt::Expr(int_expr(1)),
+        s::Stmt::Expr(int_expr(2)),
       ]));
   }
 
@@ -411,8 +413,8 @@ mod test {
   fn test_let_expr() {
     assert_eq!(parse_expr("(let ((a 1) (b 2)) a b)"),
       s::Expr::Let(vec![
-          (var("a"), lit_expr(1.0)),
-          (var("b"), lit_expr(2.0)),
+          (var("a"), int_expr(1)),
+          (var("b"), int_expr(2)),
         ], vec![
           s::Stmt::Expr(var_expr("a")),
           s::Stmt::Expr(var_expr("b")),
@@ -422,6 +424,6 @@ mod test {
   #[test]
   fn test_call_expr() {
     assert_eq!(parse_expr("(+ 1 2)"),
-      s::Expr::Call(fun_name("+"), vec![lit_expr(1.0), lit_expr(2.0)]));
+      s::Expr::Call(fun_name("+"), vec![int_expr(1), int_expr(2)]));
   }
 }

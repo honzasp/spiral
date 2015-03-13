@@ -48,8 +48,10 @@ pub struct ExternName(pub String);
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Val {
-  Literal(f32),
+  Int(i32),
   Slot(Slot),
+  True,
+  False,
 }
 
 #[derive(PartialEq, Debug)]

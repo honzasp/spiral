@@ -5,6 +5,8 @@ pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
   lines.push(format!("  .text"));
   lines.push(format!("  .globl spiral_start"));
   lines.push(format!("  .set spiral_start, {}", fun_name_symbol(&prog.main_fun)));
+  lines.push(format!("  .set {}, 0xffffffe", true_symbol()));
+  lines.push(format!("  .set {}, 0xfffffff", false_symbol()));
   lines.push(format!(""));
 
   for fun_def in prog.fun_defs.iter() {
@@ -89,8 +91,6 @@ fn translate_instr(instr: &asm::Instr) -> String {
 }
 
 fn imm(i: &asm::Imm) -> String {
-  use std::mem::transmute;
-
   match *i {
     asm::Imm::Int(num) => format!("{}", num),
     asm::Imm::Label(ref label) => label_symbol(label),
@@ -98,7 +98,8 @@ fn imm(i: &asm::Imm) -> String {
     asm::Imm::ExternAddr(ref ext_name) => extern_name_symbol(ext_name),
     asm::Imm::Plus(ref l, ref r) => format!("({}) + ({})", imm(&**l), imm(&**r)),
     asm::Imm::Minus(ref l, ref r) => format!("({}) - ({})", imm(&**l), imm(&**r)),
-    asm::Imm::Float(num) => format!("{}", unsafe { transmute::<f32, i32>(num) }),
+    asm::Imm::True => true_symbol(),
+    asm::Imm::False => false_symbol(),
   }
 }
 
@@ -137,5 +138,13 @@ fn extern_name_symbol(name: &asm::ExternName) -> String {
 }
 
 fn label_symbol(label: &asm::Label) -> String {
-  format!(".L{}", label.0)
+  format!(".L_{}", label.0)
+}
+
+fn true_symbol() -> String {
+  format!(".Ltrue")
+}
+
+fn false_symbol() -> String {
+  format!(".Lfalse")
 }

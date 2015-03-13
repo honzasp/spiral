@@ -132,8 +132,10 @@ fn val_from_sexpr(elem: &sexpr::Elem) -> Result<spine::Val, String> {
   match *elem {
     sexpr::Elem::Identifier(ref id) =>
       Ok(spine::Val::Var(spine::Var(id.clone()))),
-    sexpr::Elem::Number(num) =>
-      Ok(spine::Val::Literal(num)),
+    sexpr::Elem::Int(num) =>
+      Ok(spine::Val::Int(num)),
+    sexpr::Elem::Float(_) =>
+      Err(format!("floats not supported")),
     _ => Err(format!("expected a val")),
   }
 }
@@ -272,7 +274,7 @@ mod test {
         name: fun("compute-zero"),
         ret: cont("ret"),
         args: vec![var("a"), var("b")],
-        body: Cont(cont("ret"), vec![Literal(0.0)]),
+        body: Cont(cont("ret"), vec![Int(0)]),
       });
   }
 
@@ -288,32 +290,32 @@ mod test {
           body: Cont(cont("r"), vec![var_val("a1")]) },
         ContDef { name: cont("c2"), args: vec![var("a2"), var("b2"), var("c2")],
           body: Cont(cont("r"), vec![var_val("b2")]) }, 
-        ], box Cont(cont("c2"), vec![Literal(1.0), Literal(2.0), Literal(3.0)])));
+        ], box Cont(cont("c2"), vec![Int(1), Int(2), Int(3)])));
   }
 
   #[test]
   fn test_call() {
     assert_eq!(parse_term("(call f k a b 2)"),
-      Call(fun("f"), cont("k"), vec![var_val("a"), var_val("b"), Literal(2.0)]));
+      Call(fun("f"), cont("k"), vec![var_val("a"), var_val("b"), Int(2)]));
   }
 
   #[test]
   fn test_extern_call() {
     assert_eq!(parse_term("(extern-call f k a b 2)"),
       ExternCall(ext_name("f"), cont("k"),
-        vec![var_val("a"), var_val("b"), Literal(2.0)]));
+        vec![var_val("a"), var_val("b"), Int(2)]));
   }
 
   #[test]
   fn test_cont() {
     assert_eq!(parse_term("(cont k 0 1 b)"),
-      Cont(cont("k"), vec![Literal(0.0), Literal(1.0), var_val("b")]));
+      Cont(cont("k"), vec![Int(0), Int(1), var_val("b")]));
   }
 
   #[test]
   fn test_branch() {
     assert_eq!(parse_term("(branch (is-true 0) ok not-ok)"),
-      Branch(IsTrue(Literal(0.0)), cont("ok"), cont("not-ok")));
+      Branch(IsTrue(Int(0)), cont("ok"), cont("not-ok")));
     assert_eq!(parse_term("(branch (is-false f) ok not-ok)"),
       Branch(IsFalse(var_val("f")), cont("ok"), cont("not-ok")));
   }

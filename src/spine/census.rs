@@ -60,7 +60,7 @@ fn walk_term(census: &mut HashSet<spine::Var>, term: &spine::Term) -> Term {
 
 fn walk_val(census: &mut HashSet<spine::Var>, val: &spine::Val) -> spine::Val {
   match *val {
-    spine::Val::Literal(_) => { },
+    spine::Val::Int(_) | spine::Val::True | spine::Val::False => { },
     spine::Val::Var(ref var) => { census.insert(var.clone()); },
   }
   val.clone()

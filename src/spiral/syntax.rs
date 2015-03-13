@@ -30,5 +30,5 @@ pub enum Expr {
   Let(Vec<(Var, Expr)>, Vec<Stmt>),
   Call(FunName, Vec<Expr>),
   Var(Var),
-  Literal(f32),
+  Int(i32),
 }

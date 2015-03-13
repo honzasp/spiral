@@ -41,8 +41,10 @@ pub struct ContName(pub String);
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Val {
-  Literal(f32),
+  Int(i32),
   Var(Var),
+  True,
+  False,
 }
 
 #[derive(PartialEq, Debug)]

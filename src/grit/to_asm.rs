@@ -174,14 +174,14 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
     grit::Jump::Branch(ref boolval, ref then_label, ref else_label) =>
       match *boolval {
         grit::Boolval::IsTrue(ref val) => {
-          cmp_val_imm(st, &mut instrs, val, asm::Imm::Float(0.0));
+          cmp_val_imm(st, &mut instrs, val, asm::Imm::False);
           instrs.push(asm::Instr::JumpIf(asm::Test::Equal,
             asm::Imm::Label(st.translate_label(else_label))));
           instrs.push(asm::Instr::Jump(
             asm::Imm::Label(st.translate_label(then_label))));
         },
         grit::Boolval::IsFalse(ref val) => {
-          cmp_val_imm(st, &mut instrs, val, asm::Imm::Float(0.0));
+          cmp_val_imm(st, &mut instrs, val, asm::Imm::False);
           instrs.push(asm::Instr::JumpIf(asm::Test::NotEqual,
             asm::Imm::Label(st.translate_label(else_label))));
           instrs.push(asm::Instr::Jump(
@@ -211,13 +211,16 @@ fn move_mem_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
   mem: asm::Mem, val: &grit::Val)
 {
   match *val {
-    grit::Val::Literal(num) => {
-      instrs.push(asm::Instr::MoveMemImm(mem, asm::Imm::Float(num)));
-    },
+    grit::Val::Int(num) => 
+      instrs.push(asm::Instr::MoveMemImm(mem, translate_int(num))),
     grit::Val::Slot(ref slot) => {
       instrs.push(asm::Instr::MoveRegMem(asm::Reg::EAX, st.slot_mem(slot)));
       instrs.push(asm::Instr::MoveMemReg(mem, asm::Reg::EAX));
     },
+    grit::Val::True =>
+      instrs.push(asm::Instr::MoveMemImm(mem, asm::Imm::True)),
+    grit::Val::False =>
+      instrs.push(asm::Instr::MoveMemImm(mem, asm::Imm::False)),
   }
 }
 
@@ -225,10 +228,14 @@ fn move_reg_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
   reg: asm::Reg, val: &grit::Val)
 {
   match *val {
-    grit::Val::Literal(num) => 
-      instrs.push(asm::Instr::MoveRegImm(reg, asm::Imm::Float(num))),
+    grit::Val::Int(num) => 
+      instrs.push(asm::Instr::MoveRegImm(reg, translate_int(num))),
     grit::Val::Slot(ref slot) =>
       instrs.push(asm::Instr::MoveRegMem(reg, st.slot_mem(slot))),
+    grit::Val::True =>
+      instrs.push(asm::Instr::MoveRegImm(reg, asm::Imm::True)),
+    grit::Val::False =>
+      instrs.push(asm::Instr::MoveRegImm(reg, asm::Imm::False)),
   }
 }
 
@@ -249,7 +256,8 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
           } else {
             None
           },
-        grit::Val::Literal(_) => None,
+        grit::Val::Int(_) | grit::Val::True | grit::Val::False =>
+          None,
       }).collect();
 
     let mut satisfied = Vec::new();
@@ -257,9 +265,6 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
       let lslot = &slots[i];
       if !required_slots.contains(lslot) {
         match vals[i] {
-          grit::Val::Literal(num) => {
-            instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), asm::Imm::Float(num)));
-          },
           grit::Val::Slot(ref rslot) => {
             if Some(rslot) == saved_in_reg.as_ref() {
               instrs.push(asm::Instr::MoveMemReg(st.slot_mem(lslot), asm::Reg::EDX));
@@ -267,7 +272,13 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
               instrs.push(asm::Instr::MoveRegMem(asm::Reg::EAX, st.slot_mem(rslot)));
               instrs.push(asm::Instr::MoveMemReg(st.slot_mem(lslot), asm::Reg::EAX));
             }
-          }
+          },
+          grit::Val::Int(num) => 
+            instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), translate_int(num))),
+          grit::Val::True =>
+            instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), asm::Imm::True)),
+          grit::Val::False =>
+            instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), asm::Imm::False)),
         }
         satisfied.push(i);
       }
@@ -290,12 +301,20 @@ fn cmp_val_imm(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
   val: &grit::Val, imm: asm::Imm)
 {
   match *val {
-    grit::Val::Literal(num) => {
-      instrs.push(asm::Instr::MoveRegImm(asm::Reg::EDX, asm::Imm::Float(num)));
-      instrs.push(asm::Instr::CmpRegImm(asm::Reg::EDX, imm));
+    grit::Val::Int(num) => {
+      instrs.push(asm::Instr::MoveRegImm(asm::Reg::EAX, translate_int(num)));
+      instrs.push(asm::Instr::CmpRegImm(asm::Reg::EAX, imm));
     },
     grit::Val::Slot(ref slot) => {
       instrs.push(asm::Instr::CmpMemImm(st.slot_mem(slot), imm));
+    },
+    grit::Val::True => {
+      instrs.push(asm::Instr::MoveRegImm(asm::Reg::EAX, asm::Imm::True));
+      instrs.push(asm::Instr::CmpRegImm(asm::Reg::EAX, imm));
+    },
+    grit::Val::False => {
+      instrs.push(asm::Instr::MoveRegImm(asm::Reg::EAX, asm::Imm::False));
+      instrs.push(asm::Instr::CmpRegImm(asm::Reg::EAX, imm));
     },
   }
 }
@@ -306,4 +325,8 @@ fn translate_fun_name(name: &grit::FunName) -> asm::FunName {
 
 fn translate_extern_name(name: &grit::ExternName) -> asm::ExternName {
   asm::ExternName(name.0.clone())
+}
+
+fn translate_int(unboxed: i32) -> asm::Imm {
+  asm::Imm::Int(unboxed << 1)
 }

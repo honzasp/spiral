@@ -231,10 +231,12 @@ fn translate_branch(st: &mut FunSt, env: &Env, label: grit::Label,
 
 fn translate_val(_: &mut FunSt, env: &Env, val: &spine::Val) -> grit::Val {
   match *val {
-    spine::Val::Literal(num) =>
-      grit::Val::Literal(num),
+    spine::Val::Int(num) =>
+      grit::Val::Int(num),
     spine::Val::Var(ref var) =>
       grit::Val::Slot(env.lookup_var(var).expect("undefined var").clone()),
+    spine::Val::True => grit::Val::True,
+    spine::Val::False => grit::Val::False,
   }
 }
 

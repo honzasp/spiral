@@ -133,7 +133,8 @@ fn check_term(env: &Env, term: &spine::Term) -> Vec<String> {
 
 fn check_val(env: &Env, val: &spine::Val) -> Vec<String> {
   match *val {
-    spine::Val::Literal(_) => vec![],
+    spine::Val::Int(_) | spine::Val::True | spine::Val::False =>
+      vec![],
     spine::Val::Var(ref var) => match env.lookup_var(var) {
       Some(&()) => vec![],
       None => vec![format!("undefined var: '{}'", var.0)],

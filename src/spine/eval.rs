@@ -1,7 +1,14 @@
 use std::collections::{HashMap};
 use spine;
 
-pub fn eval(prog: &spine::ProgDef) -> Vec<f32> {
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum RtVal {
+  Int(i32),
+  True,
+  False,
+}
+
+pub fn eval(prog: &spine::ProgDef) -> Vec<RtVal> {
   let halt_cont = spine::ContName("halt".to_string());
   let call_main = spine::Term::Call(prog.main_fun.clone(), halt_cont.clone(), vec![]);
   let mut st = ProgSt {
@@ -20,16 +27,16 @@ pub fn eval(prog: &spine::ProgDef) -> Vec<f32> {
 
 struct ProgSt<'g> {
   steps: i32,
-  test_output: Vec<f32>,
+  test_output: Vec<RtVal>,
   fun_defs: HashMap<spine::FunName, &'g spine::FunDef>,
 }
 
 struct Jump {
   cont: spine::ContName,
-  args: Vec<f32>,
+  args: Vec<RtVal>,
 }
 
-fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, f32>,
+fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, RtVal>,
   term: &'g spine::Term) -> Jump 
 {
   if st.steps <= 0 {
@@ -69,18 +76,28 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, f32>,
     spine::Term::ExternCall(ref ext_name, ref ret_cont, ref args) => {
       use std::{ops, cmp};
 
-      let binop = |op: fn(f32, f32) -> f32| {
+      let binop = |op: fn(i32, i32) -> i32| {
           assert_eq!(args.len(), 2);
           let a = eval_val(&vars, &args[0]);
           let b = eval_val(&vars, &args[1]);
-          Jump { cont: ret_cont.clone(), args: vec![op(a, b)] }
+          match (a, b) {
+            (RtVal::Int(i), RtVal::Int(j)) =>
+              Jump { cont: ret_cont.clone(), args: vec![RtVal::Int(op(i, j))] },
+            _ => panic!("expected ints to binop, got {:?} and {:?}", a, b),
+          }
         };
 
-      let binop_bool = |op: fn(&f32, &f32) -> bool| {
+      let binop_bool = |op: fn(&i32, &i32) -> bool| {
           assert_eq!(args.len(), 2);
           let a = eval_val(&vars, &args[0]);
           let b = eval_val(&vars, &args[1]);
-          Jump { cont: ret_cont.clone(), args: vec![if op(&a, &b) { 1.0 } else { 0.0 }] }
+          match (a, b) {
+            (RtVal::Int(i), RtVal::Int(j)) => {
+              let res = if op(&i, &j) { RtVal::True } else { RtVal::False };
+              Jump { cont: ret_cont.clone(), args: vec![res] }
+            },
+            _ => panic!("expected ints to cmp, got {:?} and {:?}", a, b),
+          }
         };
 
       match &ext_name.0[..] {
@@ -88,20 +105,19 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, f32>,
           assert_eq!(args.len(), 1);
           let value = eval_val(&vars, &args[0]);
           st.test_output.push(value);
-          Jump { cont: ret_cont.clone(), args: vec![0.0] }
+          Jump { cont: ret_cont.clone(), args: vec![RtVal::False] }
         },
-        "spiral_ext_add" => binop(<f32 as ops::Add>::add),
-        "spiral_ext_sub" => binop(<f32 as ops::Sub>::sub),
-        "spiral_ext_mul" => binop(<f32 as ops::Mul>::mul),
-        "spiral_ext_div" => binop(<f32 as ops::Div>::div),
-        "spiral_ext_lt" => binop_bool(<f32 as cmp::PartialOrd>::lt),
-        "spiral_ext_le" => binop_bool(<f32 as cmp::PartialOrd>::le),
-        "spiral_ext_gt" => binop_bool(<f32 as cmp::PartialOrd>::gt),
-        "spiral_ext_ge" => binop_bool(<f32 as cmp::PartialOrd>::ge),
-        "spiral_ext_eq" => binop_bool(<f32 as cmp::PartialEq>::eq),
-        "spiral_ext_ne" => binop_bool(<f32 as cmp::PartialEq>::ne),
-        _ =>
-          panic!("extern call to '{}'", ext_name.0)
+        "spiral_ext_add" => binop(<i32 as ops::Add>::add),
+        "spiral_ext_sub" => binop(<i32 as ops::Sub>::sub),
+        "spiral_ext_mul" => binop(<i32 as ops::Mul>::mul),
+        "spiral_ext_div" => binop(<i32 as ops::Div>::div),
+        "spiral_ext_lt" => binop_bool(<i32 as cmp::PartialOrd>::lt),
+        "spiral_ext_le" => binop_bool(<i32 as cmp::PartialOrd>::le),
+        "spiral_ext_gt" => binop_bool(<i32 as cmp::PartialOrd>::gt),
+        "spiral_ext_ge" => binop_bool(<i32 as cmp::PartialOrd>::ge),
+        "spiral_ext_eq" => binop_bool(<i32 as cmp::PartialEq>::eq),
+        "spiral_ext_ne" => binop_bool(<i32 as cmp::PartialEq>::ne),
+        _ => panic!("extern call to '{}'", ext_name.0)
       }
     },
     spine::Term::Cont(ref cont_name, ref args) => 
@@ -117,26 +133,28 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, f32>,
   }
 }
 
-fn eval_val(vars: &HashMap<spine::Var, f32>, val: &spine::Val) -> f32 {
+fn eval_val(vars: &HashMap<spine::Var, RtVal>, val: &spine::Val) -> RtVal {
   match *val {
-    spine::Val::Literal(number) => number,
+    spine::Val::Int(number) => RtVal::Int(number),
     spine::Val::Var(ref var) => *vars.get(var).unwrap(),
+    spine::Val::True => RtVal::True,
+    spine::Val::False => RtVal::False,
   }
 }
 
-fn eval_boolval(vars: &HashMap<spine::Var, f32>, boolval: &spine::Boolval) -> bool {
+fn eval_boolval(vars: &HashMap<spine::Var, RtVal>, boolval: &spine::Boolval) -> bool {
   match *boolval {
     spine::Boolval::IsTrue(ref val) =>
-      eval_val(vars, val) != 0.0,
+      eval_val(vars, val) != RtVal::False,
     spine::Boolval::IsFalse(ref val) =>
-      eval_val(vars, val) == 0.0,
+      eval_val(vars, val) == RtVal::False,
   }
 }
 
 #[cfg(test)]
 mod test {
   use spine::helpers::*;
-  use spine::eval::{eval};
+  use spine::eval::{eval, RtVal};
 
   #[test]
   fn test_output() {
@@ -151,13 +169,13 @@ mod test {
               ContDef { 
                 name: cont("landpad"),
                 args: vec![var("ignored")],
-                body: Cont(cont("halt"), vec![Literal(0.0)]),
+                body: Cont(cont("halt"), vec![False]),
               }
             ], box ExternCall(ext_name("__test_out"), cont("landpad"), vec![
-                  Literal(42.0)
+                  Int(42)
                 ]))
           }
-        ]}), vec![42.0]);
+        ]}), vec![RtVal::Int(42)]);
   }
 }
 

@@ -2,7 +2,7 @@
 use spine;
 pub use spine::{ProgDef, FunDef, ContDef, Term, Val, Boolval};
 pub use spine::Term::{Letcont, Call, ExternCall, Cont, Branch};
-pub use spine::Val::{Literal, Var};
+pub use spine::Val::{Int, Var, True, False};
 pub use spine::Boolval::{IsTrue, IsFalse};
 
 pub fn var(id: &str) -> spine::Var {
