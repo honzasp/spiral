@@ -1,5 +1,7 @@
 [package]
-
 name = "spiral"
 version = "0.0.1"
 authors = ["Jan Špaček <patek.mail@gmail.com>"]
+
+[dependencies]
+argparse = "0.1.0"
