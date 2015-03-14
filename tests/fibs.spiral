@@ -1,0 +1,5 @@
+(program
+  (do ((f1 1 f2) (f2 1 (+ f1 f2)))
+      ((>= f1 100))
+    (println f1)))
+

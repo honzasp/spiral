@@ -1,0 +1,26 @@
+(program
+  (println (if true 1 10))
+  (println (if false 200 1))
+  (println (if 10 1 300))
+  (println (if 0 1 400))
+
+  (println (if (< 1 2) 1 500))
+  (println (if (< 10 2) 600 1))
+  (println (if (< 12 12) 700 1))
+
+  (println (if (<= 1 2) 1 800))
+  (println (if (<= 10 2) 900 1))
+  (println (if (<= 12 12) 1 1000))
+
+  (println (if (== 1 2) 1100 1))
+  (println (if (== 4 4) 1 1200))
+  (println (if (/= 3 2) 1 1100))
+  (println (if (/= 5 5) 1200 1))
+
+  (println (if (>= 1 2) 1300 1))
+  (println (if (>= 10 2) 1 1400))
+  (println (if (>= 12 12) 1 1500))
+
+  (println (if (> 1 2) 1600 1))
+  (println (if (> 10 2) 1 1700))
+  (println (if (> 12 12) 1800 1)))

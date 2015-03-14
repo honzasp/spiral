@@ -1,0 +1,6 @@
+(program
+  (println 42)
+  (println (- 0 21))
+  (println 0)
+  (println true)
+  (println false))
