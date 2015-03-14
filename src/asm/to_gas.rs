@@ -5,8 +5,8 @@ pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
   lines.push(format!("  .text"));
   lines.push(format!("  .globl spiral_start"));
   lines.push(format!("  .set spiral_start, {}", fun_name_symbol(&prog.main_fun)));
-  lines.push(format!("  .set {}, 0xffffffe", true_symbol()));
-  lines.push(format!("  .set {}, 0xfffffff", false_symbol()));
+  lines.push(format!("  .set {}, 0xfffffffd", true_symbol()));
+  lines.push(format!("  .set {}, 0xffffffff", false_symbol()));
   lines.push(format!(""));
 
   for fun_def in prog.fun_defs.iter() {

@@ -1,0 +1,9 @@
+CXX = clang++
+CXX_FLAGS = -Wall -Wextra -std=c++11 -Iinclude
+AR = ar
+
+!cxx_c = |> ^ c++ %f^ $(CXX) $(CXX_FLAGS) -c %f -o %o |>
+!ar = |> ^ ar %f^ $(AR) rcs %o %f |>
+
+: foreach src/spiral/*.cpp |> !cxx_c |> build/%B.o {objs}
+: {objs} |> !ar |> build/runtime.a
