@@ -138,7 +138,7 @@ fn main_body() -> Result<(), SpiralError> {
 
   let grit = spine::to_grit::grit_from_spine(&spine);
   if args.output == Output::GritDump {
-    return dump(format!("{:?}", grit))
+    return dump_sexpr(&grit::to_sexpr::prog_to_sexpr(&grit));
   }
 
   let asm = grit::to_asm::asm_from_grit(&grit);
