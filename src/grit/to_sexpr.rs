@@ -42,9 +42,12 @@ pub fn op_to_sexpr(op: &grit::Op) -> sexpr::Elem {
       extern_name_to_sexpr(extern_name),
       sexpr::Elem::List(vals.iter().map(val_to_sexpr).collect()),
     ],
-    grit::Op::Assign(ref assigns) => assigns.iter().map(|&(ref slot, ref val)| {
-        sexpr::Elem::List(vec![slot_to_sexpr(slot), val_to_sexpr(val)])
-      }).collect(),
+    grit::Op::Assign(ref assigns) => vec![
+      ident("assign"),
+      sexpr::Elem::List(assigns.iter().map(|&(ref slot, ref val)| {
+          sexpr::Elem::List(vec![slot_to_sexpr(slot), val_to_sexpr(val)])
+        }).collect()),
+    ],
   })
 }
 

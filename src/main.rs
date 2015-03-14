@@ -25,11 +25,11 @@ struct Args {
 
 #[derive(Debug, Copy, PartialEq)]
 enum Output {
-  SexprDump,
-  SpiralDump,
-  SpineDump,
-  GritDump,
-  AsmDump,
+  Sexpr,
+  Spiral,
+  Spine,
+  Grit,
+  Asm,
   Gas,
   Executable,
 }
@@ -47,11 +47,11 @@ fn parse_args() -> Result<Args, SpiralError> {
     let mut ap = ArgumentParser::new();
     ap.set_description("Spiral compiler");
     ap.refer(&mut output)
-      .add_option(&["--sexpr-dump"], StoreConst(Output::SexprDump), "dump sexpr")
-      .add_option(&["--spiral-dump"], StoreConst(Output::SpiralDump), "dump spiral")
-      .add_option(&["--spine-dump"], StoreConst(Output::SpineDump), "dump spine")
-      .add_option(&["--grit-dump"], StoreConst(Output::GritDump), "dump grit")
-      .add_option(&["--asm-dump"], StoreConst(Output::AsmDump), "dump asm")
+      .add_option(&["--sexpr"], StoreConst(Output::Sexpr), "dump sexpr")
+      .add_option(&["--spiral"], StoreConst(Output::Spiral), "dump spiral")
+      .add_option(&["--spine"], StoreConst(Output::Spine), "dump spine")
+      .add_option(&["--grit"], StoreConst(Output::Grit), "dump grit")
+      .add_option(&["--asm"], StoreConst(Output::Asm), "dump asm")
       .add_option(&["--gas"], StoreConst(Output::Gas), "emit gas");
     ap.refer(&mut runtime)
       .add_option(&["--runtime"], Store, "path to the runtime library");
@@ -93,11 +93,11 @@ fn main_body() -> Result<(), SpiralError> {
     Some(ref path) => Path::new(path.clone()),
     None => {
       let ext = match args.output {
-        Output::SexprDump => "txt",
-        Output::SpiralDump => "txt",
-        Output::SpineDump => "txt",
-        Output::GritDump => "txt",
-        Output::AsmDump => "txt",
+        Output::Sexpr => "txt",
+        Output::Spiral => "txt",
+        Output::Spine => "txt",
+        Output::Grit => "txt",
+        Output::Asm => "txt",
         Output::Gas => "s",
         Output::Executable => "",
       };
@@ -122,27 +122,27 @@ fn main_body() -> Result<(), SpiralError> {
   let input_str = try!(str::from_utf8(&input[..]));
 
   let sexpr = try!(sexpr::parse::parse_sexpr(input_str));
-  if args.output == Output::SexprDump {
+  if args.output == Output::Sexpr {
     return dump_sexpr(&sexpr);
   }
 
   let spiral = try!(sexpr::to_spiral::prog_from_sexpr(&sexpr));
-  if args.output == Output::SpiralDump {
+  if args.output == Output::Spiral {
     return dump(format!("{:?}", sexpr))
   }
 
   let spine = try!(spiral::to_spine::spine_from_spiral(&spiral));
-  if args.output == Output::SpineDump {
+  if args.output == Output::Spine {
     return dump_sexpr(&spine::to_sexpr::prog_to_sexpr(&spine));
   }
 
   let grit = spine::to_grit::grit_from_spine(&spine);
-  if args.output == Output::GritDump {
+  if args.output == Output::Grit {
     return dump_sexpr(&grit::to_sexpr::prog_to_sexpr(&grit));
   }
 
   let asm = grit::to_asm::asm_from_grit(&grit);
-  if args.output == Output::AsmDump {
+  if args.output == Output::Asm {
     return dump(format!("{:?}", asm))
   }
 

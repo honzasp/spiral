@@ -1,9 +1,10 @@
-use std::collections::{HashSet};
+use std::collections::{HashSet, HashMap};
 use spine;
 use spine::census;
 use grit;
 
 type Env = spine::env::Env<grit::Slot, (), ContBind>;
+type AllocEnv = spine::env::Env<(), (), HashSet<grit::Slot>>;
 
 #[derive(Debug)]
 enum ContBind {
@@ -49,6 +50,11 @@ fn translate_fun_def(fun_def: &spine::FunDef) -> grit::FunDef {
   let args_env = ret_env.bind_vars(fun_def.args.iter().enumerate()
       .map(|(slot, arg)| (arg.clone(), grit::Slot(slot))).collect());
 
+  let empty_alloc_env = spine::env::Env::new();
+  let return_alloc_env = empty_alloc_env.bind_conts(vec![
+      (fun_def.ret.clone(), HashSet::new())
+    ]);
+
   let mut st = FunSt {
     slot_count: fun_def.args.len(),
     blocks: Vec::new(),
@@ -57,7 +63,8 @@ fn translate_fun_def(fun_def: &spine::FunDef) -> grit::FunDef {
   let start_label = st.gen_label("start");
 
   let (census_body, _) = census::census_from_term(&fun_def.body);
-  translate_term(&mut st, &args_env, start_label.clone(), &census_body);
+  translate_term(&mut st, &args_env, &return_alloc_env,
+    start_label.clone(), &census_body);
 
   grit::FunDef {
     name: grit::FunName(fun_def.name.0.clone()),
@@ -68,10 +75,12 @@ fn translate_fun_def(fun_def: &spine::FunDef) -> grit::FunDef {
   }
 }
 
-fn translate_term(st: &mut FunSt, env: &Env, label: grit::Label, term: &census::Term) {
+fn translate_term(st: &mut FunSt, env: &Env, alloc_env: &AllocEnv,
+  label: grit::Label, term: &census::Term) 
+{
   match *term {
     census::Term::Letcont(ref cont_defs, ref body) => 
-      translate_letcont(st, env, label, &cont_defs[..], &**body),
+      translate_letcont(st, env, alloc_env, label, &cont_defs[..], &**body),
     census::Term::Call(ref fun_name, ref cont_name, ref args) => 
       translate_call(st, env, label, fun_name, cont_name, &args[..]),
     census::Term::ExternCall(ref extern_name, ref cont_name, ref args) => 
@@ -83,23 +92,58 @@ fn translate_term(st: &mut FunSt, env: &Env, label: grit::Label, term: &census::
   }
 }
 
-fn translate_letcont(st: &mut FunSt, env: &Env, label: grit::Label, 
-  cont_defs: &[census::ContDef], body: &census::Term)
+fn translate_letcont(st: &mut FunSt, env: &Env, alloc_env: &AllocEnv,
+  label: grit::Label, cont_defs: &[census::ContDef], body: &census::Term)
 {
   let labels: Vec<_> = cont_defs.iter()
     .map(|cont_def| st.gen_label(&cont_def.name.0[..])).collect();
 
+  let mut interf_slots_map = cont_defs.iter().map(|cont_def| {
+      let interf_slots = cont_def.free_vars.iter()
+        .map(|free_var| env.lookup_var(free_var).expect("undefined var").clone())
+        .collect::<HashSet<_>>();
+
+      (cont_def.name.clone(), interf_slots)
+    }).collect::<HashMap<_, _>>();
+
+
+  let mut interf_changed = true;
+  while interf_changed {
+    interf_changed = false;
+    for cont_def in cont_defs.iter() {
+      let mut added_slots = Vec::new();
+
+      for free_cont in cont_def.free_conts.iter() {
+        match interf_slots_map.get(free_cont) {
+          Some(interf_slots) =>
+            added_slots.extend(interf_slots.iter().cloned()),
+          None =>
+            added_slots.extend(alloc_env.lookup_cont(free_cont)
+              .expect("undefined cont").iter().cloned()),
+        }
+      }
+
+      for added_slot in added_slots.into_iter() {
+        if interf_slots_map.get_mut(&cont_def.name).unwrap().insert(added_slot) {
+          interf_changed = true;
+        }
+      }
+    }
+  }
+
+  let inner_alloc_env = alloc_env.bind_conts(interf_slots_map.into_iter().collect());
+
   let arg_slotss: Vec<Vec<_>> = cont_defs.iter().map(|cont_def| {
-      let used_slots: HashSet<_> = cont_def.free_vars.iter()
-        .map(|free_var| env.lookup_var(free_var).expect("undefined var"))
-        .collect();
-      (0..).map(grit::Slot).filter(|slot| !used_slots.contains(slot))
+      let interf_slots = inner_alloc_env.lookup_cont(&cont_def.name)
+        .expect("just defined cont not found");
+      (0..).map(grit::Slot).filter(|slot| !interf_slots.contains(slot))
         .take(cont_def.args.len()).collect()
     }).collect();
 
   let cont_binds = cont_defs.iter().zip(labels.iter()).zip(arg_slotss.iter())
     .map(|((cont_def, label), arg_slots)| {
-      (cont_def.name.clone(), ContBind::Cont(arg_slots.clone(), label.clone()))
+      let bind = ContBind::Cont(arg_slots.clone(), label.clone());
+      (cont_def.name.clone(), bind)
     }).collect();
   let outer_env = env.bind_conts(cont_binds);
 
@@ -114,10 +158,10 @@ fn translate_letcont(st: &mut FunSt, env: &Env, label: grit::Label,
         cont_def.args.iter()
           .zip(arg_slots.into_iter())
           .map(|(arg, arg_slot)| (arg.clone(), arg_slot)).collect());
-    translate_term(st, &inner_env, label.clone(), &cont_def.body);
+    translate_term(st, &inner_env, &inner_alloc_env, label.clone(), &cont_def.body);
   }
 
-  translate_term(st, &outer_env, label, body)
+  translate_term(st, &outer_env, &inner_alloc_env, label, body)
 }
 
 fn translate_call(st: &mut FunSt, env: &Env, label: grit::Label,

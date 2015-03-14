@@ -4,13 +4,5 @@
           (y+z (+ y z)))
       (println x+y)
       (println y+z)))
-  (three-args 3 10 17)
-  
-  (fun sum-n (limit)
-    (do  ((i 0 (+ i 1))
-          (sum 0 (+ sum i)))
-        ((>= i limit)
-          sum)))
-  (println (sum-n 10))
-)
+  (three-args 3 10 17))
           

@@ -4,25 +4,20 @@
 #include "spiral/vector.hpp"
 
 namespace spiral {
-  auto VectorObj::from_val(Val val) -> VectorObj* {
-    if(val.is_obj() && val.get_otable() == &VectorObj::vec_otable) {
+  auto vector_from_val(Val val) -> VectorObj* {
+    if(val.is_obj() && val.get_otable() == &vector_otable) {
       return reinterpret_cast<VectorObj*>(val.unwrap_obj());
     } else {
       panic("expected vector");
     }
   }
 
-  auto VectorObj::to_val(VectorObj* obj) -> Val {
+  auto vector_to_val(VectorObj* obj) -> Val {
     return Val::wrap_obj(reinterpret_cast<uint32_t*>(obj));
   }
 
-  const ObjTable VectorObj::vec_otable = {
-    "vector",
-    &VectorObj::print,
-  };
-
-  void VectorObj::print(FILE* stream, Val val) {
-    auto vec_obj = VectorObj::from_val(val);
+  void vector_print(FILE* stream, Val val) {
+    auto vec_obj = vector_from_val(val);
 
     std::fprintf(stream, "[");
     for(auto i = 0; i < vec_obj->length; ++i) {
@@ -49,24 +44,22 @@ namespace spiral {
       assert(memory != 0);
 
       auto vec_obj = static_cast<VectorObj*>(memory);
-      vec_obj->otable = &VectorObj::vec_otable;
+      vec_obj->otable = &vector_otable;
       vec_obj->length = len;
       for(auto i = 0; i < len; ++i) {
         vec_obj->data[i] = Val::false_val;
       }
 
-      std::printf("created vec %u\n", (uint32_t)vec_obj);
-      return VectorObj::to_val(vec_obj).u32;
+      return vector_to_val(vec_obj).u32;
     }
 
     auto spiral_ext_vec_length(uint32_t vec_) -> uint32_t {
-      auto vec_obj = VectorObj::from_val(Val(vec_));
+      auto vec_obj = vector_from_val(Val(vec_));
       return Val::wrap_int(vec_obj->length).u32;
     }
 
     auto spiral_ext_vec_get(uint32_t vec_, uint32_t idx_) -> uint32_t {
-      std::printf("received %u, %u\n", vec_, idx_);
-      auto vec_obj = VectorObj::from_val(Val(vec_));
+      auto vec_obj = vector_from_val(Val(vec_));
       auto idx_val = Val(idx_);
       if(!idx_val.is_int()) {
         panic("only ints can index vector");
@@ -81,7 +74,7 @@ namespace spiral {
     }
 
     auto spiral_ext_vec_set(uint32_t vec_, uint32_t idx_, uint32_t val_) -> uint32_t {
-      auto vec_obj = VectorObj::from_val(Val(vec_));
+      auto vec_obj = vector_from_val(Val(vec_));
       auto idx_val = Val(idx_);
       if(!idx_val.is_int()) {
         panic("only ints can index vector");

@@ -8,12 +8,15 @@ namespace spiral {
     const ObjTable* otable;
     int32_t length;
     Val data[0];
+  };
 
-    static auto from_val(Val val) -> VectorObj*;
-    static auto to_val(VectorObj* obj) -> Val;
+  auto vector_from_val(Val val) -> VectorObj*;
+  auto vector_to_val(VectorObj* obj) -> Val;
+  void vector_print(FILE* stream, Val val);
 
-    static const ObjTable vec_otable;
-    static void print(FILE* stream, Val val);
+  const ObjTable vector_otable = {
+    "vector",
+    &vector_print,
   };
 
   extern "C" {

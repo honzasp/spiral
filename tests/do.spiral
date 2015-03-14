@@ -2,7 +2,7 @@
   (fun sum-n (limit)
     (do  ((i 0 (+ i 1))
           (sum 0 (+ sum i)))
-        ((>= i limit)
+        ((> i limit)
           sum)))
   (println (sum-n 10))
 )

@@ -6,14 +6,18 @@
 namespace spiral {
   struct BoolObj {
     const ObjTable* otable;
+  };
 
-    static const ObjTable bool_otable;
-    static void print(FILE* stream, Val val);
+  void bool_print(FILE* stream, Val val);
+
+  const ObjTable bool_otable = {
+    "bool",
+    &bool_print,
   };
 
   extern "C" {
-    extern const BoolObj spiral_true_obj = { &BoolObj::bool_otable };
-    extern const BoolObj spiral_false_obj = { &BoolObj::bool_otable };
+    extern const BoolObj spiral_true_obj = { &bool_otable };
+    extern const BoolObj spiral_false_obj = { &bool_otable };
   }
 }
 #endif
