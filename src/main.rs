@@ -111,12 +111,19 @@ fn main_body() -> Result<(), SpiralError> {
     Ok(())
   };
 
+  let dump_sexpr = |elem: &sexpr::Elem| -> Result<(), SpiralError> {
+    let mut output = try!(File::create(&output_file));
+    try!(output.write_all(sexpr::pretty_print::pretty_print_sexpr(elem).as_bytes()));
+    try!(output.write_all(b"\n"));
+    Ok(())
+  };
+
   let input = try!(io::File::open(&Path::new(&args.source_file[..])).read_to_end());
   let input_str = try!(str::from_utf8(&input[..]));
 
   let sexpr = try!(sexpr::parse::parse_sexpr(input_str));
   if args.output == Output::SexprDump {
-    return dump(format!("{:?}", sexpr))
+    return dump_sexpr(&sexpr);
   }
 
   let spiral = try!(sexpr::to_spiral::prog_from_sexpr(&sexpr));
@@ -126,7 +133,7 @@ fn main_body() -> Result<(), SpiralError> {
 
   let spine = try!(spiral::to_spine::spine_from_spiral(&spiral));
   if args.output == Output::SpineDump {
-    return dump(format!("{:?}", spine))
+    return dump_sexpr(&spine::to_sexpr::prog_to_sexpr(&spine));
   }
 
   let grit = spine::to_grit::grit_from_spine(&spine);

@@ -8,3 +8,4 @@ pub mod eval;
 pub mod onion;
 pub mod census;
 pub mod to_grit;
+pub mod to_sexpr;
