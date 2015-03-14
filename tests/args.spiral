@@ -1,0 +1,15 @@
+(program
+  (fun print3 (a b c)
+    (println a)
+    (println b)
+    (println c))
+  (print3 1 2 3)
+  
+  (fun tree2 (x y)
+    (print3 y x y)
+    (print3 x y x))
+  (fun tree1 (i j k)
+    (tree2 i j)
+    (tree2 j k))
+  (tree1 1 2 3)
+)

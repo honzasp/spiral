@@ -1,6 +1,6 @@
 #ifndef HAVE_spiral_main_hpp
 #define HAVE_spiral_main_hpp
-#include "spiral/defs.hpp"
+#include "spiral/val.hpp"
 
 namespace spiral {
   [[noreturn]]

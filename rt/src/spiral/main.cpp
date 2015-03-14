@@ -11,7 +11,7 @@ namespace spiral {
   }
 
   extern "C" {
-    int main(int argc, char** argv)
+    int main(int, char**)
     {
       spiral_start();
       return 0;

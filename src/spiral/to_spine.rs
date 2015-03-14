@@ -428,6 +428,11 @@ fn bind_global_env(parent: Env) -> Env {
       ("/=", "spiral_ext_ne", 2),
       (">", "spiral_ext_gt", 2),
       (">=", "spiral_ext_ge", 2),
+
+      ("vec-make", "spiral_ext_vec_make", 1),
+      ("vec-length", "spiral_ext_vec_length", 1),
+      ("vec-get", "spiral_ext_vec_get", 2),
+      ("vec-set!", "spiral_ext_vec_set", 3),
     ];
 
   let consts = &[

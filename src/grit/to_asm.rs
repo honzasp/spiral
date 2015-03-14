@@ -51,11 +51,11 @@ impl<'d> FunSt<'d> {
   }
 
   fn slot_mem(&self, slot: &grit::Slot) -> asm::Mem {
-    FunSt::stack_mem((self.fun_def.slot_count - slot.0) as i32)
+    FunSt::stack_mem((self.fun_def.slot_count - slot.0 - 1) as i32)
   }
 
   fn call_arg_mem(&self, arg: i32) -> asm::Mem {
-    FunSt::stack_mem(-2 - arg)
+    FunSt::stack_mem(-3 - arg)
   }
 
   fn frame_info_mem(&self) -> asm::Mem {
@@ -72,6 +72,10 @@ impl<'d> FunSt<'d> {
 
   fn stack_frame_size(&self) -> i32 {
     ((2 + self.fun_def.slot_count) * 4) as i32
+  }
+
+  fn stack_frame_shift(&self) -> i32 {
+    ((1 + self.fun_def.slot_count) * 4) as i32
   }
 
   fn translate_label(&mut self, label: &grit::Label) -> asm::Label {
@@ -96,12 +100,12 @@ fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDe
       blocks: Vec::new(),
     };
 
-  let frame_size = st.stack_frame_size();
+  let frame_shift = st.stack_frame_shift();
   let frame_info_mem = st.frame_info_mem();
   st.blocks.push(asm::Block {
       label: None,
       instrs: vec![
-          asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(-frame_size)),
+          asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(-frame_shift)),
           asm::Instr::MoveMemImm(frame_info_mem, asm::Imm::Int(123456)),
         ],
     });
@@ -158,9 +162,9 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
         asm::Imm::Label(st.translate_label(label))));
     },
     grit::Jump::Return(ref val) => {
-      let frame_size = st.stack_frame_size();
+      let frame_shift = st.stack_frame_shift();
       move_reg_val(st, &mut instrs, asm::Reg::EAX, val);
-      instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_size)));
+      instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_shift)));
       instrs.push(asm::Instr::Return);
     },
     grit::Jump::TailCall(ref fun_name, ref args) => {

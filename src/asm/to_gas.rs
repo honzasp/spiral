@@ -5,8 +5,8 @@ pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
   lines.push(format!("  .text"));
   lines.push(format!("  .globl spiral_start"));
   lines.push(format!("  .set spiral_start, {}", fun_name_symbol(&prog.main_fun)));
-  lines.push(format!("  .set {}, 0xfffffffd", true_symbol()));
-  lines.push(format!("  .set {}, 0xffffffff", false_symbol()));
+  lines.push(format!("  .set {}, (spiral_true_obj + 0b11)", true_symbol()));
+  lines.push(format!("  .set {}, (spiral_false_obj + 0b11)", false_symbol()));
   lines.push(format!(""));
 
   for fun_def in prog.fun_defs.iter() {
@@ -130,7 +130,7 @@ fn mem(mem: &asm::Mem) -> String {
 }
 
 fn fun_name_symbol(name: &asm::FunName) -> String {
-  format!("_spr_{}", name.0)
+  format!("_spr_{}", z_code(&name.0[..]))
 }
 
 fn extern_name_symbol(name: &asm::ExternName) -> String {
@@ -138,7 +138,7 @@ fn extern_name_symbol(name: &asm::ExternName) -> String {
 }
 
 fn label_symbol(label: &asm::Label) -> String {
-  format!(".L_{}", label.0)
+  format!(".L_{}", z_code(&label.0[..]))
 }
 
 fn true_symbol() -> String {
@@ -147,4 +147,36 @@ fn true_symbol() -> String {
 
 fn false_symbol() -> String {
   format!(".Lfalse")
+}
+
+fn z_code(txt: &str) -> String {
+  let mut buf = String::new();
+  for ch in txt.chars() {
+    match ch {
+      'z' => buf.push_str("zz"),
+      '&' => buf.push_str("za"),
+      '^' => buf.push_str("zc"),
+      '$' => buf.push_str("zd"),
+      '=' => buf.push_str("ze"),
+      '>' => buf.push_str("zg"),
+      '#' => buf.push_str("zh"),
+      '.' => buf.push_str("zi"),
+      '<' => buf.push_str("zl"),
+      '-' => buf.push_str("zm"),
+      '!' => buf.push_str("zn"),
+      ':' => buf.push_str("zo"),
+      '+' => buf.push_str("zp"),
+      '\'' => buf.push_str("zq"),
+      '\\' => buf.push_str("zr"),
+      '/' => buf.push_str("zs"),
+      '*' => buf.push_str("zt"),
+      '_' => buf.push_str("zu"),
+      '%' => buf.push_str("zv"),
+      ch if ch >= 'a' && ch <= 'y' => buf.push(ch),
+      ch if ch >= 'A' && ch <= 'Z' => buf.push(ch),
+      ch if ch >= '0' && ch <= '9' => buf.push(ch),
+      ch => buf.push_str(&format!("z{}", ch as u32)[..]),
+    }
+  }
+  buf
 }

@@ -1,6 +1,6 @@
 #include <cstdio>
 #include "spiral/main.hpp"
-#include "spiral/operators.hpp"
+#include "spiral/int.hpp"
 
 namespace spiral {
   template<typename F>
@@ -25,16 +25,6 @@ namespace spiral {
   }
 
   extern "C" {
-    auto spiral_ext_println(uint32_t x) -> uint32_t {
-      auto x_val = Val(x);
-      if(x_val.is_int()) {
-        std::printf("%i\n", x_val.unwrap_int());
-      } else {
-        std::printf("%p\n", x_val.ptr);
-      }
-      return true_val.u32;
-    }
-
     auto spiral_ext_add(uint32_t a, uint32_t b) -> uint32_t {
       return binop_int(a, b, [](int32_t a, int32_t b){ return a + b; });
     }
