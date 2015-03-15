@@ -3,10 +3,18 @@ use asm;
 pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
   let mut lines = Vec::new();
   lines.push(format!("  .text"));
-  lines.push(format!("  .globl spiral_start"));
-  lines.push(format!("  .set spiral_start, {}", fun_name_symbol(&prog.main_fun)));
   lines.push(format!("  .set {}, (spiral_true_obj + 0b11)", true_symbol()));
   lines.push(format!("  .set {}, (spiral_false_obj + 0b11)", false_symbol()));
+  lines.push(format!(""));
+
+  lines.push(format!("  .globl spiral_start"));
+  lines.push(format!("  .align 16, 0x90"));
+  lines.push(format!("  .type spiral_start,@function"));
+  lines.push(format!("spiral_start:"));
+  lines.push(format!("  movl  4(%esp), %edi"));
+  lines.push(format!("  jmp   {}", fun_name_symbol(&prog.main_fun)));
+  lines.push(format!(".Lend_spiral_start:"));
+  lines.push(format!("  .size spiral_start, .Lend_spiral_start - spiral_start"));
   lines.push(format!(""));
 
   for fun_def in prog.fun_defs.iter() {
@@ -153,7 +161,6 @@ fn z_code(txt: &str) -> String {
   let mut buf = String::new();
   for ch in txt.chars() {
     match ch {
-      'z' => buf.push_str("zz"),
       '&' => buf.push_str("za"),
       '^' => buf.push_str("zc"),
       '$' => buf.push_str("zd"),
@@ -161,6 +168,7 @@ fn z_code(txt: &str) -> String {
       '>' => buf.push_str("zg"),
       '#' => buf.push_str("zh"),
       '.' => buf.push_str("zi"),
+      '?' => buf.push_str("zj"),
       '<' => buf.push_str("zl"),
       '-' => buf.push_str("zm"),
       '!' => buf.push_str("zn"),
@@ -172,6 +180,8 @@ fn z_code(txt: &str) -> String {
       '*' => buf.push_str("zt"),
       '_' => buf.push_str("zu"),
       '%' => buf.push_str("zv"),
+      '~' => buf.push_str("zw"),
+      'z' => buf.push_str("zz"),
       ch if ch >= 'a' && ch <= 'y' => buf.push(ch),
       ch if ch >= 'A' && ch <= 'Z' => buf.push(ch),
       ch if ch >= '0' && ch <= '9' => buf.push(ch),

@@ -62,12 +62,20 @@ impl<'d> FunSt<'d> {
     FunSt::stack_mem(self.fun_def.slot_count as i32)
   }
 
+  fn extern_call_stack_shift(&self, argc: i32) -> i32 {
+    -4 * (argc + 2)
+  }
+
   fn extern_call_arg_mem(&self, argc: i32, arg: i32) -> asm::Mem {
     FunSt::stack_mem(-argc + arg)
   }
 
-  fn extern_call_stack_shift(&self, argc: i32) -> i32 {
-    -(argc * 4)
+  fn extern_call_sp_mem(&self, argc: i32) -> asm::Mem {
+    FunSt::stack_mem(-argc - 1)
+  }
+
+  fn extern_call_bg_mem(&self, argc: i32) -> asm::Mem {
+    FunSt::stack_mem(-argc - 2)
   }
 
   fn stack_frame_size(&self) -> i32 {
@@ -136,17 +144,19 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
         instrs.push(asm::Instr::MoveMemReg(st.slot_mem(dst_slot), asm::Reg::EAX));
       },
       grit::Op::ExternCall(ref dst_slot, ref extern_name, ref args) => {
-        let argc = args.len();
+        let argc = args.len() as i32;
         for (arg_idx, arg) in args.iter().enumerate() {
-          let arg_mem = st.extern_call_arg_mem(argc as i32, arg_idx as i32);
+          let arg_mem = st.extern_call_arg_mem(argc, arg_idx as i32);
           move_mem_val(st, &mut instrs, arg_mem, arg);
         }
+        instrs.push(asm::Instr::MoveMemReg(st.extern_call_sp_mem(argc), asm::Reg::ESP));
+        instrs.push(asm::Instr::MoveMemReg(st.extern_call_bg_mem(argc), asm::Reg::EDI));
         let addr_imm = asm::Imm::ExternAddr(translate_extern_name(extern_name));
         instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP,
-          asm::Imm::Int(st.extern_call_stack_shift(argc as i32))));
+          asm::Imm::Int(st.extern_call_stack_shift(argc))));
         instrs.push(asm::Instr::CallImm(addr_imm));
         instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP,
-          asm::Imm::Int(-st.extern_call_stack_shift(argc as i32))));
+          asm::Imm::Int(-st.extern_call_stack_shift(argc))));
         instrs.push(asm::Instr::MoveMemReg(st.slot_mem(dst_slot), asm::Reg::EAX));
       },
       grit::Op::Assign(ref slots_vals) =>

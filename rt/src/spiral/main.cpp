@@ -3,17 +3,14 @@
 #include "spiral/main.hpp"
 
 namespace spiral {
-  [[noreturn]]
-  void panic(const char* msg)
-  {
-    std::fprintf(stderr, "Panic: %s\n", msg);
-    std::abort();
-  }
-
   extern "C" {
-    int main(int, char**)
-    {
-      spiral_start();
+    int main(int, char**) {
+      Bg bg;
+      bg.heap_free_len = 4 * 1024;
+      bg.heap_ptr = static_cast<uint8_t*>(std::malloc(bg.heap_free_len));
+      assert(bg.heap_ptr != 0);
+
+      spiral_start(&bg);
       return 0;
     }
   }

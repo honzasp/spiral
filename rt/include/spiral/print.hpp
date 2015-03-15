@@ -4,11 +4,11 @@
 #include "spiral/val.hpp"
 
 namespace spiral {
-  void println(FILE* stream, Val val);
-  void print(FILE* stream, Val val);
+  void println(Bg* bg, FILE* stream, Val val);
+  void print(Bg* bg, FILE* stream, Val val);
 
   extern "C" {
-    auto spiral_ext_println(uint32_t val_) -> uint32_t;
+    auto spiral_ext_println(Bg* bg, void* sp, uint32_t val_) -> uint32_t;
   }
 }
 

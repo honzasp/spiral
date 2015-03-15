@@ -5,17 +5,17 @@
 
 namespace spiral {
   extern "C" {
-    auto spiral_ext_add(uint32_t a, uint32_t b) -> uint32_t;
-    auto spiral_ext_sub(uint32_t a, uint32_t b) -> uint32_t;
-    auto spiral_ext_mul(uint32_t a, uint32_t b) -> uint32_t;
-    auto spiral_ext_div(uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_add(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_sub(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_mul(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_div(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
 
-    auto spiral_ext_lt(uint32_t a, uint32_t b) -> uint32_t;
-    auto spiral_ext_le(uint32_t a, uint32_t b) -> uint32_t;
-    auto spiral_ext_eq(uint32_t a, uint32_t b) -> uint32_t;
-    auto spiral_ext_ne(uint32_t a, uint32_t b) -> uint32_t;
-    auto spiral_ext_ge(uint32_t a, uint32_t b) -> uint32_t;
-    auto spiral_ext_gt(uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_lt(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_le(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_eq(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_ne(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_ge(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_ext_gt(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
   }
 }
 #endif

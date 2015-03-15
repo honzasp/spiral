@@ -1,7 +1,7 @@
 #include "spiral/bool.hpp"
 
 namespace spiral {
-  void bool_print(FILE* stream, Val val)
+  void bool_print(Bg*, FILE* stream, Val val)
   {
     assert(val == Val::true_val || val == Val::false_val);
     if(val == Val::false_val) {

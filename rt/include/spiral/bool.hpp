@@ -8,7 +8,7 @@ namespace spiral {
     const ObjTable* otable;
   };
 
-  void bool_print(FILE* stream, Val val);
+  void bool_print(Bg* bg, FILE* stream, Val val);
 
   const ObjTable bool_otable = {
     "bool",
