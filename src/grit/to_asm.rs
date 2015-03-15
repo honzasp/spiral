@@ -5,18 +5,23 @@ use asm;
 pub fn asm_from_grit(prog: &grit::ProgDef) -> asm::ProgDef {
   let mut prog_st = ProgSt {
       used_labels: HashSet::new(),
+      string_defs: Vec::new(),
     };
 
+  let fun_defs = prog.fun_defs.iter()
+    .map(|fun_def| translate_fun_def(&mut prog_st, fun_def))
+    .collect();
+
   asm::ProgDef {
-    fun_defs: prog.fun_defs.iter()
-      .map(|fun_def| translate_fun_def(&mut prog_st, fun_def))
-      .collect(),
+    fun_defs: fun_defs,
+    string_defs: prog_st.string_defs,
     main_fun: translate_fun_name(&prog.main_fun),
   }
 }
 
 struct ProgSt {
   used_labels: HashSet<asm::Label>,
+  string_defs: Vec<asm::StringDef>,
 }
 
 impl ProgSt {
@@ -28,6 +33,15 @@ impl ProgSt {
       }
     }
     unreachable!()
+  }
+
+  fn gen_string(&mut self, bytes: Vec<u8>) -> asm::StringLabel {
+    let str_label = asm::StringLabel(self.string_defs.len());
+    self.string_defs.push(asm::StringDef {
+      label: str_label.clone(),
+      bytes: bytes,
+    });
+    str_label
   }
 }
 
@@ -51,15 +65,15 @@ impl<'d> FunSt<'d> {
   }
 
   fn slot_mem(&self, slot: &grit::Slot) -> asm::Mem {
-    FunSt::stack_mem((self.fun_def.slot_count - slot.0 - 1) as i32)
+    FunSt::stack_mem((self.fun_def.slot_count - slot.0) as i32)
   }
 
   fn call_arg_mem(&self, arg: i32) -> asm::Mem {
-    FunSt::stack_mem(-3 - arg)
+    FunSt::stack_mem(-2 - arg)
   }
 
   fn frame_info_mem(&self) -> asm::Mem {
-    FunSt::stack_mem(self.fun_def.slot_count as i32)
+    FunSt::stack_mem(0)
   }
 
   fn extern_call_stack_shift(&self, argc: i32) -> i32 {
@@ -114,13 +128,19 @@ fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDe
       label: None,
       instrs: vec![
           asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(-frame_shift)),
-          asm::Instr::MoveMemImm(frame_info_mem, asm::Imm::Int(123456)),
+          asm::Instr::MoveMemImm(frame_info_mem,
+            asm::Imm::FrameInfo(translate_fun_name(&fun_def.name))),
         ],
     });
   emit_block(&mut st, &fun_def.start_label);
 
+  let fun_name_str_label = st.prog_st.gen_string(fun_def.name.0.clone().into_bytes());
   asm::FunDef {
     name: translate_fun_name(&fun_def.name),
+    frame_info: asm::FrameInfo {
+      slot_count: fun_def.slot_count as i32,
+      fun_name_str: fun_name_str_label,
+    },
     blocks: st.blocks,
   }
 }

@@ -5,7 +5,7 @@
 
 namespace spiral {
   extern "C" {
-    extern auto spiral_start(Bg* bg) -> uint32_t;
+    extern void* spiral_start_fun;
     int main(int argc, char** argv);
   }
 }

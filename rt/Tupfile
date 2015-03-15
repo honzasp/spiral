@@ -1,11 +1,14 @@
 CXX = clang++
 CXX_FLAGS = -Wall -Wextra -std=c++11 -Iinclude -g -O0
+AS = as
 AR = ar
 
 !cxx_c = |> ^ c++ -c %f^ $(CXX) $(CXX_FLAGS) -c %f -o %o |>
 !cxx_s = |> ^ c++ -S %f^ $(CXX) $(CXX_FLAGS) -S %f -o %o |>
+!as = |> ^ as %f^ $(AS) $(AS_FLAGS) %f -o %o |>
 !ar = |> ^ ar %f^ $(AR) rcs %o %f |>
 
 : foreach src/spiral/*.cpp |> !cxx_c |> build/%B.o {objs}
+: foreach src/spiral/*.s |> !as |> build/%B.o {objs}
 : foreach src/spiral/*.cpp |> !cxx_s |> build/%B.s
 : {objs} |> !ar |> build/runtime.a

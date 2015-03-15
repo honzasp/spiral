@@ -3,13 +3,27 @@
 #[derive(PartialEq, Debug)]
 pub struct ProgDef {
   pub fun_defs: Vec<FunDef>,
+  pub string_defs: Vec<StringDef>,
   pub main_fun: FunName,
 }
 
 #[derive(PartialEq, Debug)]
 pub struct FunDef {
   pub name: FunName,
+  pub frame_info: FrameInfo,
   pub blocks: Vec<Block>,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct FrameInfo {
+  pub slot_count: i32,
+  pub fun_name_str: StringLabel,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct StringDef {
+  pub label: StringLabel,
+  pub bytes: Vec<u8>,
 }
 
 #[derive(PartialEq, Debug)]
@@ -20,6 +34,8 @@ pub struct Block {
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Label(pub String);
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct StringLabel(pub usize);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct FunName(pub String);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
@@ -83,7 +99,9 @@ pub enum Imm {
   Int(i32),
   Label(Label),
   FunAddr(FunName),
+  FrameInfo(FunName),
   ExternAddr(ExternName),
+  StringLabel(StringLabel),
   Plus(Box<Imm>, Box<Imm>),
   Minus(Box<Imm>, Box<Imm>),
   True,

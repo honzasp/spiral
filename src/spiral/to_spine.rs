@@ -433,6 +433,8 @@ fn bind_global_env(parent: Env) -> Env {
       ("vec-length", "spiral_ext_vec_length", 1),
       ("vec-get", "spiral_ext_vec_get", 2),
       ("vec-set!", "spiral_ext_vec_set", 3),
+
+      ("__stack-dump", "spiral_ext_debug_stack_dump", 0),
     ];
 
   let consts = &[

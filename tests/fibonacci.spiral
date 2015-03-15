@@ -1,0 +1,12 @@
+(program
+  (fun fibonacci (x)
+    (if (<= x 1) 1
+      (+ (fibonacci (- x 1)) (fibonacci (- x 2)))))
+
+  (fun tail-fibonacci (sum x)
+    (if (<= x 1) (+ sum 1)
+      (let ((sum' (tail-fibonacci sum (- x 2))))
+        (tail-fibonacci sum' (- x 1)))))
+
+  (println (fibonacci 12))
+  (println (tail-fibonacci 0 12)))
