@@ -1,6 +1,5 @@
 #ifndef HAVE_spiral_int_hpp
 #define HAVE_spiral_int_hpp
-#include "spiral/obj_table.hpp"
 #include "spiral/val.hpp"
 
 namespace spiral {

@@ -1,15 +1,26 @@
 #include <cstdlib>
-#include "spiral/bg.hpp"
+#include "spiral/core.hpp"
+#include "spiral/gc.hpp"
 #include "spiral/print.hpp"
 #include "spiral/vector.hpp"
 
 namespace spiral {
+  static auto vector_from_val(Bg* bg, Val val) -> VectorObj*;
+  static auto vector_to_val(VectorObj* obj) -> Val;
+  static auto vector_from_obj_ptr(void* obj_ptr) -> VectorObj*;
+
   auto vector_from_val(Bg* bg, Val val) -> VectorObj* {
     if(val.is_obj() && val.get_otable() == &vector_otable) {
       return reinterpret_cast<VectorObj*>(val.unwrap_obj());
     } else {
       bg_panic(bg, "expected vector");
     }
+  }
+
+  auto vector_from_obj_ptr(void* obj_ptr) -> VectorObj* {
+    assert(reinterpret_cast<uint32_t>(obj_ptr) % 4 == 0);
+    assert(*reinterpret_cast<const ObjTable**>(obj_ptr) == &vector_otable);
+    return reinterpret_cast<VectorObj*>(obj_ptr);
   }
 
   auto vector_to_val(VectorObj* obj) -> Val {
@@ -29,6 +40,34 @@ namespace spiral {
     std::fprintf(stream, "]");
   }
 
+  auto vector_length(void* obj_ptr) -> uint32_t {
+    auto vec_obj = vector_from_obj_ptr(obj_ptr);
+    return sizeof(VectorObj) + 4 * vec_obj->length;
+  }
+
+  auto vector_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val {
+    auto old_vec_obj = vector_from_obj_ptr(obj_ptr);
+    auto new_vec_obj = static_cast<VectorObj*>(gc_get_copy_space(gc_ctx,
+          sizeof(VectorObj) + 4 * old_vec_obj->length));
+    new_vec_obj->otable = &vector_otable;
+    new_vec_obj->length = old_vec_obj->length;
+    for(int32_t i = 0; i < old_vec_obj->length; ++i) {
+      new_vec_obj->data[i] = old_vec_obj->data[i];
+    }
+
+    return vector_to_val(new_vec_obj);
+  }
+
+  void vector_scavenge(GcCtx* gc_ctx, void* obj_ptr) {
+    auto vec_obj = vector_from_obj_ptr(obj_ptr);
+    for(int32_t i = 0; i < vec_obj->length; ++i) {
+      vec_obj->data[i] = gc_evacuate(gc_ctx, vec_obj->data[i]);
+    }
+  }
+
+  void vector_drop(Bg*, void*) {
+  }
+
   extern "C" {
     auto spiral_ext_vec_make(Bg* bg, void* sp, uint32_t len_) -> uint32_t {
       auto len_val = Val(len_);
@@ -40,13 +79,11 @@ namespace spiral {
       }
 
       auto len = len_val.unwrap_int();
-      auto memory = bg_heap_alloc(bg, sp, sizeof(VectorObj) + sizeof(uint32_t) * len);
-      assert(memory != 0);
-
-      auto vec_obj = static_cast<VectorObj*>(memory);
+      auto vec_obj = static_cast<VectorObj*>(bg_get_obj_space(bg, sp,
+            sizeof(VectorObj) + 4 * len));
       vec_obj->otable = &vector_otable;
       vec_obj->length = len;
-      for(auto i = 0; i < len; ++i) {
+      for(int32_t i = 0; i < len; ++i) {
         vec_obj->data[i] = Val::false_val;
       }
 

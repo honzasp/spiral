@@ -1,8 +1,6 @@
 #ifndef HAVE_spiral_vector_hpp
 #define HAVE_spiral_vector_hpp
-#include "spiral/bg.hpp"
-#include "spiral/obj_table.hpp"
-#include "spiral/val.hpp"
+#include "spiral/core.hpp"
 
 namespace spiral {
   struct VectorObj {
@@ -11,13 +9,19 @@ namespace spiral {
     Val data[0];
   };
 
-  auto vector_from_val(Bg* bg, Val val) -> VectorObj*;
-  auto vector_to_val(VectorObj* obj) -> Val;
   void vector_print(Bg* bg, FILE* stream, Val val);
+  auto vector_length(void* obj_ptr) -> uint32_t;
+  auto vector_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
+  void vector_scavenge(GcCtx* gc_ctx, void* obj_ptr);
+  void vector_drop(Bg* bg, void* obj_ptr);
 
   const ObjTable vector_otable = {
     "vector",
     &vector_print,
+    &vector_length,
+    &vector_evacuate,
+    &vector_scavenge,
+    &vector_drop,
   };
 
   extern "C" {

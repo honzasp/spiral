@@ -9,10 +9,18 @@ namespace spiral {
   };
 
   void bool_print(Bg* bg, FILE* stream, Val val);
+  auto bool_length(void* obj_ptr) -> uint32_t;
+  auto bool_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
+  void bool_scavenge(GcCtx* gc_ctx, void* obj_ptr);
+  void bool_drop(Bg* bg, void* obj_ptr);
 
   const ObjTable bool_otable = {
     "bool",
     &bool_print,
+    &bool_length,
+    &bool_evacuate,
+    &bool_scavenge,
+    &bool_drop,
   };
 
   extern "C" {

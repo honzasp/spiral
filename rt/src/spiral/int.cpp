@@ -1,6 +1,5 @@
 #include <cstdio>
-#include "spiral/bg.hpp"
-#include "spiral/main.hpp"
+#include "spiral/core.hpp"
 #include "spiral/int.hpp"
 
 namespace spiral {

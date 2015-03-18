@@ -1,6 +1,6 @@
 #ifndef HAVE_spiral_call_conv_hpp
 #define HAVE_spiral_call_conv_hpp
-#include "spiral/bg.hpp"
+#include "spiral/core.hpp"
 
 namespace spiral {
   extern "C" {

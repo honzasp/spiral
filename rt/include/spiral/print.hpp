@@ -1,6 +1,6 @@
 #ifndef HAVE_spiral_print_hpp
 #define HAVE_spiral_print_hpp
-#include "spiral/obj_table.hpp"
+#include "spiral/core.hpp"
 #include "spiral/val.hpp"
 
 namespace spiral {

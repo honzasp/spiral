@@ -8,7 +8,7 @@ spiral_call_fun:
   movl  %eax, -4(%esp)
   movl  $0xffffffff, -8(%esp)
   subl  $8, %esp
-  calll 16(%esp)
+  calll *16(%esp)
   addl  $8, %esp
   ret
 .Lend_spiral_call_fun:

@@ -30,6 +30,7 @@ namespace spiral {
     static inline auto wrap_int(int32_t num) -> Val;
     static inline auto wrap_bool(bool b) -> Val;
     static inline auto wrap_obj(uint32_t* ptr) -> Val;
+    static inline auto wrap_obj(void* ptr) -> Val;
 
     inline auto get_otable() const -> const ObjTable*;
     inline auto get_type_name() const -> const char*;
@@ -65,6 +66,9 @@ namespace spiral {
     assert(ptr != 0);
     assert((reinterpret_cast<uint32_t>(ptr) & 0b11) == 0);
     return Val(reinterpret_cast<uint32_t>(ptr) + 0b11);
+  }
+  auto Val::wrap_obj(void* ptr) -> Val {
+    return Val::wrap_obj(static_cast<uint32_t*>(ptr));
   }
 
   auto Val::get_otable() const -> const ObjTable* {
