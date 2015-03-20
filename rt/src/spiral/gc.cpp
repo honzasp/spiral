@@ -1,3 +1,4 @@
+#include "spiral/fwd_ptr.hpp"
 #include "spiral/gc.hpp"
 
 namespace spiral {
@@ -81,5 +82,12 @@ namespace spiral {
       obj_table->scavenge_fun(gc_ctx, reinterpret_cast<void*>(obj_ptr));
       index += obj_table->length_fun(reinterpret_cast<void*>(obj_ptr));
     }
+  }
+
+  void gc_write_fwd_ptr(GcCtx*, void* obj_ptr, Val new_val) {
+    assert(reinterpret_cast<uint32_t>(obj_ptr) % 4 == 0);
+    auto fwd_ptr = static_cast<FwdPtrObj*>(obj_ptr);
+    fwd_ptr->otable = &fwd_ptr_otable;
+    fwd_ptr->fwd = new_val;
   }
 }

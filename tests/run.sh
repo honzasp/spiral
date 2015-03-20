@@ -1,6 +1,6 @@
 #!/bin/bash
 cd $(dirname $0)
-SPIRAL="../target/spiral"
+SPIRAL="../target/debug/spiral"
 RUNTIME="../rt/build/runtime.a"
 GREEN="\e[32m"
 RED="\e[31m"

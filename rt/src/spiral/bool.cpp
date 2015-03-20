@@ -2,6 +2,15 @@
 #include "spiral/gc.hpp"
 
 namespace spiral {
+  const ObjTable bool_otable = {
+    "bool",
+    &bool_print,
+    &bool_length,
+    &bool_evacuate,
+    &bool_scavenge,
+    &bool_drop,
+  };
+
   void bool_print(Bg*, FILE* stream, Val val) {
     assert(val == Val::true_val || val == Val::false_val);
     if(val == Val::false_val) {

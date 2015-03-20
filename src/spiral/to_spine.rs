@@ -690,4 +690,25 @@ mod test {
         (__out (is-odd 9)))"),
       vec![False, True, True]);
   }
+
+  #[test]
+  fn test_var_stmt() {
+    assert_eq!(run("(program
+      (fun return-42 () 42)
+      (var forty-two (return-42))
+      (__out forty-two))"), vec![Int(42)]);
+  }
+
+  #[test]
+  fn test_mutually_recursive_fun_in_var_stmt() {
+    assert_eq!(run("(program
+        (fun f-1 (x)
+          (when (> x 1)
+            (var y (f-2 (- x 1)))
+            (__out y)))
+        (fun f-2 (x)
+          (f-1 (- x 1))
+          x)
+        (f-1 4))"), vec![Int(1), Int(3)]);
+  }
 }

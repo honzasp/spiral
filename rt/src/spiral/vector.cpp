@@ -9,6 +9,15 @@ namespace spiral {
   static auto vector_to_val(VectorObj* obj) -> Val;
   static auto vector_from_obj_ptr(void* obj_ptr) -> VectorObj*;
 
+  const ObjTable vector_otable = {
+    "vector",
+    &vector_print,
+    &vector_length,
+    &vector_evacuate,
+    &vector_scavenge,
+    &vector_drop,
+  };
+
   auto vector_from_val(Bg* bg, Val val) -> VectorObj* {
     if(val.is_obj() && val.get_otable() == &vector_otable) {
       return reinterpret_cast<VectorObj*>(val.unwrap_obj());
@@ -55,7 +64,9 @@ namespace spiral {
       new_vec_obj->data[i] = old_vec_obj->data[i];
     }
 
-    return vector_to_val(new_vec_obj);
+    auto new_val = vector_to_val(new_vec_obj);
+    gc_write_fwd_ptr(gc_ctx, obj_ptr, new_val);
+    return new_val;
   }
 
   void vector_scavenge(GcCtx* gc_ctx, void* obj_ptr) {

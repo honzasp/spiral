@@ -14,14 +14,7 @@ namespace spiral {
   void bool_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   void bool_drop(Bg* bg, void* obj_ptr);
 
-  const ObjTable bool_otable = {
-    "bool",
-    &bool_print,
-    &bool_length,
-    &bool_evacuate,
-    &bool_scavenge,
-    &bool_drop,
-  };
+  extern const ObjTable bool_otable;
 
   extern "C" {
     extern const BoolObj spiral_true_obj = { &bool_otable };

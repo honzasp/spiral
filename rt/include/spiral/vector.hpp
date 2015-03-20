@@ -15,14 +15,7 @@ namespace spiral {
   void vector_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   void vector_drop(Bg* bg, void* obj_ptr);
 
-  const ObjTable vector_otable = {
-    "vector",
-    &vector_print,
-    &vector_length,
-    &vector_evacuate,
-    &vector_scavenge,
-    &vector_drop,
-  };
+  extern const ObjTable vector_otable;
 
   extern "C" {
     auto spiral_ext_vec_make(Bg* bg, void* sp, uint32_t len) -> uint32_t; 

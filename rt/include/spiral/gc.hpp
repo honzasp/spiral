@@ -14,5 +14,6 @@ namespace spiral {
   auto gc_evacuate(GcCtx* gc_ctx, Val val) -> Val;
   auto gc_get_copy_space(GcCtx* gc_ctx, uint32_t len) -> void*;
   void gc_scavenge_chunk(GcCtx* gc_ctx, Chunk* chunk);
+  void gc_write_fwd_ptr(GcCtx* gc_ctx, void* obj_ptr, Val new_val);
 }
 #endif
