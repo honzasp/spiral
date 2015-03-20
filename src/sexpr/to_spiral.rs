@@ -37,10 +37,12 @@ pub fn stmt_from_sexpr(stmt: &sexpr::Elem) -> Result<Stmt, String> {
 
 fn fun_def_from_sexprs(elems: &[sexpr::Elem]) -> Result<Stmt, String> {
   if elems.len() >= 2 {
-    let name = try!(fun_name_from_sexpr(&elems[0]));
-    let args = try!(vars_from_sexpr(&elems[1]));
-    let stmts = try!(stmts_from_sexprs(&elems[2..]));
-    Ok(Stmt::Fun(name, args, stmts))
+    let fun_def = FunDef {
+      name: try!(fun_name_from_sexpr(&elems[0])),
+      args: try!(vars_from_sexpr(&elems[1])),
+      body: try!(stmts_from_sexprs(&elems[2..])),
+    };
+    Ok(Stmt::Fun(fun_def))
   } else {
     return Err(format!("fun def expects at least fun name and args"));
   }
@@ -101,16 +103,43 @@ fn if_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
   }
 }
 
-fn cond_from_sexpr(_elems: &[sexpr::Elem]) -> Result<Expr, String> {
-  Err(format!("'cond' is not implemented yet"))
+fn cond_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
+  let mut arms = Vec::new();
+  for elem in elems.iter() {
+    match *elem {
+      sexpr::Elem::List(ref arm_elems) => {
+        if arm_elems.len() >= 1 {
+          let arm_cond = try!(expr_from_sexpr(&arm_elems[0]));
+          let arm_stmts = try!(stmts_from_sexprs(&arm_elems[1..]));
+          arms.push((arm_cond, arm_stmts))
+        } else {
+          return Err(format!("'cond' arm list cannot be empty"));
+        }
+      },
+      _ => return Err(format!("'cond' arm must be a list")),
+    }
+  }
+  Ok(Expr::Cond(arms))
 }
 
-fn when_from_sexpr(_elems: &[sexpr::Elem]) -> Result<Expr, String> {
-  Err(format!("'when' is not implemented yet"))
+fn when_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
+  if elems.len() >= 1 {
+    let cond = try!(expr_from_sexpr(&elems[0]));
+    let body = try!(stmts_from_sexprs(&elems[1..]));
+    Ok(Expr::When(box cond, body))
+  } else {
+    Err(format!("'when' cannot be empty"))
+  }
 }
 
-fn unless_from_sexpr(_elems: &[sexpr::Elem]) -> Result<Expr, String> {
-  Err(format!("'unless' is not implemented yet"))
+fn unless_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
+  if elems.len() >= 1 {
+    let cond = try!(expr_from_sexpr(&elems[0]));
+    let body = try!(stmts_from_sexprs(&elems[1..]));
+    Ok(Expr::Unless(box cond, body))
+  } else {
+    Err(format!("'unless' cannot be empty"))
+  }
 }
 
 fn do_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
@@ -277,6 +306,10 @@ mod test {
     s::FunName(id.to_string())
   }
 
+  fn fun_def(name: &str, args: Vec<s::Var>, body: Vec<s::Stmt>) -> s::FunDef {
+    s::FunDef { name: fun_name(name), args: args, body: body }
+  }
+
   fn var(id: &str) -> s::Var {
     s::Var(id.to_string())
   }
@@ -294,18 +327,18 @@ mod test {
     assert_eq!(parse_prog("(program (var x 10) (fun get-x () x))"),
       s::Prog { body: vec![
         s::Stmt::Var(var("x"), int_expr(10)),
-        s::Stmt::Fun(fun_name("get-x"), vec![], vec![
+        s::Stmt::Fun(fun_def("get-x", vec![], vec![
             s::Stmt::Expr(var_expr("x")),
-          ]),
+          ])),
       ]});
   }
 
   #[test]
   fn test_fun_def() {
     assert_eq!(parse_stmt("(fun f (a b) 3)"),
-      s::Stmt::Fun(fun_name("f"), vec![var("a"), var("b")], vec![
+      s::Stmt::Fun(fun_def("f", vec![var("a"), var("b")], vec![
           s::Stmt::Expr(int_expr(3))
-        ]));
+        ])));
   }
 
   #[test]
@@ -320,21 +353,18 @@ mod test {
       s::Expr::If(box var_expr("a"), box int_expr(2), box int_expr(3)));
   }
 
-  #[test] #[ignore]
+  #[test]
   fn test_cond_expr() {
-    assert_eq!(parse_expr("(cond (a 1 2) (b 2) (else 3))"),
+    assert_eq!(parse_expr("(cond (a 1 2) (b 2))"),
       s::Expr::Cond(vec![
           (var_expr("a"), vec![
               s::Stmt::Expr(int_expr(1)),
               s::Stmt::Expr(int_expr(2)),
             ]),
           (var_expr("b"), vec![
-              s::Stmt::Expr(int_expr(1)),
+              s::Stmt::Expr(int_expr(2)),
             ]),
-        ],
-        Some(vec![
-            s::Stmt::Expr(int_expr(3)),
-          ]))
+        ])
       );
 
     assert_eq!(parse_expr("(cond (a 1 2) (b 2))"),
@@ -344,14 +374,13 @@ mod test {
               s::Stmt::Expr(int_expr(2)),
             ]),
           (var_expr("b"), vec![
-              s::Stmt::Expr(int_expr(1)),
+              s::Stmt::Expr(int_expr(2)),
             ]),
-        ],
-        None)
+        ])
       );
   }
 
-  #[test] #[ignore]
+  #[test]
   fn test_when_expr() {
     assert_eq!(parse_expr("(when a 1 2)"),
       s::Expr::When(box var_expr("a"), vec![
@@ -360,7 +389,7 @@ mod test {
         ]));
   }
 
-  #[test] #[ignore]
+  #[test]
   fn test_unless_expr() {
     assert_eq!(parse_expr("(unless b 1 2)"),
       s::Expr::Unless(box var_expr("b"), vec![

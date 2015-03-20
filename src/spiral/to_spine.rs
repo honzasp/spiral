@@ -147,26 +147,55 @@ fn translate_stmts(st: &mut ProgSt, env: &Env, stmts: &[spiral::Stmt])
   } else if stmts.len() == 1 {
     translate_stmt(st, env, &stmts[0])
   } else {
-    let (stmt_onion, stmt_res) = try!(translate_stmt(st, env, &stmts[0]));
+    let fun_defs: Vec<_> = stmts.iter()
+      .take_while(|&stmt| match *stmt {
+        spiral::Stmt::Fun(_) => true,
+        spiral::Stmt::Var(_, _) | spiral::Stmt::Expr(_) => false,
+      }).map(|stmt| match *stmt {
+        spiral::Stmt::Fun(ref fun_def) => fun_def,
+        _ => panic!("non-fun stmts should have been filtered"),
+      }).collect();
+
+    let ((stmt_onion, stmt_res), next_stmts) =
+      if !fun_defs.is_empty() {
+        (try!(translate_fun_stmts(st, env, &fun_defs[..])),
+          &stmts[fun_defs.len()..])
+      } else {
+        (try!(translate_stmt(st, env, &stmts[0])), &stmts[1..])
+      };
+
     let (next_onion, next_stmt_res) = try!(match stmt_res {
-      StmtRes::Env(ref inner_env) => translate_stmts(st, inner_env, &stmts[1..]),
-      StmtRes::Val(_) | StmtRes::Empty => translate_stmts(st, env, &stmts[1..]),
+      StmtRes::Env(ref inner_env) => translate_stmts(st, inner_env, next_stmts),
+      StmtRes::Val(_) | StmtRes::Empty => translate_stmts(st, env, next_stmts),
     });
     Ok((stmt_onion.subst_onion(next_onion), next_stmt_res))
   }
+}
+
+fn translate_fun_stmts(st: &mut ProgSt, env: &Env, fun_defs: &[&spiral::FunDef])
+  -> Res<(Onion, StmtRes)>
+{
+  let spine_names: Vec<_> = fun_defs.iter().map(|fun_def| {
+      st.gen_fun_name(&fun_def.name.0[..])
+    }).collect();
+  let inner_env = env.bind_funs(fun_defs.iter().zip(spine_names.iter())
+      .map(|(fun_def, spine_name)| {
+        let bind = FunBind::FunName(spine_name.clone(), fun_def.args.len());
+        (fun_def.name.clone(), bind)
+      }).collect());
+
+  for (fun_def, spine_name) in fun_defs.iter().zip(spine_names.into_iter()) {
+    try!(translate_fun(st, &inner_env, spine_name, fun_def));
+  }
+  Ok((Onion::Hole, StmtRes::Env(inner_env)))
 }
 
 fn translate_stmt(st: &mut ProgSt, env: &Env, stmt: &spiral::Stmt)
   -> Res<(Onion, StmtRes)>
 {
   match *stmt {
-    spiral::Stmt::Fun(ref fun_name, ref args, ref body_stmts) => {
-      let spine_name = st.gen_fun_name(&fun_name.0[..]);
-      let bind = FunBind::FunName(spine_name.clone(), args.len());
-      let inner_env = env.bind_funs(vec![(fun_name.clone(), bind)]);
-      try!(translate_fun(st, &inner_env, spine_name, &args[..], &body_stmts[..]));
-      Ok((Onion::Hole, StmtRes::Env(inner_env)))
-    },
+    spiral::Stmt::Fun(ref fun_def) =>
+      translate_fun_stmts(st, env, &[fun_def]),
     spiral::Stmt::Var(ref var, ref expr) => {
       let (expr_onion, expr_val) = try!(translate_expr(st, env, expr));
       let inner_env = env.bind_vars(vec![(var.clone(), expr_val)]);
@@ -180,24 +209,25 @@ fn translate_stmt(st: &mut ProgSt, env: &Env, stmt: &spiral::Stmt)
 }
 
 fn translate_fun(st: &mut ProgSt, env: &Env, spine_name: spine::FunName,
-  args: &[spiral::Var], body_stmts: &[spiral::Stmt]) -> Res<()>
+  fun_def: &spiral::FunDef) -> Res<()>
 {
-  let spine_args: Vec<_> = args.iter().map(|arg| st.gen_var(&arg.0[..])).collect();
-  let arg_binds = args.iter().zip(spine_args.iter())
+  let spine_args: Vec<_> = fun_def.args.iter().map(|arg| st.gen_var(&arg.0[..])).collect();
+  let arg_binds = fun_def.args.iter().zip(spine_args.iter())
       .map(|(arg, spine_arg)| (arg.clone(), spine::Val::Var(spine_arg.clone())))
       .collect();
   let inner_env = env.bind_vars(arg_binds);
 
   let ret_cont = st.gen_cont_name("return");
-  let (body_onion, body_stmt_res) = try!(translate_stmts(st, &inner_env, body_stmts));
+  let (body_onion, body_stmt_res) = try!(translate_stmts(st, &inner_env, &fun_def.body[..]));
 
-  Ok(st.fun_defs.push(spine::FunDef {
+  st.fun_defs.push(spine::FunDef {
       name: spine_name,
       ret: ret_cont.clone(),
       args: spine_args,
       body: body_onion.subst_term(spine::Term::Cont(ret_cont,
         vec![body_stmt_res.into_val()])),
-    }))
+    });
+  Ok(())
 }
 
 fn translate_expr_tail(st: &mut ProgSt, env: &Env,
@@ -206,20 +236,20 @@ fn translate_expr_tail(st: &mut ProgSt, env: &Env,
   match *expr {
     spiral::Expr::If(ref cond, ref then_e, ref else_e) =>
       translate_if_expr_tail(st, env, &**cond, &**then_e, &**else_e, result_cont),
-    spiral::Expr::Cond(_, _) =>
-      Err(format!("'cond' not implemented")),
-    spiral::Expr::When(_, _) =>
-      Err(format!("'when' not implemented")),
-    spiral::Expr::Unless(_, _) =>
-      Err(format!("'unless' not implemented")),
+    spiral::Expr::Cond(ref arms) =>
+      translate_cond_expr_tail(st, env, &arms[..], result_cont),
+    spiral::Expr::When(ref cond, ref body_stmts) =>
+      translate_when_expr_tail(st, env, &cond, &body_stmts[..], result_cont),
+    spiral::Expr::Unless(ref cond, ref body_stmts) =>
+      translate_unless_expr_tail(st, env, &cond, &body_stmts[..], result_cont),
     spiral::Expr::Do(ref var_binds, ref exit_cond, ref exit_stmts, ref body_stmts) => 
       translate_do_expr_tail(st, env,
         &var_binds[..], &**exit_cond, &exit_stmts[..], &body_stmts[..],
         result_cont),
     spiral::Expr::And(ref exprs) => 
       translate_and_expr_tail(st, env, &exprs[..], result_cont),
-    spiral::Expr::Or(_) =>
-      Err(format!("'or' not implemented")),
+    spiral::Expr::Or(ref exprs) =>
+      translate_or_expr_tail(st, env, &exprs[..], result_cont),
     spiral::Expr::Begin(ref stmts) => {
       let (onion, stmt_res) = try!(translate_stmts(st, env, &stmts[..]));
       Ok(onion.subst_term(spine::Term::Cont(result_cont, vec![stmt_res.into_val()])))
@@ -241,35 +271,91 @@ fn translate_expr_tail(st: &mut ProgSt, env: &Env,
   }
 }
 
+fn translate_branch_expr_tail<F1, F2>(
+  st: &mut ProgSt, env: &Env,
+  cond: &spiral::Expr,
+  then_branch: F1,
+  else_branch: F2) -> Res<spine::Term>
+where F1: Fn(&mut ProgSt, &Env, spine::Val) -> Res<spine::Term>,
+      F2: Fn(&mut ProgSt, &Env, spine::Val) -> Res<spine::Term>,
+{
+  let (cond_onion, cond_val) = try!(translate_expr(st, env, cond));
+
+  let then_cont = st.gen_cont_name("branch-then");
+  let then_cont_def = spine::ContDef {
+      name: then_cont.clone(),
+      args: vec![],
+      body: try!(then_branch(st, env, cond_val.clone())),
+    };
+
+  let else_cont = st.gen_cont_name("branch-else");
+  let else_cont_def = spine::ContDef {
+      name: else_cont.clone(),
+      args: vec![],
+      body: try!(else_branch(st, env, cond_val.clone())),
+    };
+
+  Ok(cond_onion.subst_term(
+    spine::Term::Letcont(vec![then_cont_def],
+      box spine::Term::Letcont(vec![else_cont_def],
+        box spine::Term::Branch(spine::Boolval::IsTrue(cond_val),
+          then_cont, else_cont)))))
+}
+
 fn translate_if_expr_tail(st: &mut ProgSt, env: &Env,
   cond: &spiral::Expr,
   then_e: &spiral::Expr,
   else_e: &spiral::Expr,
   result_cont: spine::ContName) -> Res<spine::Term>
 {
-  let (cond_onion, cond_val) = try!(translate_expr(st, env, cond));
-  let then_term = try!(translate_expr_tail(st, env, then_e, result_cont.clone()));
-  let else_term = try!(translate_expr_tail(st, env, else_e, result_cont));
+  translate_branch_expr_tail(st, env, cond,
+    |st, env, _| translate_expr_tail(st, env, then_e, result_cont.clone()),
+    |st, env, _| translate_expr_tail(st, env, else_e, result_cont.clone()))
+}
 
-  let then_cont = st.gen_cont_name("then");
-  let then_cont_def = spine::ContDef {
-      name: then_cont.clone(),
-      args: vec![],
-      body: then_term,
-    };
+fn translate_cond_expr_tail(st: &mut ProgSt, env: &Env,
+  arms: &[(spiral::Expr, Vec<spiral::Stmt>)],
+  result_cont: spine::ContName) -> Res<spine::Term>
+{
+  if arms.is_empty() {
+    Ok(spine::Term::Cont(result_cont, vec![spine::Val::False]))
+  } else {
+    translate_branch_expr_tail(st, env, &arms[0].0,
+      |st, env, _| {
+        let (arm_onion, arm_res) = try!(translate_stmts(st, env, &arms[0].1[..]));
+        Ok(arm_onion.subst_term(spine::Term::Cont(result_cont.clone(),
+          vec![arm_res.into_val()])))
+      },
+      |st, env, _| translate_cond_expr_tail(st, env, &arms[1..], result_cont.clone()))
+  }
+}
 
-  let else_cont = st.gen_cont_name("else");
-  let else_cont_def = spine::ContDef {
-      name: else_cont.clone(),
-      args: vec![],
-      body: else_term,
-    };
+fn translate_when_expr_tail(st: &mut ProgSt, env: &Env,
+  cond: &spiral::Expr, body_stmts: &[spiral::Stmt],
+  result_cont: spine::ContName) -> Res<spine::Term>
+{
+  translate_branch_expr_tail(st, env, cond,
+    |st, env, _true_val| {
+      let (body_onion, body_res) = try!(translate_stmts(st, env, body_stmts));
+      Ok(body_onion.subst_term(spine::Term::Cont(result_cont.clone(), 
+        vec![body_res.into_val()])))
+    },
+    |_st, _env, false_val| 
+      Ok(spine::Term::Cont(result_cont.clone(), vec![false_val])))
+}
 
-  Ok(cond_onion.subst_term(
-    spine::Term::Letcont(vec![then_cont_def], 
-      box spine::Term::Letcont(vec![else_cont_def],
-        box spine::Term::Branch(spine::Boolval::IsTrue(cond_val),
-          then_cont, else_cont)))))
+fn translate_unless_expr_tail(st: &mut ProgSt, env: &Env,
+  cond: &spiral::Expr, body_stmts: &[spiral::Stmt],
+  result_cont: spine::ContName) -> Res<spine::Term>
+{
+  translate_branch_expr_tail(st, env, cond,
+    |_st, _env, true_val| 
+      Ok(spine::Term::Cont(result_cont.clone(), vec![true_val])),
+    |st, env, _false_val| {
+      let (body_onion, body_res) = try!(translate_stmts(st, env, body_stmts));
+      Ok(body_onion.subst_term(spine::Term::Cont(result_cont.clone(), 
+        vec![body_res.into_val()])))
+    })
 }
 
 fn translate_do_expr_tail(st: &mut ProgSt, env: &Env,
@@ -290,9 +376,9 @@ fn translate_do_expr_tail(st: &mut ProgSt, env: &Env,
          (spiral_var.clone(), spine::Val::Var(spine_var.clone())))
     .collect());
 
-  let next_cont = st.gen_cont_name("do_next");
-  let loop_cont = st.gen_cont_name("do_loop");
-  let exit_cont = st.gen_cont_name("do_exit");
+  let next_cont = st.gen_cont_name("do-next");
+  let loop_cont = st.gen_cont_name("do-loop");
+  let exit_cont = st.gen_cont_name("do-exit");
 
   let next_cont_def = spine::ContDef {
       name: next_cont.clone(),
@@ -338,32 +424,34 @@ fn translate_and_expr_tail(st: &mut ProgSt, env: &Env,
   exprs: &[spiral::Expr], result_cont: spine::ContName) -> Res<spine::Term>
 {
   if exprs.len() == 0 {
+    Ok(spine::Term::Cont(result_cont, vec![spine::Val::True]))
+  } else if exprs.len() == 1 {
+    translate_expr_tail(st, env, &exprs[0], result_cont)
+  } else {
+    translate_branch_expr_tail(st, env, &exprs[0],
+      |st, env, _true_val| translate_and_expr_tail(st, env, &exprs[1..],
+        result_cont.clone()),
+      |_st, _env, false_val| Ok(spine::Term::Cont(result_cont.clone(),
+        vec![false_val])))
+  }
+}
+
+fn translate_or_expr_tail(st: &mut ProgSt, env: &Env,
+  exprs: &[spiral::Expr], result_cont: spine::ContName) -> Res<spine::Term>
+{
+  if exprs.len() == 0 {
     Ok(spine::Term::Cont(result_cont, vec![spine::Val::False]))
   } else if exprs.len() == 1 {
     translate_expr_tail(st, env, &exprs[0], result_cont)
   } else {
-    let (onion, val) = try!(translate_expr(st, env, &exprs[0]));
-
-    let stop_cont = st.gen_cont_name("and_stop");
-    let stop_cont_def = spine::ContDef {
-        name: stop_cont.clone(),
-        args: vec![],
-        body: spine::Term::Cont(result_cont.clone(), vec![val.clone()]),
-      };
-
-    let continue_cont = st.gen_cont_name("and_continue");
-    let continue_cont_def = spine::ContDef {
-        name: continue_cont.clone(),
-        args: vec![],
-        body: try!(translate_and_expr_tail(st, env, &exprs[1..], result_cont)),
-      };
-    
-    Ok(spine::Term::Letcont(vec![stop_cont_def],
-        box spine::Term::Letcont(vec![continue_cont_def],
-          box onion.subst_term(spine::Term::Branch(
-            spine::Boolval::IsTrue(val.clone()), continue_cont, stop_cont)))))
+    translate_branch_expr_tail(st, env, &exprs[0],
+      |_st, _env, true_val| Ok(spine::Term::Cont(result_cont.clone(),
+        vec![true_val])),
+      |st, env, _false_val| translate_or_expr_tail(st, env, &exprs[1..],
+        result_cont.clone()))
   }
 }
+
 
 fn translate_let_expr(st: &mut ProgSt, env: &Env,
   var_binds: &[(spiral::Var, spiral::Expr)],
@@ -457,7 +545,7 @@ mod test {
   use spine;
   use spiral;
   use spine::eval::{RtVal};
-  use spine::eval::RtVal::{Int};
+  use spine::eval::RtVal::{Int, True, False};
 
   fn run(txt: &str) -> Vec<RtVal> {
     let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
@@ -467,7 +555,8 @@ mod test {
     if !errors.is_empty() {
       panic!("spine invalid: {:?}", errors)
     }
-    println!("{:?}", spine);
+    let spine_sexpr = spine::to_sexpr::prog_to_sexpr(&spine);
+    println!("{}", sexpr::pretty_print::pretty_print_sexpr(&spine_sexpr));
     spine::eval::eval(&spine)
   }
 
@@ -491,29 +580,29 @@ mod test {
       vec![Int(20), Int(10), Int(10)]);
   }
 
-  #[test] #[ignore]
+  #[test]
   fn test_cond() {
-    assert_eq!(run("(program (__out (cond ((= 1 2) 99) ((< 1 2) 42) (1 66))))"),
+    assert_eq!(run("(program (__out (cond ((== 1 2) 99) ((< 1 2) 42) (1 66))))"),
       vec![Int(42)]);
-    assert_eq!(run("(program (__out (cond ((= 1 2) 99) ((> 1 2) 33) (else 42))))"),
+    assert_eq!(run("(program (__out (cond ((== 1 2) 99) ((> 1 2) 33) (true 42))))"),
       vec![Int(42)]);
   }
 
-  #[test] #[ignore]
+  #[test]
   fn test_when() {
-    assert_eq!(run("(program (when (= 2 2) (__out 4)) (when 0 (__out 3)))"),
+    assert_eq!(run("(program (when (== 2 2) (__out 4)) (when (== 1 2) (__out 3)))"),
       vec![Int(4)]);
-    assert_eq!(run("(program (when (= 4 4) (__out 1) (__out 2)) (__out 4))"),
+    assert_eq!(run("(program (when (== 4 4) (__out 1) (__out 2)) (__out 4))"),
       vec![Int(1), Int(2), Int(4)]);
     assert_eq!(run("(program (when (< 4 4) (__out 1) (__out 2)) (__out 4))"),
       vec![Int(4)]);
   }
 
-  #[test] #[ignore]
+  #[test]
   fn test_unless() {
-    assert_eq!(run("(program (unless (= 2 2) (__out 4)) (unless 0 (__out 3)))"),
-      vec![Int(4)]);
-    assert_eq!(run("(program (unless (= 4 4) (__out 1) (__out 2)) (__out 4))"),
+    assert_eq!(run("(program (unless (== 2 2) (__out 4)) (unless (== 3 2) (__out 3)))"),
+      vec![Int(3)]);
+    assert_eq!(run("(program (unless (== 4 4) (__out 1) (__out 2)) (__out 4))"),
       vec![Int(4)]);
     assert_eq!(run("(program (unless (< 4 4) (__out 1) (__out 2)) (__out 4))"),
       vec![Int(1), Int(2), Int(4)]);
@@ -527,6 +616,26 @@ mod test {
                   (__out f1)))"),
       vec![Int(0), Int(1), Int(1), Int(2), Int(3),
         Int(5), Int(8), Int(13), Int(21), Int(34)]);
+  }
+
+  #[test]
+  fn test_and() {
+    assert_eq!(run(
+        "(program
+          (__out (and 1 true 2))
+          (__out (and 3 4 false 5))
+          (__out (and)))"),
+        vec![Int(2), False, True]);
+  }
+
+  #[test]
+  fn test_or() {
+    assert_eq!(run(
+        "(program
+          (__out (or false 1 2))
+          (__out (or false false))
+          (__out (or)))"),
+        vec![Int(1), False, False]);
   }
 
   #[test]
@@ -569,16 +678,16 @@ mod test {
       vec![Int(720)]);
   }
 
-  #[test] #[ignore]
+  #[test]
   fn test_mutually_recursive_funs() {
     assert_eq!(run("(program
-        (fun ping (a b)
-          (__out a)
-          (pong b a))
-        (fun pong (a b)
-          (if (= a b) 10
-            (ping (+ a 1) (- b 2))))
-        (__out (pong 6 7)))"),
-      vec![Int(7), Int(6), Int(6), Int(5), Int(5), Int(4), Int(10)]);
+        (fun is-odd (n)
+          (if (== n 0) false (is-even (- n 1))))
+        (fun is-even (n)
+          (if (== n 0) true (is-odd (- n 1))))
+        (__out (is-odd 6))
+        (__out (is-even 8))
+        (__out (is-odd 9)))"),
+      vec![False, True, True]);
   }
 }

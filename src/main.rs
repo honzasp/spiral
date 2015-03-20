@@ -1,6 +1,7 @@
-#![feature(collections, unicode, old_io, box_syntax)]
+#![allow(stable_features, deprecated)]
+#![feature(collections, old_io, box_syntax)]
 #![feature(core, unboxed_closures, std_misc)]
-#![feature(process, old_path, io)]
+#![feature(process, old_path)]
 #![allow(dead_code)]
 extern crate argparse;
 
