@@ -10,13 +10,17 @@ pub struct ProgDef {
 #[derive(PartialEq, Debug)]
 pub struct FunDef {
   pub name: FunName,
-  pub frame_info: FrameInfo,
+  pub fun_table: FunTable,
+  pub known_start: Label,
   pub blocks: Vec<Block>,
 }
 
 #[derive(PartialEq, Debug)]
-pub struct FrameInfo {
-  pub slot_count: i32,
+pub struct FunTable {
+  pub slot_count: u32,
+  pub arg_count: u32,
+  pub capture_count: u32,
+  pub is_combinator: bool,
   pub fun_name_str: StringLabel,
 }
 
@@ -44,6 +48,7 @@ pub struct ExternName(pub String);
 #[derive(PartialEq, Debug)]
 pub enum Instr {
   AddRegImm(Reg, Imm),
+  SubRegImm(Reg, Imm),
   MoveRegImm(Reg, Imm),
   MoveRegReg(Reg, Reg),
   MoveMemImm(Mem, Imm),
@@ -51,10 +56,12 @@ pub enum Instr {
   MoveRegMem(Reg, Mem),
   MoveRegAddr(Reg, Mem),
   CallImm(Imm),
+  CallMem(Mem),
   Jump(Imm),
   JumpIf(Test, Imm),
   CmpRegImm(Reg, Imm),
   CmpMemImm(Mem, Imm),
+  TestRegImm(Reg, Imm),
   Return,
 }
 
@@ -76,6 +83,8 @@ pub enum Test {
   Greater,
   LessEq,
   GreaterEq,
+  Zero,
+  NotZero,
 }
 
 #[derive(PartialEq, Debug)]
@@ -99,9 +108,9 @@ pub enum Imm {
   Int(i32),
   Label(Label),
   FunAddr(FunName),
-  FrameInfo(FunName),
+  FunKnownStart(FunName),
   ExternAddr(ExternName),
-  StringLabel(StringLabel),
+  CombinatorObj(FunName),
   Plus(Box<Imm>, Box<Imm>),
   Minus(Box<Imm>, Box<Imm>),
   True,

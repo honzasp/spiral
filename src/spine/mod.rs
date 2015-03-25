@@ -1,11 +1,12 @@
 pub use spine::syntax::*;
 
-pub mod syntax;
-pub mod env;
-pub mod check;
-pub mod helpers;
-pub mod eval;
-pub mod onion;
 pub mod census;
+pub mod check;
+pub mod env;
+pub mod eval;
+pub mod free;
+pub mod helpers;
+pub mod onion;
+pub mod syntax;
 pub mod to_grit;
 pub mod to_sexpr;

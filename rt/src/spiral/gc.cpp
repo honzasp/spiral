@@ -1,3 +1,4 @@
+#include "spiral/fun.hpp"
 #include "spiral/fwd_ptr.hpp"
 #include "spiral/gc.hpp"
 
@@ -30,8 +31,8 @@ namespace spiral {
     auto stack_ptr = reinterpret_cast<uint32_t>(sp);
     for(;;) {
       assert(stack_ptr % 4 == 0);
-      auto frame_info_ptr = *reinterpret_cast<uint32_t*>(stack_ptr + 0);
-      if(frame_info_ptr == 0xffffffff) {
+      auto fun_obj_ptr = *reinterpret_cast<uint32_t*>(stack_ptr + 0);
+      if(fun_obj_ptr == 0xffffffff) {
         auto next_stack_ptr = *reinterpret_cast<uint32_t*>(stack_ptr + 4);
         if(next_stack_ptr == 0) {
           break;
@@ -39,8 +40,9 @@ namespace spiral {
           stack_ptr = next_stack_ptr;
         }
       } else {
-        auto frame_info = reinterpret_cast<const FrameInfo*>(frame_info_ptr);
-        auto slot_count = frame_info->slot_count;
+        auto fun_obj = fun_from_obj_ptr(reinterpret_cast<FunObj*>(fun_obj_ptr - 0b01));
+        auto ftable = fun_table_from_addr(fun_obj->fun_addr);
+        auto slot_count = ftable->slot_count;
         for(uint32_t slot = 0; slot < slot_count; ++slot) {
           auto slot_ptr = reinterpret_cast<uint32_t*>(stack_ptr + 4 + 4 * slot);
           *slot_ptr = gc_evacuate(gc_ctx, Val(*slot_ptr)).u32;

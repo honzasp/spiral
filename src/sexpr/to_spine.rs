@@ -28,14 +28,16 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<spine::ProgDef, String> {
 pub fn fun_def_from_sexpr(elem: &sexpr::Elem) -> Result<spine::FunDef, String> {
   match *elem {
     sexpr::Elem::List(ref list) => {
-      if list.len() == 4 {
+      if list.len() == 5 {
         let name = try!(fun_name_from_sexpr(&list[0]));
         let ret = try!(cont_name_from_sexpr(&list[1]));
-        let args = try!(vars_from_sexpr(&list[2]));
-        let body = try!(term_from_sexpr(&list[3]));
-        Ok(spine::FunDef { name: name, ret: ret, args: args, body: body })
+        let captures = try!(vars_from_sexpr(&list[2]));
+        let args = try!(vars_from_sexpr(&list[3]));
+        let body = try!(term_from_sexpr(&list[4]));
+        Ok(spine::FunDef { name: name, ret: ret, captures: captures, 
+          args: args, body: body })
       } else {
-        Err(format!("fun def must have 4 elems"))
+        Err(format!("fun def must have 5 elems"))
       }
     },
     _ => Err(format!("fun def must be a list")),
@@ -48,6 +50,7 @@ pub fn term_from_sexpr(elem: &sexpr::Elem) -> Result<spine::Term, String> {
       match list.get(0) {
         Some(&sexpr::Elem::Identifier(ref head)) => match &head[..] {
           "letcont" => letcont_from_sexprs(&list[1..]),
+          "letclos" => letclos_from_sexprs(&list[1..]),
           "call" => call_from_sexprs(&list[1..]),
           "extern-call" => extern_call_from_sexprs(&list[1..]),
           "cont" => cont_from_sexprs(&list[1..]),
@@ -77,12 +80,29 @@ fn letcont_from_sexprs(elems: &[sexpr::Elem]) -> Result<spine::Term, String> {
   }
 }
 
+fn letclos_from_sexprs(elems: &[sexpr::Elem]) -> Result<spine::Term, String> {
+  if elems.len() == 2 {
+    let mut clos_defs = Vec::new();
+    match elems[0] {
+      sexpr::Elem::List(ref list) => 
+        for elem in list.iter() {
+          clos_defs.push(try!(clos_def_from_sexpr(elem)));
+        },
+      _ => return Err(format!("expected list of closure defs")),
+    }
+
+    Ok(spine::Term::Letclos(clos_defs, box try!(term_from_sexpr(&elems[1]))))
+  } else {
+    Err(format!("letclos must have closure defs and a term"))
+  }
+}
+
 fn call_from_sexprs(elems: &[sexpr::Elem]) -> Result<spine::Term, String> {
   if elems.len() >= 2 {
-    let fun_name = try!(fun_name_from_sexpr(&elems[0]));
+    let fun = try!(val_from_sexpr(&elems[0]));
     let ret = try!(cont_name_from_sexpr(&elems[1]));
     let args = try!(vals_from_sexprs(&elems[2..]));
-    Ok(spine::Term::Call(fun_name, ret, args))
+    Ok(spine::Term::Call(fun, ret, args))
   } else {
     Err(format!("call must have fun name, ret cont and args"))
   }
@@ -136,7 +156,16 @@ fn val_from_sexpr(elem: &sexpr::Elem) -> Result<spine::Val, String> {
       Ok(spine::Val::Int(num)),
     sexpr::Elem::Float(_) =>
       Err(format!("floats not supported")),
-    _ => Err(format!("expected a val")),
+    sexpr::Elem::List(ref elems) => match elems.get(0) {
+      Some(&sexpr::Elem::Identifier(ref id)) => match &id[..] {
+        "true" if elems.len() == 1 => Ok(spine::Val::True),
+        "false" if elems.len() == 1 => Ok(spine::Val::False),
+        "combinator" if elems.len() == 2 => 
+          Ok(spine::Val::Combinator(try!(fun_name_from_sexpr(&elems[1])))),
+        _ => Err(format!("invalid val list")),
+      },
+      _ => Err(format!("invalid val list")),
+    },
   }
 }
 
@@ -175,6 +204,22 @@ fn cont_def_from_sexpr(elem: &sexpr::Elem) -> Result<spine::ContDef, String> {
     }, _ => Err(format!("cont def must be a list"))
   }
 }
+
+fn clos_def_from_sexpr(elem: &sexpr::Elem) -> Result<spine::ClosureDef, String> {
+  match *elem {
+    sexpr::Elem::List(ref list) => {
+      if list.len() >= 2 {
+        let var = try!(var_from_sexpr(&list[0]));
+        let fun_name = try!(fun_name_from_sexpr(&list[1]));
+        let captures = try!(vals_from_sexprs(&list[2..]));
+        Ok(spine::ClosureDef { var: var, fun_name: fun_name, captures: captures })
+      } else {
+        Err(format!("cont def must have name, args and body"))
+      }
+    }, _ => Err(format!("cont def must be a list"))
+  }
+}
+
 
 fn vars_from_sexpr(elem: &sexpr::Elem) -> Result<Vec<spine::Var>, String> {
   match *elem {
@@ -253,13 +298,14 @@ mod test {
 
   #[test]
   fn test_prog_with_fun() {
-    assert_eq!(parse_prog("(program start (start r () (cont r)))"),
+    assert_eq!(parse_prog("(program start (start r () () (cont r)))"),
       ProgDef {
         main_fun: fun("start"),
         fun_defs: vec![
           FunDef {
             name: fun("start"),
             ret: cont("r"),
+            captures: vec![],
             args: vec![],
             body: Cont(cont("r"), vec![]),
           }
@@ -269,10 +315,11 @@ mod test {
 
   #[test]
   fn test_fun_def() {
-    assert_eq!(parse_fun_def("(compute-zero ret (a b) (cont ret 0))"),
+    assert_eq!(parse_fun_def("(compute-zero ret (x y) (a b) (cont ret 0))"),
       FunDef {
         name: fun("compute-zero"),
         ret: cont("ret"),
+        captures: vec![var("x"), var("y")],
         args: vec![var("a"), var("b")],
         body: Cont(cont("ret"), vec![Int(0)]),
       });
@@ -294,9 +341,24 @@ mod test {
   }
 
   #[test]
+  fn test_letclos() {
+    assert_eq!(parse_term(
+        "(letclos (
+          (clos1 fun1 a b c)
+          (clos2 fun2 10 y)
+        ) (cont cc))"),
+      Letclos(vec![
+        ClosureDef { var: var("clos1"), fun_name: fun("fun1"),
+          captures: vec![var_val("a"), var_val("b"), var_val("c")] },
+        ClosureDef { var: var("clos2"), fun_name: fun("fun2"),
+          captures: vec![Int(10), var_val("y")] },
+        ], box Cont(cont("cc"), vec![])));
+  }
+
+  #[test]
   fn test_call() {
     assert_eq!(parse_term("(call f k a b 2)"),
-      Call(fun("f"), cont("k"), vec![var_val("a"), var_val("b"), Int(2)]));
+      Call(var_val("f"), cont("k"), vec![var_val("a"), var_val("b"), Int(2)]));
   }
 
   #[test]
@@ -318,5 +380,25 @@ mod test {
       Branch(IsTrue(Int(0)), cont("ok"), cont("not-ok")));
     assert_eq!(parse_term("(branch (is-false f) ok not-ok)"),
       Branch(IsFalse(var_val("f")), cont("ok"), cont("not-ok")));
+  }
+
+  #[test]
+  fn test_combinator_val() {
+    assert_eq!(parse_term("(cont cc (combinator Y))"),
+      Cont(cont("cc"), vec![combinator_val("Y")]));
+  }
+
+  #[test]
+  fn test_true_false_val() {
+    assert_eq!(parse_term("(cont cc (true) (false))"),
+      Cont(cont("cc"), vec![True, False]));
+  }
+
+  #[test]
+  fn test_var_val() {
+    assert_eq!(parse_term("(cont cc x y z)"),
+      Cont(cont("cc"), vec![var_val("x"), var_val("y"), var_val("z")]));
+    assert_eq!(parse_term("(cont cc true false)"),
+      Cont(cont("cc"), vec![var_val("true"), var_val("false")]));
   }
 }

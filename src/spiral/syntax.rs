@@ -7,8 +7,6 @@ pub struct Prog {
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Var(pub String);
-#[derive(PartialEq, Eq, Hash, Debug, Clone)]
-pub struct FunName(pub String);
 
 #[derive(PartialEq, Debug)]
 pub enum Stmt {
@@ -19,7 +17,7 @@ pub enum Stmt {
 
 #[derive(PartialEq, Debug)]
 pub struct FunDef {
-  pub name: FunName,
+  pub var: Var,
   pub args: Vec<Var>,
   pub body: Vec<Stmt>,
 }
@@ -35,7 +33,8 @@ pub enum Expr {
   Or(Vec<Expr>),
   Begin(Vec<Stmt>),
   Let(Vec<(Var, Expr)>, Vec<Stmt>),
-  Call(FunName, Vec<Expr>),
+  Call(Box<Expr>, Vec<Expr>),
+  Lambda(Vec<Var>, Vec<Stmt>),
   Var(Var),
   Int(i32),
 }

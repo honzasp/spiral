@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 use spine;
-pub use spine::{ProgDef, FunDef, ContDef, Term, Val, Boolval};
-pub use spine::Term::{Letcont, Call, ExternCall, Cont, Branch};
-pub use spine::Val::{Int, Var, True, False};
+pub use spine::{ProgDef, FunDef, ContDef, ClosureDef, Term, Val, Boolval};
+pub use spine::Term::{Letcont, Letclos, Call, ExternCall, Cont, Branch};
+pub use spine::Val::{Combinator, Int, Var, True, False};
 pub use spine::Boolval::{IsTrue, IsFalse};
 
 pub fn var(id: &str) -> spine::Var {
@@ -27,4 +27,8 @@ pub fn add_call(ret: &str, l: spine::Val, r: spine::Val) -> spine::Term {
 
 pub fn var_val(id: &str) -> spine::Val {
   spine::Val::Var(var(id))
+}
+
+pub fn combinator_val(id: &str) -> spine::Val {
+  spine::Val::Combinator(fun(id))
 }

@@ -14,7 +14,8 @@ pub struct ContDef {
 #[derive(PartialEq, Debug)]
 pub enum Term {
   Letcont(Vec<ContDef>, Box<Term>),
-  Call(spine::FunName, spine::ContName, Vec<spine::Val>),
+  Letclos(Vec<spine::ClosureDef>, Box<Term>),
+  Call(spine::Val, spine::ContName, Vec<spine::Val>),
   ExternCall(spine::ExternName, spine::ContName, Vec<spine::Val>),
   Cont(spine::ContName, Vec<spine::Val>),
   Branch(spine::Boolval, spine::ContName, spine::ContName),
@@ -65,9 +66,29 @@ fn walk_term(census: &mut Census, term: &spine::Term) -> Term {
       }
       Term::Letcont(census_defs, box walked_body)
     },
-    spine::Term::Call(ref fun_name, ref ret_cont, ref args) => {
+    spine::Term::Letclos(ref clos_defs, ref body) => {
+      let mut body_census = Census {
+        vars: HashSet::new(),
+        conts: HashSet::new(),
+      };
+      let body_term = walk_term(&mut body_census, &**body);
+
+      for clos_def in clos_defs.iter() {
+        for capture in clos_def.captures.iter() {
+          walk_val(&mut body_census, capture);
+        }
+      }
+
+      for clos_def in clos_defs.iter() {
+        body_census.vars.remove(&clos_def.var);
+      }
+      census.vars.extend(body_census.vars.into_iter());
+      census.conts.extend(body_census.conts.into_iter());
+      Term::Letclos(clos_defs.clone(), box body_term)
+    },
+    spine::Term::Call(ref fun, ref ret_cont, ref args) => {
       census.conts.insert(ret_cont.clone());
-      Term::Call(fun_name.clone(), ret_cont.clone(),
+      Term::Call(fun.clone(), ret_cont.clone(),
         args.iter().map(|arg| walk_val(census, arg)).collect())
     },
     spine::Term::ExternCall(ref extern_name, ref ret_cont, ref args) => {
@@ -90,7 +111,8 @@ fn walk_term(census: &mut Census, term: &spine::Term) -> Term {
 
 fn walk_val(census: &mut Census, val: &spine::Val) -> spine::Val {
   match *val {
-    spine::Val::Int(_) | spine::Val::True | spine::Val::False => { },
+    spine::Val::Int(_) | spine::Val::True | spine::Val::False => (),
+    spine::Val::Combinator(_) => (),
     spine::Val::Var(ref var) => { census.vars.insert(var.clone()); },
   }
   val.clone()

@@ -1,4 +1,5 @@
   .text
+
   .globl spiral_call_fun
   .align 16,0x90
   .type spiral_call_fun,@function
@@ -13,3 +14,18 @@ spiral_call_fun:
   ret
 .Lend_spiral_call_fun:
   .size spiral_call_fun, .Lend_spiral_call_fun - spiral_call_fun
+
+  .globl spiral_argc_mismatch
+  .align 16,0x90
+  .type spiral_argc_mismatch,@function
+spiral_argc_mismatch:
+  pushl %esp
+  pushl $1
+  calll exit
+
+  .globl spiral_invalid_fun
+  .align 16,0x90
+  .type spiral_invalid_fun,@function
+spiral_invalid_fun:
+  pushl $2
+  calll exit

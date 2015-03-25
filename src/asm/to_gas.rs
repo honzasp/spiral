@@ -22,10 +22,11 @@ pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
     emit_str_def(&mut lines, str_def);
   }
 
-  lines.push(format!(""));
   lines.push(format!("  .section .rodata,\"a\",@progbits"));
   for fun_def in prog.fun_defs.iter() {
-    emit_frame_info(&mut lines, fun_def);
+    if fun_def.fun_table.is_combinator {
+      emit_combinator_obj(&mut lines, fun_def);
+    }
   }
 
   lines.connect("\n")
@@ -33,8 +34,9 @@ pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
 
 fn emit_fun_def(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
   let symbol = fun_name_symbol(&fun_def.name);
+
+  emit_fun_table(lines, fun_def);
   lines.push(format!("  .globl {}", symbol));
-  lines.push(format!("  .align 16, 0x90"));
   lines.push(format!("  .type  {},@function", symbol));
   lines.push(format!("{}:", symbol));
 
@@ -52,6 +54,9 @@ fn emit_fun_def(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
 
   lines.push(format!(".Lend_{}:", symbol));
   lines.push(format!("  .size {0}, .Lend_{0} - {0}", symbol));
+  lines.push(format!("  .set {},{}",
+    fun_known_start_symbol(&fun_def.name), 
+    label_symbol(&fun_def.known_start)));
   lines.push(format!(""));
 }
 
@@ -63,13 +68,31 @@ fn emit_str_def(lines: &mut Vec<String>, str_def: &asm::StringDef) {
   lines.push(format!("  .size {},{}", symbol, str_def.bytes.len() + 1));
 }
 
-fn emit_frame_info(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
-  let info = &fun_def.frame_info;
-  let symbol = frame_info_symbol(&fun_def.name);
+fn emit_fun_table(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
+  let table = &fun_def.fun_table;
+  let symbol = fun_table_symbol(&fun_def.name);
+  lines.push(format!("  .align 16, 0x90"));
   lines.push(format!("  .type {},@object", symbol));
   lines.push(format!("{}:", symbol));
-  lines.push(format!("  .long {}", info.slot_count));
-  lines.push(format!("  .long {}", str_label_symbol(&info.fun_name_str)));
+  lines.push(format!("  .long {}", table.slot_count));
+  lines.push(format!("  .long {}", table.arg_count));
+  lines.push(format!("  .long {}", table.capture_count));
+  lines.push(format!("  .byte {}", if table.is_combinator { 1 } else { 0 }));
+  lines.push(format!("  .skip 3"));
+  lines.push(format!("  .long {}", str_label_symbol(&table.fun_name_str)));
+  lines.push(format!("  .skip 12"));
+  lines.push(format!("  .size {},16", symbol));
+}
+
+fn emit_combinator_obj(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
+  let table = &fun_def.fun_table;
+  let symbol = combinator_obj_symbol(&fun_def.name);
+  assert!(table.is_combinator);
+  lines.push(format!("  .align 4"));
+  lines.push(format!("  .type {},@object", symbol));
+  lines.push(format!("{}:", symbol));
+  lines.push(format!("  .long spiral_combinator_otable"));
+  lines.push(format!("  .long {}", fun_name_symbol(&fun_def.name)));
   lines.push(format!("  .size {},8", symbol));
 }
 
@@ -80,6 +103,8 @@ fn translate_instr(instr: &asm::Instr) -> String {
   match *instr {
     I::AddRegImm(ref r1, ref i) =>
       format!("  addl  ${}, {}", imm(i), reg(r1)),
+    I::SubRegImm(ref r1, ref i) =>
+      format!("  subl  ${}, {}", imm(i), reg(r1)),
     I::MoveRegImm(ref r1, ref i) =>
       format!("  movl  ${}, {}", imm(i), reg(r1)),
     I::MoveRegReg(ref r1, ref r2) =>
@@ -94,6 +119,8 @@ fn translate_instr(instr: &asm::Instr) -> String {
       format!("  leal  {}, {}", mem(m), reg(r1)),
     I::CallImm(ref i) =>
       format!("  calll {}", imm(i)),
+    I::CallMem(ref m) =>
+      format!("  calll *{}", mem(m)),
     I::Jump(ref i) =>
       format!("  jmp   {}", imm(i)),
     I::JumpIf(ref test, ref i) => 
@@ -114,11 +141,15 @@ fn translate_instr(instr: &asm::Instr) -> String {
         T::Greater => "jg   ",
         T::LessEq => "jle  ",
         T::GreaterEq => "jge  ",
+        T::Zero => "jz   ",
+        T::NotZero => "jnz  ",
       }),
     I::CmpRegImm(ref r1, ref i) =>
       format!("  cmpl  ${}, {}", imm(i), reg(r1)),
     I::CmpMemImm(ref m, ref i) =>
       format!("  cmpl  ${}, {}", imm(i), mem(m)),
+    I::TestRegImm(ref r1, ref i) =>
+      format!("  testl ${}, {}", imm(i), reg(r1)),
     I::Return =>
       format!("  ret"),
   }
@@ -129,9 +160,9 @@ fn imm(i: &asm::Imm) -> String {
     asm::Imm::Int(num) => format!("{}", num),
     asm::Imm::Label(ref label) => label_symbol(label),
     asm::Imm::FunAddr(ref name) => fun_name_symbol(name),
+    asm::Imm::FunKnownStart(ref name) => fun_known_start_symbol(name),
     asm::Imm::ExternAddr(ref ext_name) => extern_name_symbol(ext_name),
-    asm::Imm::StringLabel(ref str_label) => str_label_symbol(str_label),
-    asm::Imm::FrameInfo(ref fun_name) => frame_info_symbol(fun_name),
+    asm::Imm::CombinatorObj(ref fun_name) => combinator_obj_symbol(fun_name),
     asm::Imm::Plus(ref l, ref r) => format!("({}) + ({})", imm(&**l), imm(&**r)),
     asm::Imm::Minus(ref l, ref r) => format!("({}) - ({})", imm(&**l), imm(&**r)),
     asm::Imm::True => true_symbol(),
@@ -173,8 +204,17 @@ fn extern_name_symbol(name: &asm::ExternName) -> String {
   name.0.clone()
 }
 
-fn frame_info_symbol(name: &asm::FunName) -> String {
-  format!(".Lfr_{}", z_code(&name.0[..]))
+fn combinator_obj_symbol(name: &asm::FunName) -> String {
+  format!(".Lcomb_{}", z_code(&name.0[..]))
+}
+
+fn fun_known_start_symbol(name: &asm::FunName) -> String {
+  format!(".Lks_{}", z_code(&name.0[..]))
+}
+
+
+fn fun_table_symbol(name: &asm::FunName) -> String {
+  format!(".Lft_{}", z_code(&name.0[..]))
 }
 
 fn label_symbol(label: &asm::Label) -> String {

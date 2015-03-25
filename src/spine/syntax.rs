@@ -1,30 +1,39 @@
 #![allow(dead_code)]
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct ProgDef {
   pub fun_defs: Vec<FunDef>,
   pub main_fun: FunName,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct FunDef {
   pub name: FunName,
   pub ret: ContName,
+  pub captures: Vec<Var>,
   pub args: Vec<Var>,
   pub body: Term,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct ContDef {
   pub name: ContName,
   pub args: Vec<Var>,
   pub body: Term,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
+pub struct ClosureDef {
+  pub var: Var,
+  pub fun_name: FunName,
+  pub captures: Vec<Val>,
+}
+
+#[derive(PartialEq, Clone, Debug)]
 pub enum Term {
   Letcont(Vec<ContDef>, Box<Term>),
-  Call(FunName, ContName, Vec<Val>),
+  Letclos(Vec<ClosureDef>, Box<Term>),
+  Call(Val, ContName, Vec<Val>),
   ExternCall(ExternName, ContName, Vec<Val>),
   Cont(ContName, Vec<Val>),
   Branch(Boolval, ContName, ContName),
@@ -41,13 +50,14 @@ pub struct ContName(pub String);
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Val {
-  Int(i32),
   Var(Var),
+  Combinator(FunName),
+  Int(i32),
   True,
   False,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Boolval {
   IsTrue(Val),
   IsFalse(Val),

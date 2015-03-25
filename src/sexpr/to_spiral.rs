@@ -38,7 +38,7 @@ pub fn stmt_from_sexpr(stmt: &sexpr::Elem) -> Result<Stmt, String> {
 fn fun_def_from_sexprs(elems: &[sexpr::Elem]) -> Result<Stmt, String> {
   if elems.len() >= 2 {
     let fun_def = FunDef {
-      name: try!(fun_name_from_sexpr(&elems[0])),
+      var: try!(var_from_sexpr(&elems[0])),
       args: try!(vars_from_sexpr(&elems[1])),
       body: try!(stmts_from_sexprs(&elems[2..])),
     };
@@ -77,9 +77,11 @@ pub fn expr_from_sexpr(expr: &sexpr::Elem) -> Result<Expr, String> {
         "or" => or_from_sexpr(&list[1..]),
         "begin" => begin_from_sexpr(&list[1..]),
         "let" => let_from_sexpr(&list[1..]),
-        _ => call_from_sexpr(id, &list[1..]),
+        "lambda" => lambda_from_sexpr(&list[1..]),
+        _ => call_var_from_sexpr(id, &list[1..]),
       },
-      _ => Err(format!("list expr has to begin with an identifier")),
+      Some(fun_elem) => call_from_sexpr(fun_elem, &list[1..]),
+      None => Err(format!("empty list is not an expression")),
     }
   }
 }
@@ -250,16 +252,26 @@ fn let_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
   }
 }
 
-fn call_from_sexpr(head: &String, elems: &[sexpr::Elem]) -> Result<Expr, String> {
-  let args = try!(exprs_from_sexprs(elems));
-  Ok(Expr::Call(FunName(head.clone()), args))
+fn lambda_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
+  if elems.len() >= 1 {
+    let args = try!(vars_from_sexpr(&elems[0]));
+    let stmts = try!(stmts_from_sexprs(&elems[1..]));
+    Ok(Expr::Lambda(args, stmts))
+  } else {
+    Err(format!("'lambda' expects at least list of args"))
+  }
 }
 
-fn fun_name_from_sexpr(elem: &sexpr::Elem) -> Result<FunName, String> {
-  match *elem {
-    sexpr::Elem::Identifier(ref name) => Ok(FunName(name.clone())),
-    _ => Err(format!("fun name must be a string")),
-  }
+fn call_from_sexpr(head: &sexpr::Elem, elems: &[sexpr::Elem]) -> Result<Expr, String> {
+  let fun = try!(expr_from_sexpr(head));
+  let args = try!(exprs_from_sexprs(elems));
+  Ok(Expr::Call(box fun, args))
+}
+
+fn call_var_from_sexpr(head: &str, elems: &[sexpr::Elem]) -> Result<Expr, String> {
+  let fun = Expr::Var(Var(head.to_string()));
+  let args = try!(exprs_from_sexprs(elems));
+  Ok(Expr::Call(box fun, args))
 }
 
 fn var_from_sexpr(elem: &sexpr::Elem) -> Result<Var, String> {
@@ -302,12 +314,8 @@ mod test {
     sexpr::to_spiral::expr_from_sexpr(&sexpr).unwrap()
   }
 
-  fn fun_name(id: &str) -> s::FunName {
-    s::FunName(id.to_string())
-  }
-
-  fn fun_def(name: &str, args: Vec<s::Var>, body: Vec<s::Stmt>) -> s::FunDef {
-    s::FunDef { name: fun_name(name), args: args, body: body }
+  fn fun_def(id: &str, args: Vec<s::Var>, body: Vec<s::Stmt>) -> s::FunDef {
+    s::FunDef { var: var(id), args: args, body: body }
   }
 
   fn var(id: &str) -> s::Var {
@@ -453,6 +461,19 @@ mod test {
   #[test]
   fn test_call_expr() {
     assert_eq!(parse_expr("(+ 1 2)"),
-      s::Expr::Call(fun_name("+"), vec![int_expr(1), int_expr(2)]));
+      s::Expr::Call(box var_expr("+"), vec![int_expr(1), int_expr(2)]));
+    assert_eq!(parse_expr("((f a) b c)"),
+      s::Expr::Call(box s::Expr::Call(box var_expr("f"), vec![var_expr("a")]),
+        vec![var_expr("b"), var_expr("c")]));
+  }
+
+  #[test]
+  fn test_lambda_expr() {
+    assert_eq!(parse_expr("(lambda (x y) (var sum (+ x y)) sum)"),
+      s::Expr::Lambda(vec![var("x"), var("y")], vec![
+        s::Stmt::Var(var("sum"), s::Expr::Call(box var_expr("+"), 
+          vec![var_expr("x"), var_expr("y")])),
+        s::Stmt::Expr(var_expr("sum"))
+      ]));
   }
 }

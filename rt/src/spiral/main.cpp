@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include "spiral/call_conv.hpp"
 #include "spiral/main.hpp"
+#include "spiral/print.hpp"
 
 namespace spiral {
   extern "C" {

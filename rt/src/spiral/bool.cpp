@@ -27,7 +27,7 @@ namespace spiral {
 
   auto bool_evacuate(GcCtx*, void* obj_ptr) -> Val {
     assert(obj_ptr == &spiral_true_obj || obj_ptr == &spiral_false_obj);
-    return Val::wrap_obj(obj_ptr);
+    return Val::wrap_data_obj(obj_ptr);
   }
 
   void bool_scavenge(GcCtx* gc_ctx, void*) {

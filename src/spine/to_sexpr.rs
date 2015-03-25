@@ -12,6 +12,7 @@ pub fn fun_def_to_sexpr(def: &spine::FunDef) -> sexpr::Elem {
   sexpr::Elem::List(vec![
     fun_name_to_sexpr(&def.name),
     cont_name_to_sexpr(&def.ret),
+    sexpr::Elem::List(def.captures.iter().map(var_to_sexpr).collect()),
     sexpr::Elem::List(def.args.iter().map(var_to_sexpr).collect()),
     term_to_sexpr(&def.body),
   ])
@@ -24,9 +25,14 @@ pub fn term_to_sexpr(term: &spine::Term) -> sexpr::Elem {
         sexpr::Elem::List(cont_defs.iter().map(cont_def_to_sexpr).collect()),
         term_to_sexpr(&**body),
       ],
+    spine::Term::Letclos(ref clos_defs, ref body) => vec![
+        ident("letclos"),
+        sexpr::Elem::List(clos_defs.iter().map(clos_def_to_sexpr).collect()),
+        term_to_sexpr(&**body),
+      ],
     spine::Term::Call(ref fun, ref ret, ref args) => vec_plus(vec![
         ident("call"),
-        fun_name_to_sexpr(fun),
+        val_to_sexpr(fun),
         cont_name_to_sexpr(ret),
       ], args.iter().map(val_to_sexpr).collect()),
     spine::Term::ExternCall(ref ext_fun, ref ret, ref args) => vec_plus(vec![
@@ -55,12 +61,24 @@ pub fn cont_def_to_sexpr(cont_def: &spine::ContDef) -> sexpr::Elem {
   ])
 }
 
+pub fn clos_def_to_sexpr(clos_def: &spine::ClosureDef) -> sexpr::Elem {
+  sexpr::Elem::List(vec_plus(vec![
+      var_to_sexpr(&clos_def.var),
+      fun_name_to_sexpr(&clos_def.fun_name),
+    ], clos_def.captures.iter().map(val_to_sexpr).collect()))
+}
+
+
 pub fn val_to_sexpr(val: &spine::Val) -> sexpr::Elem {
   match *val {
-    spine::Val::Int(num) => sexpr::Elem::Int(num),
     spine::Val::Var(ref var) => ident(&var.0[..]),
-    spine::Val::True => ident("true"),
-    spine::Val::False => ident("false"),
+    spine::Val::Int(num) => sexpr::Elem::Int(num),
+    spine::Val::Combinator(ref fun_name) =>
+      sexpr::Elem::List(vec![ident("combinator"), fun_name_to_sexpr(fun_name)]),
+    spine::Val::True =>
+      sexpr::Elem::List(vec![ident("true")]),
+    spine::Val::False => 
+      sexpr::Elem::List(vec![ident("false")]),
   }
 }
 
@@ -90,32 +108,44 @@ mod test {
   use spine;
   use sexpr;
 
-  fn check_identity(txt: &str) -> bool {
+  fn check_identity(txt: &str) {
     let sexpr_1 = sexpr::parse::parse_sexpr(txt).unwrap();
     let spine_1 = sexpr::to_spine::prog_from_sexpr(&sexpr_1).unwrap();
     let sexpr_2 = spine::to_sexpr::prog_to_sexpr(&spine_1);
-    sexpr_1 == sexpr_2
+    assert_eq!(sexpr_1, sexpr_2);
   }
 
   #[test]
   fn test_empty_prog() {
-    assert!(check_identity("(program start)"));
+    check_identity("(program start)")
   }
 
   #[test]
   fn test_prog_with_fun() {
-    assert!(check_identity("(program start (start r () (cont r)))"));
+    check_identity("(program start (start r (a b) (x y z) (cont r)))")
   }
 
   #[test]
   fn test_terms() {
-    assert!(check_identity(
-       "(program start
-          (start r () 
-            (letcont ((cc1 (a b) (call some-fun return-cont a 10))
-                      (cc2 (x y z) (cont cc-x foo 10 bar))
-                      (cc3 () (extern-call drop-the-bomb cc 1 2 3))
-                      (cc4 () (branch (is-false 100) not-ok ok)))
-              (cont halt))))"));
+    check_identity("(program start
+      (start r () () 
+        (letclos ((clos1 fun1 10 20)
+                  (clos2 fun2 30))
+          (letcont ((cc1 (a b) (call some-fun return-cont a 10))
+                    (cc2 (x y z) (cont cc-x foo 10 bar))
+                    (cc3 () (extern-call drop-the-bomb cc 1 2 3))
+                    (cc4 () (branch (is-false 100) not-ok ok)))
+            (cont halt)))))")
+  }
+
+  #[test]
+  fn test_vals() {
+    check_identity("(program start
+      (start r () ()
+        (letcont ((cc-vars () (cont cc x y z))
+                  (cc-bools () (cont cc (true) (false)))
+                  (cc-ints () (cont cc 1 2 3))
+                  (cc-combinators () (cont cc (combinator ff) (combinator Y))))
+          (cont halt))))")
   }
 }

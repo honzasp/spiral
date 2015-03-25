@@ -13,8 +13,9 @@ pub fn prog_to_sexpr(prog: &grit::ProgDef) -> sexpr::Elem {
 pub fn fun_def_to_sexpr(def: &grit::FunDef) -> sexpr::Elem {
   sexpr::Elem::List(vec![
     fun_name_to_sexpr(&def.name),
+    sexpr::Elem::Int(def.capture_count as i32),
     sexpr::Elem::Int(def.arg_count as i32),
-    sexpr::Elem::Int(def.slot_count as i32),
+    sexpr::Elem::Int(def.var_count as i32),
     label_to_sexpr(&def.start_label),
     sexpr::Elem::List(def.blocks.iter().map(block_to_sexpr).collect()),
   ])
@@ -30,22 +31,32 @@ pub fn block_to_sexpr(block: &grit::Block) -> sexpr::Elem {
 
 pub fn op_to_sexpr(op: &grit::Op) -> sexpr::Elem {
   sexpr::Elem::List(match *op {
-    grit::Op::Call(ref ret_slot, ref fun_name, ref vals) => vec![
+    grit::Op::Call(ref ret_var, ref callee, ref vals) => vec![
       ident("call"),
-      slot_to_sexpr(ret_slot),
-      fun_name_to_sexpr(fun_name),
+      var_to_sexpr(ret_var),
+      callee_to_sexpr(callee),
       sexpr::Elem::List(vals.iter().map(val_to_sexpr).collect()),
     ],
-    grit::Op::ExternCall(ref ret_slot, ref extern_name, ref vals) => vec![
+    grit::Op::ExternCall(ref ret_var, ref extern_name, ref vals) => vec![
       ident("extern-call"),
-      slot_to_sexpr(ret_slot),
+      var_to_sexpr(ret_var),
       extern_name_to_sexpr(extern_name),
       sexpr::Elem::List(vals.iter().map(val_to_sexpr).collect()),
     ],
+    grit::Op::AllocClos(ref var_closs) => vec![
+      ident("alloc-clos"),
+      sexpr::Elem::List(var_closs.iter().map(|&(ref var, ref fun_name, ref captures)| {
+          sexpr::Elem::List(vec![
+            var_to_sexpr(var),
+            fun_name_to_sexpr(fun_name),
+            sexpr::Elem::List(captures.iter().map(val_to_sexpr).collect()),
+          ])
+        }).collect()),
+    ],
     grit::Op::Assign(ref assigns) => vec![
       ident("assign"),
-      sexpr::Elem::List(assigns.iter().map(|&(ref slot, ref val)| {
-          sexpr::Elem::List(vec![slot_to_sexpr(slot), val_to_sexpr(val)])
+      sexpr::Elem::List(assigns.iter().map(|&(ref var, ref val)| {
+          sexpr::Elem::List(vec![var_to_sexpr(var), val_to_sexpr(val)])
         }).collect()),
     ],
   })
@@ -63,7 +74,7 @@ pub fn jump_to_sexpr(jump: &grit::Jump) -> sexpr::Elem {
     ],
     grit::Jump::TailCall(ref fun_name, ref args) => vec![
       ident("tail-call"),
-      fun_name_to_sexpr(fun_name),
+      callee_to_sexpr(fun_name),
       sexpr::Elem::List(args.iter().map(val_to_sexpr).collect()),
     ],
     grit::Jump::Branch(ref boolval, ref then_label, ref else_label) => vec![
@@ -77,7 +88,14 @@ pub fn jump_to_sexpr(jump: &grit::Jump) -> sexpr::Elem {
 
 pub fn val_to_sexpr(val: &grit::Val) -> sexpr::Elem {
   match *val {
-    grit::Val::Slot(ref slot) => slot_to_sexpr(slot),
+    grit::Val::Var(ref var) => 
+      sexpr::Elem::List(vec![ident("var"), var_to_sexpr(var)]),
+    grit::Val::Arg(idx) => 
+      sexpr::Elem::List(vec![ident("arg"), sexpr::Elem::Int(idx as i32)]),
+    grit::Val::Capture(idx) => 
+      sexpr::Elem::List(vec![ident("capture"), sexpr::Elem::Int(idx as i32)]),
+    grit::Val::Combinator(ref fun_name) => 
+      sexpr::Elem::List(vec![ident("combinator"), fun_name_to_sexpr(fun_name)]),
     grit::Val::Int(num) => sexpr::Elem::Int(num),
     grit::Val::True => ident("true"),
     grit::Val::False => ident("false"),
@@ -91,10 +109,18 @@ pub fn boolval_to_sexpr(boolval: &grit::Boolval) -> sexpr::Elem {
   })
 }
 
-pub fn slot_to_sexpr(slot: &grit::Slot) -> sexpr::Elem {
-  sexpr::Elem::List(vec![ident("slot"), sexpr::Elem::Int(slot.0 as i32)])
+pub fn callee_to_sexpr(callee: &grit::Callee) -> sexpr::Elem {
+  sexpr::Elem::List(match *callee {
+    grit::Callee::Combinator(ref fun_name) => 
+      vec![ident("combinator"), fun_name_to_sexpr(fun_name)],
+    grit::Callee::KnownClosure(ref fun_name, ref val) =>
+      vec![ident("known-closure"), fun_name_to_sexpr(fun_name), val_to_sexpr(val)],
+    grit::Callee::Unknown(ref val) =>
+      vec![ident("unknown"), val_to_sexpr(val)],
+  })
 }
 
+pub fn var_to_sexpr(var: &grit::Var) -> sexpr::Elem { sexpr::Elem::Int(var.0 as i32) }
 pub fn fun_name_to_sexpr(i: &grit::FunName) -> sexpr::Elem { ident(&i.0[..]) }
 pub fn extern_name_to_sexpr(i: &grit::ExternName) -> sexpr::Elem { ident(&i.0[..]) }
 pub fn label_to_sexpr(i: &grit::Label) -> sexpr::Elem { ident(&i.0[..]) }

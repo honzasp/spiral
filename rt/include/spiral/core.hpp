@@ -28,11 +28,6 @@ namespace spiral {
     void (*drop_fun)(Bg* bg, void* obj_ptr);
   };
 
-  struct FrameInfo {
-    uint32_t slot_count;
-    const char* fun_name;
-  };
-
   auto bg_alloc_mem(Bg* bg, uint32_t len) -> void*;
   void bg_free_mem(Bg* bg, void* mem);
   auto bg_alloc_chunk(Bg* bg, uint32_t min_len) -> Chunk*;

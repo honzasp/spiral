@@ -33,7 +33,7 @@ namespace spiral {
   }
 
   auto vector_to_val(VectorObj* obj) -> Val {
-    return Val::wrap_obj(reinterpret_cast<uint32_t*>(obj));
+    return Val::wrap_data_obj(reinterpret_cast<uint32_t*>(obj));
   }
 
   void vector_print(Bg* bg, FILE* stream, Val val) {
