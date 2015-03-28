@@ -17,5 +17,7 @@ namespace spiral {
   extern const ObjTable bool_otable;
   extern const BoolObj true_obj;
   extern const BoolObj false_obj;
+  extern const Val true_val;
+  extern const Val false_val;
 }
 #endif

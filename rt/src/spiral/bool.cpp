@@ -13,10 +13,12 @@ namespace spiral {
 
   const BoolObj true_obj = { &bool_otable };
   const BoolObj false_obj = { &bool_otable };
+  const Val true_val = Val(reinterpret_cast<uint32_t>(&true_obj) + 0b11);
+  const Val false_val = Val(reinterpret_cast<uint32_t>(&false_obj) + 0b11);
 
   void bool_print(Bg*, FILE* stream, Val val) {
-    assert(val == Val::true_val || val == Val::false_val);
-    if(val == Val::false_val) {
+    assert(val == true_val || val == false_val);
+    if(val == false_val) {
       std::fprintf(stream, "false");
     } else {
       std::fprintf(stream, "true");
@@ -40,7 +42,4 @@ namespace spiral {
   void bool_drop(Bg* bg, void*) {
     bg_panic(bg, "bool dropped");
   }
-
-  const Val Val::true_val = Val(reinterpret_cast<uint32_t>(&true_obj) + 0b11);
-  const Val Val::false_val = Val(reinterpret_cast<uint32_t>(&false_obj) + 0b11);
 }

@@ -5,10 +5,6 @@
 #include "spiral/vector.hpp"
 
 namespace spiral {
-  static auto vector_from_val(Bg* bg, Val val) -> VectorObj*;
-  static auto vector_to_val(VectorObj* obj) -> Val;
-  static auto vector_from_obj_ptr(void* obj_ptr) -> VectorObj*;
-
   const ObjTable vector_otable = {
     "vector",
     &vector_print,
@@ -95,7 +91,7 @@ namespace spiral {
       vec_obj->otable = &vector_otable;
       vec_obj->length = len;
       for(int32_t i = 0; i < len; ++i) {
-        vec_obj->data[i] = Val::false_val;
+        vec_obj->data[i] = false_val;
       }
 
       return vector_to_val(vec_obj).u32;

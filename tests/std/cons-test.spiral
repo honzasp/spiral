@@ -1,0 +1,15 @@
+(program
+  (import std)
+  (println (cons 1 2))
+  (println (cons 1 (cons 2 (cons 3 false))))
+
+  (println (car (cons 10 20)))
+  (println (cdr (cons 30 40)))
+  (println (caar (cons (cons 1 2) (cons 3 4))))
+  (println (cadr (cons (cons 1 2) (cons 3 4))))
+  (println (cdar (cons (cons 1 2) (cons 3 4))))
+  (println (cddr (cons (cons 1 2) (cons 3 4))))
+
+  (println (cons? (cons 1 2)))
+  (println (cons? false))
+  (println (cons? 10)))

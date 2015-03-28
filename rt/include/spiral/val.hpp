@@ -9,6 +9,8 @@ namespace spiral {
 
   struct Val;
   struct ObjTable;
+  extern const Val true_val;
+  extern const Val false_val;
 
   struct Val {
     union {
@@ -37,13 +39,10 @@ namespace spiral {
 
     inline auto get_otable() const -> const ObjTable*;
     inline auto get_type_name() const -> const char*;
-
-    static const Val true_val;
-    static const Val false_val;
   };
 
   inline bool operator==(const Val& a, const Val& b) { return a.u32 == b.u32; }
-  inline bool operator!=(const Val& a, const Val& b) { return a.u32 == b.u32; }
+  inline bool operator!=(const Val& a, const Val& b) { return a.u32 != b.u32; }
 
   auto Val::is_int() const -> bool { return (this->i32 & 0b1) == 0b0; }
   auto Val::is_obj() const -> bool { return (this->i32 & 0b1) == 0b1; }
@@ -64,7 +63,7 @@ namespace spiral {
     return Val(num << 1); 
   }
   auto Val::wrap_bool(bool b) -> Val {
-    return b ? Val::true_val : Val::false_val; 
+    return b ? true_val : false_val; 
   }
   auto Val::wrap_fun(uint32_t* ptr) -> Val {
     assert(ptr != 0);

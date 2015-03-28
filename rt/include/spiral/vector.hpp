@@ -9,6 +9,10 @@ namespace spiral {
     Val data[0];
   };
 
+  auto vector_from_val(Bg* bg, Val val) -> VectorObj*;
+  auto vector_to_val(VectorObj* obj) -> Val;
+  auto vector_from_obj_ptr(void* obj_ptr) -> VectorObj*;
+
   void vector_print(Bg* bg, FILE* stream, Val val);
   auto vector_length(void* obj_ptr) -> uint32_t;
   auto vector_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
