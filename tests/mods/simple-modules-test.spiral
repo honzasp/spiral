@@ -1,0 +1,6 @@
+(program
+  (import big-numbers)
+  (import small-numbers)
+  (import (only arithmetic double))
+  (println nine)
+  (println (double two)))

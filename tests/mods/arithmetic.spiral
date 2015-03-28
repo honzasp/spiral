@@ -1,0 +1,8 @@
+(module arithmetic
+  (import small-numbers)
+  (fun inc (x) (+ x one))
+  (fun dec (x) (- x one))
+  (fun double (x) (+ x x))
+  (fun square (x) (* x x))
+  (fun add (a b) (+ a b))
+  (export inc dec double square add))

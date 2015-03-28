@@ -58,10 +58,15 @@ fn main_body() -> Result<(), SpiralError> {
     Ok(())
   };
 
-  let mut input_str = String::new();
-  try!(try!(fs::File::open(&args.arg_input)).read_to_string(&mut input_str));
+  let parse_sexpr = |file: &mut fs::File| -> Result<sexpr::Elem, String> {
+    let mut input_str = String::new();
+    match file.read_to_string(&mut input_str) {
+      Ok(_) => sexpr::parse::parse_sexpr(&input_str[..]),
+      Err(e) => Err(format!("error reading sexpr: {}", e)),
+    }
+  };
 
-  let sexpr = try!(sexpr::parse::parse_sexpr(&input_str[..]));
+  let sexpr = try!(parse_sexpr(&mut try!(fs::File::open(&args.arg_input))));
   if args.flag_emit == Some(Emit::Sexpr) {
     return dump_sexpr(&sexpr);
   }
@@ -71,10 +76,19 @@ fn main_body() -> Result<(), SpiralError> {
     return dump(format!("{:?}", sexpr))
   }
 
-  let mut mod_loader = |_: &spiral::ModName| {
-    for _ in args.flag_include.iter() {
+  let mut mod_loader = |mod_name: &spiral::ModName| {
+    for path in args.flag_include.iter() {
+      let mut path_buf = path::PathBuf::from(path);
+      path_buf.push(format!("{}.spiral", mod_name.0));
+      match fs::File::open(&path_buf) {
+        Ok(mut file) => {
+          let sexpr = try!(parse_sexpr(&mut file));
+          return sexpr::to_spiral::mod_from_sexpr(&sexpr);
+        },
+        Err(_) => (),
+      }
     }
-    panic!("mod");
+    Err(format!("module '{}' was not found", mod_name.0))
   };
   let spine = try!(spiral::to_spine::spine_from_spiral(&spiral, &mut mod_loader));
   if args.flag_emit == Some(Emit::Spine) {

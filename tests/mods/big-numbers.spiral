@@ -1,0 +1,9 @@
+(module big-numbers
+  (import (prefix arithmetic a.))
+  (import small-numbers)
+  (var six (a.add three three))
+  (var seven (a.add four three))
+  (var eight (a.double four))
+  (var nine (a.square three))
+  (var ten (a.double five))
+  (export six seven eight nine ten))

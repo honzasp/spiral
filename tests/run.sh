@@ -1,6 +1,7 @@
 #!/bin/bash
 cd $(dirname $0)
 SPIRAL="../target/debug/spiral"
+SPIRAL_FLAGS=-Imods
 RUNTIME="../rt/build/runtime.a"
 GREEN="\e[32m"
 RED="\e[31m"
@@ -8,7 +9,7 @@ CLEAR="\e[0m"
 
 ok_count=0
 err_count=0
-for test_file in `find -name '*.spiral'`
+for test_file in `find -name '*-test.spiral'`
 do
   printf "test %s\n" "$test_file"
   exec_file=`echo "$test_file" | sed 's/spiral/exec/'`
@@ -21,7 +22,7 @@ do
   rm -f "$exec_file" "$real_output_file" "$asm_file" "$grit_file" "$spine_file"
 
   ok=""
-  if "$SPIRAL" "$test_file" --output "$exec_file" --runtime "$RUNTIME"
+  if "$SPIRAL" $SPIRAL_FLAGS "$test_file" --output "$exec_file" --runtime "$RUNTIME"
   then
     ./"$exec_file" >"$real_output_file" 2>&1
     if diff "$output_file" "$real_output_file" >/dev/null 
@@ -37,9 +38,9 @@ do
     ok_count=$((ok_count+1))
   else
     printf "  ${RED}FAILED${CLEAR}\n"
-    "$SPIRAL" "$test_file" --output "$asm_file" --gas
-    "$SPIRAL" "$test_file" --output "$grit_file" --grit
-    "$SPIRAL" "$test_file" --output "$spine_file" --spine
+    "$SPIRAL" $SPIRAL_FLAGS "$test_file" --output "$asm_file" --emit gas
+    "$SPIRAL" $SPIRAL_FLAGS "$test_file" --output "$grit_file" --emit grit
+    "$SPIRAL" $SPIRAL_FLAGS "$test_file" --output "$spine_file" --emit spine
     err_count=$((err_count+1))
   fi
 done
