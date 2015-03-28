@@ -8,7 +8,7 @@ CLEAR="\e[0m"
 
 ok_count=0
 err_count=0
-for test_file in *.spiral
+for test_file in `find -name '*.spiral'`
 do
   printf "test %s\n" "$test_file"
   exec_file=`echo "$test_file" | sed 's/spiral/exec/'`
