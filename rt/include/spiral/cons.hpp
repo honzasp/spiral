@@ -22,7 +22,7 @@ namespace spiral {
   extern const ObjTable cons_otable;
 
   extern "C" {
-    auto spiral_std_make_cons(Bg* bg, void* sp, uint32_t car, uint32_t cdr) -> uint32_t;
+    auto spiral_std_cons_new(Bg* bg, void* sp, uint32_t car, uint32_t cdr) -> uint32_t;
     auto spiral_std_is_cons(Bg* bg, void* sp, uint32_t val) -> uint32_t;
     auto spiral_std_car(Bg* bg, void* sp, uint32_t cons) -> uint32_t;
     auto spiral_std_cdr(Bg* bg, void* sp, uint32_t cons) -> uint32_t;

@@ -79,7 +79,7 @@ namespace spiral {
   }
 
   extern "C" {
-    auto spiral_std_make_cons(Bg* bg, void* sp, uint32_t car, uint32_t cdr) -> uint32_t {
+    auto spiral_std_cons_new(Bg* bg, void* sp, uint32_t car, uint32_t cdr) -> uint32_t {
       auto cons_obj = static_cast<ConsObj*>(bg_get_obj_space(bg, sp, sizeof(ConsObj)));
       cons_obj->otable = &cons_otable;
       cons_obj->car.u32 = car;
