@@ -5,11 +5,61 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<Prog, String> {
   match *prog {
     sexpr::Elem::List(ref list) => match list.get(0) {
       Some(&sexpr::Elem::Identifier(ref head)) if head.as_slice() == "program" =>
-        Ok(Prog { body: try!(stmts_from_sexprs(&list[1..])) }),
+        Ok(Prog { stmts: try!(stmts_from_sexprs(&list[1..])) }),
       _ => Err(format!("program has to begin with 'program'")),
     },
     _ => Err(format!("program has to be a list")),
   }
+}
+
+pub fn mod_from_sexpr(module: &sexpr::Elem) -> Result<Mod, String> {
+  match *module {
+    sexpr::Elem::List(ref list) => {
+      if list.len() >= 2 {
+        let _ = try!(match list[0] {
+          sexpr::Elem::Identifier(ref head) if head.as_slice() == "module" => Ok(()),
+          _ => Err(format!("module has to begin with 'module'")),
+        });
+
+        let mod_name = try!(mod_name_from_sexpr(&list[1]));
+        let decls = try!(decls_from_sexprs(&list[2..]));
+        Ok(Mod { name: mod_name, decls: decls })
+      } else {
+        Err(format!("module must have at least 2 elems"))
+      }
+    },
+    _ => Err(format!("module has to be a list")),
+  }
+}
+
+fn decls_from_sexprs(elems: &[sexpr::Elem]) -> Result<Vec<Decl>, String> {
+  let mut decls = Vec::new();
+  for elem in elems.iter() {
+    decls.push(try!(decl_from_sexpr(elem)));
+  }
+  Ok(decls)
+}
+
+pub fn decl_from_sexpr(decl: &sexpr::Elem) -> Result<Decl, String> {
+  match *decl {
+    sexpr::Elem::List(ref list) => match list.first() {
+      Some(&sexpr::Elem::Identifier(ref id)) => match id.as_slice() {
+        "export" => return export_from_sexprs(list.tail()),
+        _ => (),
+      },
+      _ => (),
+    },
+    _ => (),
+  }
+  return Ok(Decl::Stmt(try!(stmt_from_sexpr(decl))));
+}
+
+fn export_from_sexprs(elems: &[sexpr::Elem]) -> Result<Decl, String> {
+  let mut vars = Vec::new();
+  for elem in elems.iter() {
+    vars.push(try!(var_from_sexpr(elem)));
+  }
+  Ok(Decl::Export(vars))
 }
 
 fn stmts_from_sexprs(elems: &[sexpr::Elem]) -> Result<Vec<Stmt>, String> {
@@ -26,6 +76,7 @@ pub fn stmt_from_sexpr(stmt: &sexpr::Elem) -> Result<Stmt, String> {
       Some(&sexpr::Elem::Identifier(ref id)) => match id.as_slice() {
         "fun" => return fun_def_from_sexprs(list.tail()),
         "var" => return var_def_from_sexprs(list.tail()),
+        "import" => return import_from_sexprs(list.tail()),
         _ => { },
       },
       _ => { },
@@ -40,7 +91,7 @@ fn fun_def_from_sexprs(elems: &[sexpr::Elem]) -> Result<Stmt, String> {
     let fun_def = FunDef {
       var: try!(var_from_sexpr(&elems[0])),
       args: try!(vars_from_sexpr(&elems[1])),
-      body: try!(stmts_from_sexprs(&elems[2..])),
+      stmts: try!(stmts_from_sexprs(&elems[2..])),
     };
     Ok(Stmt::Fun(fun_def))
   } else {
@@ -55,6 +106,62 @@ fn var_def_from_sexprs(elems: &[sexpr::Elem]) -> Result<Stmt, String> {
     Ok(Stmt::Var(var, value))
   } else {
     return Err(format!("var def expects just var name and expr"));
+  }
+}
+
+fn import_from_sexprs(elems: &[sexpr::Elem]) -> Result<Stmt, String> {
+  let mut import_defs = Vec::new();
+  for elem in elems.iter() {
+    import_defs.push(try!(import_def_from_sexpr(elem)));
+  }
+  Ok(Stmt::Import(import_defs))
+}
+
+fn import_def_from_sexpr(elem: &sexpr::Elem) -> Result<ImportDef, String> {
+  fn only_from_sexprs(elems: &[sexpr::Elem]) -> Result<ImportDef, String> {
+    if elems.len() >= 1 {
+      let def = try!(import_def_from_sexpr(&elems[0]));
+      let vars = try!(vars_from_sexprs(&elems[1..]));
+      Ok(ImportDef::Only(box def, vars))
+    } else {
+      Err(format!("'only' import def cannot be empty"))
+    }
+  }
+
+  fn except_from_sexprs(elems: &[sexpr::Elem]) -> Result<ImportDef, String> {
+    if elems.len() >= 1 {
+      let def = try!(import_def_from_sexpr(&elems[0]));
+      let vars = try!(vars_from_sexprs(&elems[1..]));
+      Ok(ImportDef::Except(box def, vars))
+    } else {
+      Err(format!("'except' import def cannot be empty"))
+    }
+  }
+
+  fn prefix_from_sexprs(elems: &[sexpr::Elem]) -> Result<ImportDef, String> {
+    if elems.len() == 2 {
+      let def = try!(import_def_from_sexpr(&elems[0]));
+      let prefix = try!(var_from_sexpr(&elems[1]));
+      Ok(ImportDef::Prefix(box def, prefix))
+    } else {
+      Err(format!("'prefix' import must have an import def and a prefix"))
+    }
+  }
+
+  match *elem {
+    sexpr::Elem::Identifier(ref name) =>
+      Ok(ImportDef::Mod(ModName(name.clone()))),
+    sexpr::Elem::List(ref elems) => 
+      match elems.get(0) {
+        Some(&sexpr::Elem::Identifier(ref head)) => match &head[..] {
+          "only" => only_from_sexprs(&elems[1..]),
+          "except" => except_from_sexprs(&elems[1..]),
+          "prefix" => prefix_from_sexprs(&elems[1..]),
+          _ => Err(format!("unknown import def head name")),
+        },
+        _ => Err(format!("unknown import def head")),
+      },
+    _ => Err(format!("invalid import def")),
   }
 }
 
@@ -258,7 +365,7 @@ fn lambda_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
     let stmts = try!(stmts_from_sexprs(&elems[1..]));
     Ok(Expr::Lambda(args, stmts))
   } else {
-    Err(format!("'lambda' expects at least list of args"))
+    Err(format!("'lambda' expects at least a list of args"))
   }
 }
 
@@ -274,6 +381,13 @@ fn call_var_from_sexpr(head: &str, elems: &[sexpr::Elem]) -> Result<Expr, String
   Ok(Expr::Call(box fun, args))
 }
 
+fn mod_name_from_sexpr(elem: &sexpr::Elem) -> Result<ModName, String> {
+  match *elem {
+    sexpr::Elem::Identifier(ref name) => Ok(ModName(name.clone())),
+    _ => Err(format!("mod name must be a string")),
+  }
+}
+
 fn var_from_sexpr(elem: &sexpr::Elem) -> Result<Var, String> {
   match *elem {
     sexpr::Elem::Identifier(ref name) => Ok(Var(name.clone())),
@@ -283,15 +397,17 @@ fn var_from_sexpr(elem: &sexpr::Elem) -> Result<Var, String> {
 
 fn vars_from_sexpr(elem: &sexpr::Elem) -> Result<Vec<Var>, String> {
   match *elem {
-    sexpr::Elem::List(ref elems) => {
-      let mut vars = Vec::new();
-      for var in elems.iter() {
-        vars.push(try!(var_from_sexpr(var)));
-      }
-      Ok(vars)
-    },
-    _ => Err(format!("expected list of vars")),
+    sexpr::Elem::List(ref elems) => vars_from_sexprs(&elems[..]),
+    _ => Err(format!("expected a list of vars")),
   }
+}
+
+fn vars_from_sexprs(elems: &[sexpr::Elem]) -> Result<Vec<Var>, String> {
+  let mut vars = Vec::new();
+  for var in elems.iter() {
+    vars.push(try!(var_from_sexpr(var)));
+  }
+  Ok(vars)
 }
 
 #[cfg(test)]
@@ -304,6 +420,11 @@ mod test {
     sexpr::to_spiral::prog_from_sexpr(&sexpr).unwrap()
   }
 
+  fn parse_mod(txt: &str) -> s::Mod {
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    sexpr::to_spiral::mod_from_sexpr(&sexpr).unwrap()
+  }
+
   fn parse_stmt(txt: &str) -> s::Stmt {
     let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
     sexpr::to_spiral::stmt_from_sexpr(&sexpr).unwrap()
@@ -314,12 +435,16 @@ mod test {
     sexpr::to_spiral::expr_from_sexpr(&sexpr).unwrap()
   }
 
-  fn fun_def(id: &str, args: Vec<s::Var>, body: Vec<s::Stmt>) -> s::FunDef {
-    s::FunDef { var: var(id), args: args, body: body }
+  fn fun_def(id: &str, args: Vec<s::Var>, stmts: Vec<s::Stmt>) -> s::FunDef {
+    s::FunDef { var: var(id), args: args, stmts: stmts }
   }
 
   fn var(id: &str) -> s::Var {
     s::Var(id.to_string())
+  }
+
+  fn mod_name(id: &str) -> s::ModName {
+    s::ModName(id.to_string())
   }
 
   fn int_expr(num: i32) -> s::Expr {
@@ -333,11 +458,20 @@ mod test {
   #[test]
   fn test_prog() {
     assert_eq!(parse_prog("(program (var x 10) (fun get-x () x))"),
-      s::Prog { body: vec![
+      s::Prog { stmts: vec![
         s::Stmt::Var(var("x"), int_expr(10)),
         s::Stmt::Fun(fun_def("get-x", vec![], vec![
             s::Stmt::Expr(var_expr("x")),
           ])),
+      ]});
+  }
+
+  #[test]
+  fn test_mod() {
+    assert_eq!(parse_mod("(module math (var zero 0) (export zero))"),
+      s::Mod { name: mod_name("math"), decls: vec![
+        s::Decl::Stmt(s::Stmt::Var(var("zero"), int_expr(0))),
+        s::Decl::Export(vec![var("zero")]),
       ]});
   }
 
@@ -353,6 +487,35 @@ mod test {
   fn test_var_def() {
     assert_eq!(parse_stmt("(var x 3)"),
       s::Stmt::Var(var("x"), int_expr(3)));
+  }
+
+  #[test]
+  fn test_module_import() {
+    assert_eq!(parse_stmt("(import math io)"),
+      s::Stmt::Import(vec![
+        s::ImportDef::Mod(mod_name("math")),
+        s::ImportDef::Mod(mod_name("io")),
+      ]));
+  }
+
+  #[test]
+  fn test_only_and_except_imports() {
+    assert_eq!(parse_stmt("(import (only math + -))"),
+      s::Stmt::Import(vec![s::ImportDef::Only(
+          box s::ImportDef::Mod(mod_name("math")),
+          vec![var("+"), var("-")])]));
+    assert_eq!(parse_stmt("(import (except math / *))"),
+      s::Stmt::Import(vec![s::ImportDef::Except(
+          box s::ImportDef::Mod(mod_name("math")),
+          vec![var("/"), var("*")])]));
+  }
+
+  #[test]
+  fn test_prefix_import() {
+    assert_eq!(parse_stmt("(import (prefix math m.))"),
+      s::Stmt::Import(vec![s::ImportDef::Prefix(
+          box s::ImportDef::Mod(mod_name("math")),
+          var("m."))]));
   }
 
   #[test]

@@ -61,7 +61,7 @@ fn read_identifier<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
   while let Some((ch, rest)) = input.slice_shift_char() {
     match ch {
       ch if ch.is_alphanumeric() => id.push(ch),
-      ch if "~!@%^&*-_+=|:<>?/'".contains_char(ch) => id.push(ch),
+      ch if "~!@%^&*-_+=|:<>?/'.".contains_char(ch) => id.push(ch),
       _ => break,
     }
     input = rest;
@@ -122,6 +122,7 @@ mod test {
     assert_eq!(parse_sexpr("!@%^&="), Ok(id("!@%^&=")));
     assert_eq!(parse_sexpr("<=>"), Ok(id("<=>")));
     assert_eq!(parse_sexpr("one-2_three"), Ok(id("one-2_three")));
+    assert_eq!(parse_sexpr("math.sin"), Ok(id("math.sin")));
   }
 
   #[test]

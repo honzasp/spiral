@@ -41,7 +41,8 @@ fn pp_inline_elem(buffer: &mut String, elem: &sexpr::Elem) {
       buffer.push(')');
     },
     sexpr::Elem::Identifier(ref id) => {
-      assert!(!id.chars().any(|ch| ch.is_whitespace() || ch == '(' || ch == ')'));
+      assert!(!id.chars().any(|ch| ch.is_whitespace() || ch == '(' || ch == ')'),
+        "identifier {:?} contains bad characters", id);
       buffer.push_str(&id[..]);
     },
     sexpr::Elem::Int(num) => buffer.push_str(format!("{}", num).as_slice()),

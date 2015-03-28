@@ -132,7 +132,8 @@ fn main_body() -> Result<(), SpiralError> {
     return dump(format!("{:?}", sexpr))
   }
 
-  let spine = try!(spiral::to_spine::spine_from_spiral(&spiral));
+  let mut mod_loader = |name: &spiral::ModName| { panic!("load {:?}", name) };
+  let spine = try!(spiral::to_spine::spine_from_spiral(&spiral, &mut mod_loader));
   if args.output == Output::Spine {
     return dump_sexpr(&spine::to_sexpr::prog_to_sexpr(&spine));
   }

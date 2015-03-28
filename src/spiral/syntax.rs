@@ -2,24 +2,47 @@
 
 #[derive(PartialEq, Debug)]
 pub struct Prog {
-  pub body: Vec<Stmt>,
+  pub stmts: Vec<Stmt>,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct Mod {
+  pub name: ModName,
+  pub decls: Vec<Decl>,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Var(pub String);
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct ModName(pub String);
+
+#[derive(PartialEq, Debug)]
+pub enum Decl {
+  Export(Vec<Var>),
+  Stmt(Stmt),
+}
 
 #[derive(PartialEq, Debug)]
 pub enum Stmt {
+  Import(Vec<ImportDef>),
   Fun(FunDef),
   Var(Var, Expr),
   Expr(Expr),
 }
 
 #[derive(PartialEq, Debug)]
+pub enum ImportDef {
+  Mod(ModName),
+  Only(Box<ImportDef>, Vec<Var>),
+  Except(Box<ImportDef>, Vec<Var>),
+  Prefix(Box<ImportDef>, Var),
+}
+
+#[derive(PartialEq, Debug)]
 pub struct FunDef {
   pub var: Var,
   pub args: Vec<Var>,
-  pub body: Vec<Stmt>,
+  pub stmts: Vec<Stmt>,
 }
 
 #[derive(PartialEq, Debug)]
