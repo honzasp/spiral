@@ -1,4 +1,5 @@
 (program
+  (import std)
   (var add-3
     (lambda (x)
       (println x)

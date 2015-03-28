@@ -15,6 +15,8 @@ mod spine;
 mod grit;
 mod asm;
 
+static VERSION: &'static str = "0.0.1";
+
 #[derive(Debug, Clone)]
 struct SpiralError(String);
 
@@ -23,9 +25,12 @@ fn main_body() -> Result<(), SpiralError> {
   use std::process;
   use std::path;
   use std::fs;
+  use std::env;
   use args::{Emit, parse_args};
 
-  let args = parse_args();
+  let os_args: Vec<_> = env::args().collect();
+  let args = parse_args(os_args.iter().map(|arg| &arg[..]).collect())
+    .unwrap_or_else(|e| e.exit());
 
   let output_path = match args.flag_output {
     Some(ref path) => path::PathBuf::from(path),
@@ -83,13 +88,14 @@ fn main_body() -> Result<(), SpiralError> {
       match fs::File::open(&path_buf) {
         Ok(mut file) => {
           let sexpr = try!(parse_sexpr(&mut file));
-          return sexpr::to_spiral::mod_from_sexpr(&sexpr);
+          return sexpr::to_spiral::mod_from_sexpr(&sexpr)
         },
-        Err(_) => (),
+        Err(e) => (),
       }
     }
     Err(format!("module '{}' was not found", mod_name.0))
   };
+
   let spine = try!(spiral::to_spine::spine_from_spiral(&spiral, &mut mod_loader));
   if args.flag_emit == Some(Emit::Spine) {
     return dump_sexpr(&spine::to_sexpr::prog_to_sexpr(&spine));

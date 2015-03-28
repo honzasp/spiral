@@ -185,6 +185,7 @@ pub fn expr_from_sexpr(expr: &sexpr::Elem) -> Result<Expr, String> {
         "begin" => begin_from_sexpr(&list[1..]),
         "let" => let_from_sexpr(&list[1..]),
         "lambda" => lambda_from_sexpr(&list[1..]),
+        "extern" => extern_from_sexpr(&list[1..]),
         _ => call_var_from_sexpr(id, &list[1..]),
       },
       Some(fun_elem) => call_from_sexpr(fun_elem, &list[1..]),
@@ -366,6 +367,16 @@ fn lambda_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
     Ok(Expr::Lambda(args, stmts))
   } else {
     Err(format!("'lambda' expects at least a list of args"))
+  }
+}
+
+fn extern_from_sexpr(elems: &[sexpr::Elem]) -> Result<Expr, String> {
+  if elems.len() >= 1 {
+    let name = try!(var_from_sexpr(&elems[0]));
+    let args = try!(exprs_from_sexprs(&elems[1..]));
+    Ok(Expr::Extern(name, args))
+  } else {
+    Err(format!("'extern' expects at least the extern name"))
   }
 }
 
@@ -638,5 +649,11 @@ mod test {
           vec![var_expr("x"), var_expr("y")])),
         s::Stmt::Expr(var_expr("sum"))
       ]));
+  }
+
+  #[test]
+  fn test_extern() {
+    assert_eq!(parse_expr("(extern blow_up 1 2 3)"),
+      s::Expr::Extern(var("blow_up"), vec![int_expr(1), int_expr(2), int_expr(3)]));
   }
 }

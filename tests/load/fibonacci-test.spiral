@@ -1,4 +1,6 @@
 (program
+  (import std)
+
   (fun fibonacci (x)
     (if (<= x 1) 1
       (+ (fibonacci (- x 1)) (fibonacci (- x 2)))))

@@ -22,10 +22,8 @@ pub fn spine_from_spiral(prog: &spiral::Prog,
       vars: HashSet::new(),
     };
   let empty_env = spiral::env::Env::new();
-  let global_env = bind_global_env(&mut st, empty_env);
-
   let loaded_mods = try!(load_mods(prog, mod_loader));
-  let (mod_onions, mods_env) = try!(translate_mods(&mut st, global_env, loaded_mods));
+  let (mod_onions, mods_env) = try!(translate_mods(&mut st, empty_env, loaded_mods));
   translate_prog(st, &mods_env, mod_onions, prog)
 }
 
@@ -95,53 +93,4 @@ fn translate_prog(mut st: ProgSt, env: &Env, mod_onions: Vec<Onion>, prog: &spir
       fun_defs: st.fun_defs,
       main_fun: main_name,
     })
-}
-
-fn bind_global_env(st: &mut ProgSt, parent: Env) -> Env {
-  let extern_wrappers = &[
-      ("println", "spiral_std_println", vec!["x"]),
-
-      ("+",  "spiral_std_add", vec!["a", "b"]),
-      ("-",  "spiral_std_sub", vec!["a", "b"]),
-      ("*",  "spiral_std_mul", vec!["a", "b"]),
-      ("/",  "spiral_std_div", vec!["a", "b"]),
-      ("<",  "spiral_std_lt",  vec!["a", "b"]),
-      ("<=", "spiral_std_le", vec!["a", "b"]),
-      ("==", "spiral_std_eq", vec!["a", "b"]),
-      ("/=", "spiral_std_ne", vec!["a", "b"]),
-      (">",  "spiral_std_gt",  vec!["a", "b"]),
-      (">=", "spiral_std_ge", vec!["a", "b"]),
-
-      ("vec-make",   "spiral_std_vec_make", vec!["len"]),
-      ("vec-length", "spiral_std_vec_length", vec!["vec"]),
-      ("vec-get",    "spiral_std_vec_get", vec!["vec", "idx"]),
-      ("vec-set!",   "spiral_std_vec_set", vec!["vec", "idx", "x"]),
-    ];
-
-  let consts = &[
-      ("true", spine::Val::True),
-      ("false", spine::Val::False),
-    ];
-
-  parent.bind_vars(extern_wrappers.iter()
-      .map(|&(ref name, ref extern_name, ref args)| {
-        let fun_name = st.gen_fun_name(name);
-        let ext_name = spine::ExternName(extern_name.to_string());
-        let ret_cont = spine::ContName("r".to_string());
-        let arg_vars: Vec<_> = args.iter().map(|a| spine::Var(a.to_string())).collect();
-
-        st.fun_defs.push(spine::FunDef {
-          name: fun_name.clone(),
-          ret: ret_cont.clone(),
-          captures: vec![],
-          args: arg_vars.clone(),
-          body: spine::Term::ExternCall(ext_name, ret_cont,
-            arg_vars.into_iter().map(|a| spine::Val::Var(a)).collect()),
-        });
-
-        (spiral::Var(name.to_string()), spine::Val::Combinator(fun_name))
-      }).collect())
-    .bind_vars(consts.iter()
-      .map(|&(name, ref val)| (spiral::Var(name.to_string()), val.clone()))
-      .collect())
 }

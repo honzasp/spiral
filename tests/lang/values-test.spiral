@@ -1,4 +1,5 @@
 (program
+  (import std)
   (fun three-args (x y z)
     (let ((x+y (+ x y))
           (y+z (+ y z)))

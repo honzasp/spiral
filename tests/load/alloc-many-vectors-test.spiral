@@ -1,4 +1,5 @@
 (program
+  (import std)
   (fun alloc-use-vec (depth)
     (var vec-1 (vec-make 100))
     (vec-set! vec-1 4 depth)

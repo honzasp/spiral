@@ -1,0 +1,4 @@
+(program
+  (extern spiral_std_println 10)
+  (var x (extern spiral_std_add 3 4))
+  (extern spiral_std_println x))

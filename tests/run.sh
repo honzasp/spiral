@@ -1,7 +1,7 @@
 #!/bin/bash
 cd $(dirname $0)
 SPIRAL="../target/debug/spiral"
-SPIRAL_FLAGS=-Imods
+SPIRAL_FLAGS="--include mods --include ../stdlib"
 RUNTIME="../rt/build/runtime.a"
 GREEN="\e[32m"
 RED="\e[31m"

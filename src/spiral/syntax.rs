@@ -58,6 +58,7 @@ pub enum Expr {
   Let(Vec<(Var, Expr)>, Vec<Stmt>),
   Call(Box<Expr>, Vec<Expr>),
   Lambda(Vec<Var>, Vec<Stmt>),
+  Extern(Var, Vec<Expr>),
   Var(Var),
   Int(i32),
 }

@@ -1,4 +1,6 @@
 (program
+  (import std)
+
   (var n0 (lambda (f) (lambda (x) x)))
   (var n1 (lambda (f) (lambda (x) (f x))))
   (var n2 (lambda (f) (lambda (x) (f (f x)))))

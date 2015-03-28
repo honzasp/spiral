@@ -77,6 +77,7 @@ fn collect_expr(imported: &mut HashSet<spiral::ModName>, expr: &spiral::Expr) {
       for stmt in exit_stmts.iter() { collect_stmt(imported, stmt) }
       for stmt in body_stmts.iter() { collect_stmt(imported, stmt) }
     },
+    spiral::Expr::Extern(_, ref exprs) |
     spiral::Expr::And(ref exprs) |
     spiral::Expr::Or(ref exprs) =>
       for expr in exprs.iter() { collect_expr(imported, expr) },

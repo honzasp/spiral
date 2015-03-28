@@ -1,4 +1,6 @@
 (program
+  (import std)
+
   (var forty-two 42)
   (fun add-forty-two (x)
     (+ x forty-two))

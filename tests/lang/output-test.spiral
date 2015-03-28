@@ -1,4 +1,5 @@
 (program
+  (import std)
   (println 42)
   (println (- 0 21))
   (println 0)

@@ -83,6 +83,8 @@ pub fn translate_expr_tail(st: &mut ProgSt, env: &Env,
       let (onion, val) = try!(translate_lambda_expr(st, env, &args[..], &body_stmts[..]));
       Ok(onion.subst_term(spine::Term::Cont(result_cont, vec![val])))
     },
+    spiral::Expr::Extern(ref extern_name, ref args) =>
+      translate_extern_call_expr_tail(st, env, extern_name, &args[..], result_cont),
     spiral::Expr::Var(ref var) => match env.lookup_var(var) {
       Some(spine_val) =>
         Ok(spine::Term::Cont(result_cont, vec![spine_val.clone()])),
@@ -314,6 +316,16 @@ fn translate_lambda_expr(st: &mut ProgSt, env: &Env,
   let clos_def = try!(translate_fun(st, env, spine_var.clone(), spine_name,
     args, body_stmts));
   Ok((Onion::Letclos(vec![clos_def], box Onion::Hole), spine::Val::Var(spine_var)))
+}
+
+fn translate_extern_call_expr_tail(st: &mut ProgSt, env: &Env,
+  extern_name: &spiral::Var, args: &[spiral::Expr],
+  result_cont: spine::ContName) -> Res<spine::Term>
+{
+  let arg_refs: Vec<_> = args.iter().map(|arg| arg).collect();
+  let (args_onion, arg_vals) = try!(translate_exprs(st, env, &arg_refs[..]));
+  let spine_name = spine::ExternName(extern_name.0.clone());
+  Ok(args_onion.subst_term(spine::Term::ExternCall(spine_name, result_cont, arg_vals)))
 }
 
 pub fn translate_fun(st: &mut ProgSt, env: &Env,

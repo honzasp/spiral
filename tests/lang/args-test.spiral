@@ -1,4 +1,5 @@
 (program
+  (import std)
   (fun print3 (a b c)
     (println a)
     (println b)

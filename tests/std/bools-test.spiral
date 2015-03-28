@@ -1,4 +1,6 @@
 (program
+  (import std)
+
   (println (if true 1 10))
   (println (if false 200 1))
   (println (if 10 1 300))

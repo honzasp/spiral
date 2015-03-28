@@ -1,4 +1,5 @@
 (program
+  (import std)
   (fun sum-n (limit)
     (do  ((i 0 (+ i 1))
           (sum 0 (+ sum i)))

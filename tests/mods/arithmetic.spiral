@@ -1,4 +1,5 @@
 (module arithmetic
+  (import std)
   (import small-numbers)
   (fun inc (x) (+ x one))
   (fun dec (x) (- x one))
