@@ -33,14 +33,16 @@ namespace spiral {
   auto combinator_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void combinator_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   
+  auto fun_addr_call(Bg* bg, void* fun_addr, void* last_sp) -> Val;
   void panic_invalid_fun(Bg* bg, uint32_t val);
   void panic_argc_mismatch(Bg* bg, void* fun_addr,
       uint32_t expected_argc_, uint32_t received_argc_);
 
+  extern const ObjTable closure_otable;
+  extern const ObjTable combinator_otable;
+
   extern "C" {
-    extern const ObjTable spiral_closure_otable;
-    extern const ObjTable spiral_combinator_otable;
-    auto spiral_alloc_closure(Bg* bg, void* sp, void* fun_addr,
+    auto spiral_rt_alloc_closure(Bg* bg, void* sp, void* fun_addr,
         uint32_t capture_count) -> uint32_t;
   }
 }

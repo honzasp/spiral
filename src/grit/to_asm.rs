@@ -163,7 +163,7 @@ fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDe
       asm::Instr::MoveRegImm(asm::Reg::ECX,
           asm::Imm::FunAddr(translate_fun_name(&fun_def.name))),
       asm::Instr::Jump(asm::Imm::ExternAddr(
-          asm::ExternName("spiral_argc_mismatch".to_string()))),
+          asm::ExternName("spiral_rt_argc_mismatch".to_string()))),
     ],
   };
 
@@ -265,7 +265,7 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
                 asm::Instr::AddRegImm(asm::Reg::ESP, 
                   asm::Imm::Int(st.extern_call_stack_shift(1))),
                 asm::Instr::CallImm(asm::Imm::ExternAddr(
-                  asm::ExternName("spiral_invalid_fun".to_string()))),
+                  asm::ExternName("spiral_rt_invalid_fun".to_string()))),
               ],
             };
             st.post_blocks.push(invalid_fun_block);
@@ -292,7 +292,7 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
             instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP,
               asm::Imm::Int(st.extern_call_stack_shift(2))));
             instrs.push(asm::Instr::CallImm(asm::Imm::ExternAddr(
-              asm::ExternName("spiral_alloc_closure".to_string()))));
+              asm::ExternName("spiral_rt_alloc_closure".to_string()))));
             instrs.push(asm::Instr::SubRegImm(asm::Reg::ESP,
               asm::Imm::Int(st.extern_call_stack_shift(2))));
             instrs.push(asm::Instr::MoveMemReg(st.var_mem(var), asm::Reg::EAX));

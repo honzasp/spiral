@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
-#include "spiral/call_conv.hpp"
+#include "spiral/asm_interface.hpp"
+#include "spiral/fun.hpp"
 #include "spiral/main.hpp"
 #include "spiral/print.hpp"
 
@@ -15,7 +16,7 @@ namespace spiral {
       bg.heap_chunk = bg_alloc_chunk(&bg, 0);
       bg.heap_chunk->next_chunk = 0;
 
-      spiral_call_fun(&bg, spiral_start_fun, 0);
+      fun_addr_call(&bg, spiral_start_addr, 0);
       return 0;
     }
   }

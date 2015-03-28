@@ -19,7 +19,7 @@ namespace spiral {
   }
 
   extern "C" {
-    auto spiral_ext_println(Bg* bg, void*, uint32_t val_) -> uint32_t {
+    auto spiral_std_println(Bg* bg, void*, uint32_t val_) -> uint32_t {
       println(bg, stdout, Val(val_));
       return Val::true_val.u32;
     }

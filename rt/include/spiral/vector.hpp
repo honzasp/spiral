@@ -18,10 +18,10 @@ namespace spiral {
   extern const ObjTable vector_otable;
 
   extern "C" {
-    auto spiral_ext_vec_make(Bg* bg, void* sp, uint32_t len) -> uint32_t; 
-    auto spiral_ext_vec_length(Bg* bg, void* sp, uint32_t vec) -> uint32_t; 
-    auto spiral_ext_vec_get(Bg* bg, void* sp, uint32_t vec, uint32_t idx) -> uint32_t; 
-    auto spiral_ext_vec_set(Bg* bg, void* sp, uint32_t vec, uint32_t idx,
+    auto spiral_std_vec_make(Bg* bg, void* sp, uint32_t len) -> uint32_t; 
+    auto spiral_std_vec_length(Bg* bg, void* sp, uint32_t vec) -> uint32_t; 
+    auto spiral_std_vec_get(Bg* bg, void* sp, uint32_t vec, uint32_t idx) -> uint32_t; 
+    auto spiral_std_vec_set(Bg* bg, void* sp, uint32_t vec, uint32_t idx,
         uint32_t val) -> uint32_t; 
   }
 }

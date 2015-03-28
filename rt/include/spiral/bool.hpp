@@ -15,10 +15,7 @@ namespace spiral {
   void bool_drop(Bg* bg, void* obj_ptr);
 
   extern const ObjTable bool_otable;
-
-  extern "C" {
-    extern const BoolObj spiral_true_obj = { &bool_otable };
-    extern const BoolObj spiral_false_obj = { &bool_otable };
-  }
+  extern const BoolObj true_obj;
+  extern const BoolObj false_obj;
 }
 #endif

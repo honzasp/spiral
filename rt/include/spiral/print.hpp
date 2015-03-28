@@ -8,7 +8,7 @@ namespace spiral {
   void print(Bg* bg, FILE* stream, Val val);
 
   extern "C" {
-    auto spiral_ext_println(Bg* bg, void* sp, uint32_t val_) -> uint32_t;
+    auto spiral_std_println(Bg* bg, void* sp, uint32_t val_) -> uint32_t;
   }
 }
 

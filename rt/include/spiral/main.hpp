@@ -4,7 +4,6 @@
 
 namespace spiral {
   extern "C" {
-    extern void* spiral_start_fun;
     int main(int argc, char** argv);
   }
 }

@@ -11,6 +11,9 @@ namespace spiral {
     &bool_drop,
   };
 
+  const BoolObj true_obj = { &bool_otable };
+  const BoolObj false_obj = { &bool_otable };
+
   void bool_print(Bg*, FILE* stream, Val val) {
     assert(val == Val::true_val || val == Val::false_val);
     if(val == Val::false_val) {
@@ -21,12 +24,12 @@ namespace spiral {
   }
 
   auto bool_length(void* obj_ptr) -> uint32_t {
-    assert(obj_ptr == &spiral_true_obj || obj_ptr == &spiral_false_obj);
+    assert(obj_ptr == &true_obj || obj_ptr == &false_obj);
     return sizeof(BoolObj);
   }
 
   auto bool_evacuate(GcCtx*, void* obj_ptr) -> Val {
-    assert(obj_ptr == &spiral_true_obj || obj_ptr == &spiral_false_obj);
+    assert(obj_ptr == &true_obj || obj_ptr == &false_obj);
     return Val::wrap_data_obj(obj_ptr);
   }
 
@@ -38,6 +41,6 @@ namespace spiral {
     bg_panic(bg, "bool dropped");
   }
 
-  const Val Val::true_val = Val(reinterpret_cast<uint32_t>(&spiral_true_obj) + 0b11);
-  const Val Val::false_val = Val(reinterpret_cast<uint32_t>(&spiral_false_obj) + 0b11);
+  const Val Val::true_val = Val(reinterpret_cast<uint32_t>(&true_obj) + 0b11);
+  const Val Val::false_val = Val(reinterpret_cast<uint32_t>(&false_obj) + 0b11);
 }

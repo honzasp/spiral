@@ -80,7 +80,7 @@ namespace spiral {
   }
 
   extern "C" {
-    auto spiral_ext_vec_make(Bg* bg, void* sp, uint32_t len_) -> uint32_t {
+    auto spiral_std_vec_make(Bg* bg, void* sp, uint32_t len_) -> uint32_t {
       auto len_val = Val(len_);
       if(!len_val.is_int()) {
         bg_panic(bg, "vector length must be an int");
@@ -101,12 +101,12 @@ namespace spiral {
       return vector_to_val(vec_obj).u32;
     }
 
-    auto spiral_ext_vec_length(Bg* bg, void*, uint32_t vec_) -> uint32_t {
+    auto spiral_std_vec_length(Bg* bg, void*, uint32_t vec_) -> uint32_t {
       auto vec_obj = vector_from_val(bg, Val(vec_));
       return Val::wrap_int(vec_obj->length).u32;
     }
 
-    auto spiral_ext_vec_get(Bg* bg, void*, uint32_t vec_, uint32_t idx_) -> uint32_t {
+    auto spiral_std_vec_get(Bg* bg, void*, uint32_t vec_, uint32_t idx_) -> uint32_t {
       auto vec_obj = vector_from_val(bg, Val(vec_));
       auto idx_val = Val(idx_);
       if(!idx_val.is_int()) {
@@ -121,7 +121,7 @@ namespace spiral {
       }
     }
 
-    auto spiral_ext_vec_set(Bg* bg, void*, uint32_t vec_, uint32_t idx_,
+    auto spiral_std_vec_set(Bg* bg, void*, uint32_t vec_, uint32_t idx_,
         uint32_t val_) -> uint32_t 
     {
       auto vec_obj = vector_from_val(bg, Val(vec_));

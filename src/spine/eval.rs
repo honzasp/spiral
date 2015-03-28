@@ -158,22 +158,22 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, RtVal>,
         };
 
       match &ext_name.0[..] {
-         "spiral_ext_println" => {
+        "spiral_std_println" | "println" => {
           assert_eq!(args.len(), 1);
           let value = eval_val(&vars, &args[0]);
           st.test_output.push(value);
           Jump { cont: ret_cont.clone(), args: vec![RtVal::False] }
         },
-        "spiral_ext_add" => binop(<i32 as ops::Add>::add),
-        "spiral_ext_sub" => binop(<i32 as ops::Sub>::sub),
-        "spiral_ext_mul" => binop(<i32 as ops::Mul>::mul),
-        "spiral_ext_div" => binop(<i32 as ops::Div>::div),
-        "spiral_ext_lt" => binop_bool(<i32 as cmp::PartialOrd>::lt),
-        "spiral_ext_le" => binop_bool(<i32 as cmp::PartialOrd>::le),
-        "spiral_ext_gt" => binop_bool(<i32 as cmp::PartialOrd>::gt),
-        "spiral_ext_ge" => binop_bool(<i32 as cmp::PartialOrd>::ge),
-        "spiral_ext_eq" => binop_bool(<i32 as cmp::PartialEq>::eq),
-        "spiral_ext_ne" => binop_bool(<i32 as cmp::PartialEq>::ne),
+        "spiral_std_add" => binop(<i32 as ops::Add>::add),
+        "spiral_std_sub" => binop(<i32 as ops::Sub>::sub),
+        "spiral_std_mul" => binop(<i32 as ops::Mul>::mul),
+        "spiral_std_div" => binop(<i32 as ops::Div>::div),
+        "spiral_std_lt" => binop_bool(<i32 as cmp::PartialOrd>::lt),
+        "spiral_std_le" => binop_bool(<i32 as cmp::PartialOrd>::le),
+        "spiral_std_gt" => binop_bool(<i32 as cmp::PartialOrd>::gt),
+        "spiral_std_ge" => binop_bool(<i32 as cmp::PartialOrd>::ge),
+        "spiral_std_eq" => binop_bool(<i32 as cmp::PartialEq>::eq),
+        "spiral_std_ne" => binop_bool(<i32 as cmp::PartialEq>::ne),
         _ => panic!("extern call to '{}'", ext_name.0)
       }
     },

@@ -3,15 +3,13 @@ use asm;
 pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
   let mut lines = Vec::new();
   lines.push(format!("  .text"));
-  lines.push(format!("  .set {}, (spiral_true_obj + 0b11)", true_symbol()));
-  lines.push(format!("  .set {}, (spiral_false_obj + 0b11)", false_symbol()));
   lines.push(format!(""));
 
-  lines.push(format!("  .globl spiral_start_fun"));
-  lines.push(format!("  .type spiral_start_fun,@object"));
-  lines.push(format!("spiral_start_fun:"));
+  lines.push(format!("  .globl spiral_start_addr"));
+  lines.push(format!("  .type spiral_start_addr,@object"));
+  lines.push(format!("spiral_start_addr:"));
   lines.push(format!("  .long {}", fun_name_symbol(&prog.main_fun)));
-  lines.push(format!("  .size spiral_start_fun, 4"));
+  lines.push(format!("  .size spiral_start_addr, 4"));
 
   for fun_def in prog.fun_defs.iter() {
     emit_fun_def(&mut lines, fun_def);
@@ -91,7 +89,7 @@ fn emit_combinator_obj(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
   lines.push(format!("  .align 4"));
   lines.push(format!("  .type {},@object", symbol));
   lines.push(format!("{}:", symbol));
-  lines.push(format!("  .long spiral_combinator_otable"));
+  lines.push(format!("  .long  _ZN6spiral17combinator_otableE"));
   lines.push(format!("  .long {}", fun_name_symbol(&fun_def.name)));
   lines.push(format!("  .size {},8", symbol));
 }
@@ -165,8 +163,8 @@ fn imm(i: &asm::Imm) -> String {
     asm::Imm::CombinatorObj(ref fun_name) => combinator_obj_symbol(fun_name),
     asm::Imm::Plus(ref l, ref r) => format!("({}) + ({})", imm(&**l), imm(&**r)),
     asm::Imm::Minus(ref l, ref r) => format!("({}) - ({})", imm(&**l), imm(&**r)),
-    asm::Imm::True => true_symbol(),
-    asm::Imm::False => false_symbol(),
+    asm::Imm::True => format!("(_ZN6spiral8true_objE + 0b11)"),
+    asm::Imm::False => format!("(_ZN6spiral9false_objE + 0b11)"),
   }
 }
 
@@ -223,14 +221,6 @@ fn label_symbol(label: &asm::Label) -> String {
 
 fn str_label_symbol(str_label: &asm::StringLabel) -> String {
   format!(".Lstr{}", str_label.0)
-}
-
-fn true_symbol() -> String {
-  format!(".Ltrue")
-}
-
-fn false_symbol() -> String {
-  format!(".Lfalse")
 }
 
 fn escape_asciz(bytes: &[u8]) -> String {

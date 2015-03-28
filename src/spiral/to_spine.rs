@@ -521,22 +521,23 @@ fn translate_lambda_expr(st: &mut ProgSt, env: &Env,
 
 fn bind_global_env(st: &mut ProgSt, parent: Env) -> Env {
   let extern_wrappers = &[
-      ("println", "spiral_ext_println", vec!["x"]),
-      ("+", "spiral_ext_add", vec!["a", "b"]),
-      ("-", "spiral_ext_sub", vec!["a", "b"]),
-      ("*", "spiral_ext_mul", vec!["a", "b"]),
-      ("/", "spiral_ext_div", vec!["a", "b"]),
-      ("<", "spiral_ext_lt",  vec!["a", "b"]),
-      ("<=", "spiral_ext_le", vec!["a", "b"]),
-      ("==", "spiral_ext_eq", vec!["a", "b"]),
-      ("/=", "spiral_ext_ne", vec!["a", "b"]),
-      (">", "spiral_ext_gt",  vec!["a", "b"]),
-      (">=", "spiral_ext_ge", vec!["a", "b"]),
+      ("println", "spiral_std_println", vec!["x"]),
 
-      ("vec-make", "spiral_ext_vec_make", vec!["len"]),
-      ("vec-length", "spiral_ext_vec_length", vec!["vec"]),
-      ("vec-get", "spiral_ext_vec_get", vec!["vec", "idx"]),
-      ("vec-set!", "spiral_ext_vec_set", vec!["vec", "idx", "x"]),
+      ("+",  "spiral_std_add", vec!["a", "b"]),
+      ("-",  "spiral_std_sub", vec!["a", "b"]),
+      ("*",  "spiral_std_mul", vec!["a", "b"]),
+      ("/",  "spiral_std_div", vec!["a", "b"]),
+      ("<",  "spiral_std_lt",  vec!["a", "b"]),
+      ("<=", "spiral_std_le", vec!["a", "b"]),
+      ("==", "spiral_std_eq", vec!["a", "b"]),
+      ("/=", "spiral_std_ne", vec!["a", "b"]),
+      (">", " spiral_std_gt",  vec!["a", "b"]),
+      (">=", "spiral_std_ge", vec!["a", "b"]),
+
+      ("vec-make",   "spiral_std_vec_make", vec!["len"]),
+      ("vec-length", "spiral_std_vec_length", vec!["vec"]),
+      ("vec-get",    "spiral_std_vec_get", vec!["vec", "idx"]),
+      ("vec-set!",   "spiral_std_vec_set", vec!["vec", "idx", "x"]),
     ];
 
   let consts = &[
