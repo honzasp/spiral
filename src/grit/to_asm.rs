@@ -179,7 +179,7 @@ fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDe
       instrs.push(asm::Instr::MoveMemReg(closure_mem, asm::Reg::ECX))
     }
 
-    for slot_idx in range(fun_def.arg_count, st.slot_alloc.slot_count) {
+    for slot_idx in (fun_def.arg_count..st.slot_alloc.slot_count) {
       instrs.push(asm::Instr::MoveMemImm(st.slot_mem(&grit::Slot(slot_idx)),
         asm::Imm::Int(0)));
     }
@@ -356,7 +356,7 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
     grit::Jump::TailCall(ref _callee, ref args) => {
       let frame_size = st.stack_frame_size();
       mass_move(st, &mut instrs, 
-          &range(0, args.len()).map(grit::Slot).collect::<Vec<_>>()[..], &args[..]);
+          &(0..args.len()).map(grit::Slot).collect::<Vec<_>>()[..], &args[..]);
       instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_size)));
       panic!("tail call not implemented");
     },
@@ -449,7 +449,7 @@ fn move_reg_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
 fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
   slots: &[grit::Slot], vals: &[grit::Val])
 {
-  let mut assigns: HashSet<usize> = range(0, slots.len())
+  let mut assigns: HashSet<usize> = (0..slots.len())
     .filter(|&i| match vals[i] {
       grit::Val::Var(ref src_var) => st.var_to_slot(src_var) != slots[i],
       grit::Val::Arg(arg_slot) => grit::Slot(arg_slot) != slots[i],

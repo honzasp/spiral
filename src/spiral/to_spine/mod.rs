@@ -29,14 +29,14 @@ pub fn spine_from_spiral(prog: &spiral::Prog,
   translate_prog(st, &mods_env, mod_onions, prog)
 }
 
-type Res<T> = Result<T, String>;
-type Env = spiral::env::Env<spine::Val, Vec<(spiral::Var, spine::Val)>>;
+pub type Res<T> = Result<T, String>;
+pub type Env = spiral::env::Env<spine::Val, Vec<(spiral::Var, spine::Val)>>;
 
-struct ProgSt {
-  fun_defs: Vec<spine::FunDef>,
-  fun_names: HashSet<spine::FunName>,
-  cont_names: HashSet<spine::ContName>,
-  vars: HashSet<spine::Var>,
+pub struct ProgSt {
+  pub fun_defs: Vec<spine::FunDef>,
+  pub fun_names: HashSet<spine::FunName>,
+  pub cont_names: HashSet<spine::ContName>,
+  pub vars: HashSet<spine::Var>,
 }
 
 impl ProgSt {

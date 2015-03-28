@@ -4,4 +4,6 @@ version = "0.0.1"
 authors = ["Jan Špaček <patek.mail@gmail.com>"]
 
 [dependencies]
-argparse = "0.1.0"
+docopt = "0.6.51"
+tempdir = "0.3.3"
+rustc-serialize = "0.3.7"
