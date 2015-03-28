@@ -54,6 +54,124 @@ fn test_output() {
 }
 
 #[test]
+fn test_shadowed_vars() {
+  assert_eq!(run("(program (var x 10) (var x 20) (println x))"),
+    vec![Int(20)]);
+  assert_eq!(run("(program (var f +) (fun f (a b) (* a b)) (println (f 2 3)))"),
+    vec![Int(6)]);
+}
+
+
+#[test]
+fn test_one_mod() {
+  assert_eq!(run_mods(vec![
+    ("math",
+      "(module math
+        (fun inc (x) (+ x 1))
+        (var pi 3)
+        (fun dec (x) (- x 1))
+        (export inc pi dec))"),
+    ], "(program
+      (import math)
+      (println (inc 9))
+      (println (dec pi)))"),
+    vec![Int(10), Int(2)]);
+}
+
+#[test]
+fn test_one_mod_only_funs() {
+  assert_eq!(run_mods(vec![
+    ("math",
+      "(module math
+        (fun double (x) (+ x x))
+        (fun square (x) (* x x))
+        (export double square))"),
+    ], "(program
+      (import math)
+      (println (double 6)))"),
+    vec![Int(12)]);
+}
+
+
+#[test]
+fn test_multiple_mods() {
+  assert_eq!(run_mods(vec![
+      ("numbers", "(module numbers
+        (var zero 0)
+        (var one 1)
+        (var three 3)
+        (export zero one three))"),
+      ("math", "(module math
+        (fun double (x) (+ x x))
+        (fun square (x) (* x x))
+        (export double square))"),
+      ("big-numbers", "(module big-numbers
+        (import numbers math)
+        (var nine (square three))
+        (var two (double one))
+        (export two nine))"),
+    ], "(program
+      (import big-numbers)
+      (println nine)
+      (println two))"),
+    vec![Int(9), Int(2)]);
+}
+
+#[test]
+fn test_filtered_imports() {
+  let mods = vec![
+    ("math", "(module math
+      (fun log (z) 1)
+      (fun cos (y) (- 1 y))
+      (fun sin (x) x)
+      (export log cos sin))"),
+    ("non-math", "(module non-math
+      (fun log (x) (println x))
+      (fun sin (x) 666)
+      (export log sin))"),
+  ];
+
+  assert_eq!(run_mods(mods.clone(), "(program
+      (import non-math)
+      (import (only math sin))
+      (log (sin 42)))"),
+    vec![Int(42)]);
+  assert_eq!(run_mods(mods.clone(), "(program
+      (import non-math)
+      (import (except math log))
+      (log (sin 30)))"),
+    vec![Int(30)]);
+  assert_eq!(run_mods(mods, "(program
+      (import (prefix non-math nm.))
+      (import (prefix math m.))
+      (nm.log (m.sin 19)))"),
+    vec![Int(19)]);
+}
+
+#[test]
+fn test_shadowed_imports() {
+  assert_eq!(run_mods(vec![
+    ("mod-xyz", "(module mod-xyz
+      (var x 10)
+      (var y 20)
+      (var z 30)
+      (export x y z))"),
+    ("mod-wxy", "(module mod-wxy
+      (var w 1)
+      (var x 2)
+      (var y 3)
+      (export w x y))"),
+    ], "(program
+      (import mod-xyz)
+      (import mod-wxy)
+      (println x)
+      (println y)
+      (println z)
+      (println w))"),
+    vec![Int(2), Int(3), Int(30), Int(1)]);
+}
+
+#[test]
 fn test_if() {
   assert_eq!(run(
     "(program 

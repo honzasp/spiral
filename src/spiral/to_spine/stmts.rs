@@ -32,7 +32,7 @@ pub fn translate_stmts_refs(st: &mut ProgSt, env: &Env, stmts: &[&spiral::Stmt])
   -> Res<(Onion, StmtRes)>
 {
   if stmts.len() == 0 {
-    Ok((Onion::Hole, StmtRes::Empty))
+    Ok((Onion::Hole, StmtRes::Env(env.clone())))
   } else if stmts.len() == 1 {
     translate_stmt(st, env, stmts[0])
   } else {
@@ -93,11 +93,11 @@ fn translate_stmt(st: &mut ProgSt, env: &Env, stmt: &spiral::Stmt)
 {
   match *stmt {
     spiral::Stmt::Import(ref import_defs) => {
-      let mut imports = Vec::new();
+      let mut import_env = env.clone();
       for import_def in import_defs.iter() {
-        imports.extend(try!(translate_import_def(env, import_def)).into_iter());
+        import_env = import_env.bind_vars(try!(translate_import_def(env, import_def)));
       }
-      Ok((Onion::Hole, StmtRes::Env(env.bind_vars(imports))))
+      Ok((Onion::Hole, StmtRes::Env(import_env)))
     },
     spiral::Stmt::Fun(ref fun_def) =>
       translate_fun_stmts(st, env, &[fun_def]),
@@ -120,12 +120,12 @@ fn translate_import_def(env: &Env, import_def: &spiral::ImportDef)
     spiral::ImportDef::Mod(ref mod_name) => 
       match env.lookup_mod(mod_name) {
         Some(exports) => Ok(exports.clone()),
-        None => Err(format!("undefined mod '{}", mod_name.0)),
+        None => Err(format!("undefined mod '{}'", mod_name.0)),
       },
     spiral::ImportDef::Only(ref def, ref only_vars) => 
-      filtered_import_def(env, def, only_vars, true),
+      filtered_import_def(env, def, only_vars, false),
     spiral::ImportDef::Except(ref def, ref except_vars) => 
-      filtered_import_def(env, def, except_vars, false),
+      filtered_import_def(env, def, except_vars, true),
     spiral::ImportDef::Prefix(ref def, ref prefix) =>
       Ok(try!(translate_import_def(env, def)).into_iter().map(|(var, val)| {
         (spiral::Var(prefix.0.clone() + &var.0[..]), val)
@@ -141,7 +141,7 @@ fn filtered_import_def(env: &Env, import_def: &spiral::ImportDef,
   let selected = try!(translate_import_def(env, import_def)).into_iter()
       .filter(|&(ref var, _)| { var_set.remove(var) ^ include }).collect();
   if !var_set.is_empty() {
-    Err(format!("some names in '{}' import were missing",
+    Err(format!("names {:?} in '{}' import were missing", var_set,
       if include { "only" } else { "except" }))
   } else {
     Ok(selected)
