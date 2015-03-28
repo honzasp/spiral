@@ -170,16 +170,23 @@ fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDe
   let make_frame_block = {
     let frame_shift = st.stack_frame_shift();
     let closure_mem = st.closure_mem();
+    let mut instrs = Vec::new();
+    instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(-frame_shift)));
+    if fun_def.capture_count == 0 {
+      instrs.push(asm::Instr::MoveMemImm(closure_mem,
+        translate_combinator_obj(&fun_def.name)))
+    } else {
+      instrs.push(asm::Instr::MoveMemReg(closure_mem, asm::Reg::ECX))
+    }
+
+    for slot_idx in range(fun_def.arg_count, st.slot_alloc.slot_count) {
+      instrs.push(asm::Instr::MoveMemImm(st.slot_mem(&grit::Slot(slot_idx)),
+        asm::Imm::Int(0)));
+    }
+
     asm::Block {
       label: Some(make_frame_label.clone()),
-      instrs: vec![
-          asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(-frame_shift)),
-          if fun_def.capture_count == 0 {
-            asm::Instr::MoveMemImm(closure_mem, translate_combinator_obj(&fun_def.name))
-          } else {
-            asm::Instr::MoveMemReg(closure_mem, asm::Reg::ECX)
-          },
-        ],
+      instrs: instrs,
     }
   };
 
@@ -289,10 +296,11 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
             instrs.push(asm::Instr::SubRegImm(asm::Reg::ESP,
               asm::Imm::Int(st.extern_call_stack_shift(2))));
             instrs.push(asm::Instr::MoveMemReg(st.var_mem(var), asm::Reg::EAX));
+            instrs.push(asm::Instr::MoveRegMem(asm::Reg::ECX, st.closure_mem()));
           }
         }
 
-        for &(ref var, ref fun_name, ref captures) in closures.iter() {
+        for &(ref var, _, ref captures) in closures.iter() {
           if !captures.is_empty() {
             instrs.push(asm::Instr::MoveRegMem(asm::Reg::EDX, st.var_mem(var)));
           }
@@ -322,6 +330,7 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
         instrs.push(asm::Instr::SubRegImm(asm::Reg::ESP,
           asm::Imm::Int(st.extern_call_stack_shift(argc))));
         instrs.push(asm::Instr::MoveMemReg(st.var_mem(dst_var), asm::Reg::EAX));
+        instrs.push(asm::Instr::MoveRegMem(asm::Reg::ECX, st.closure_mem()));
       },
       grit::Op::Assign(ref vars_vals) => {
         let slots = vars_vals.iter()

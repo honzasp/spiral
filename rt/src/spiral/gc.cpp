@@ -31,8 +31,8 @@ namespace spiral {
     auto stack_ptr = reinterpret_cast<uint32_t>(sp);
     for(;;) {
       assert(stack_ptr % 4 == 0);
-      auto fun_obj_ptr = *reinterpret_cast<uint32_t*>(stack_ptr + 0);
-      if(fun_obj_ptr == 0xffffffff) {
+      auto fun_ptr = reinterpret_cast<uint32_t*>(stack_ptr + 0);
+      if(*fun_ptr == 0xffffffff) {
         auto next_stack_ptr = *reinterpret_cast<uint32_t*>(stack_ptr + 4);
         if(next_stack_ptr == 0) {
           break;
@@ -40,7 +40,8 @@ namespace spiral {
           stack_ptr = next_stack_ptr;
         }
       } else {
-        auto fun_obj = fun_from_obj_ptr(reinterpret_cast<FunObj*>(fun_obj_ptr - 0b01));
+        *fun_ptr = gc_evacuate(gc_ctx, Val(*fun_ptr)).u32;
+        auto fun_obj = fun_from_obj_ptr(reinterpret_cast<FunObj*>(*fun_ptr - 0b01));
         auto ftable = fun_table_from_addr(fun_obj->fun_addr);
         auto slot_count = ftable->slot_count;
         for(uint32_t slot = 0; slot < slot_count; ++slot) {
@@ -55,8 +56,6 @@ namespace spiral {
   auto gc_evacuate(GcCtx* gc_ctx, Val val) -> Val {
     if(val.is_int()) {
       return val;
-    } else if(val.is_fun()) {
-      bg_panic(gc_ctx->bg, "evacuating a fun is not yet implemented");
     } else {
       return val.get_otable()->evacuate_fun(gc_ctx, val.unwrap_obj());
     }

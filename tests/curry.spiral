@@ -1,0 +1,14 @@
+(program
+  (var add-3
+    (lambda (x)
+      (println x)
+      (lambda (y)
+        (println x)
+        (println y)
+        (lambda (z)
+          (println x)
+          (println y)
+          (println z)
+          (+ (+ x y) z)))))
+  (println (((add-3 1) 20) 300))
+)

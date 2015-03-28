@@ -14,8 +14,11 @@ do
   exec_file=`echo "$test_file" | sed 's/spiral/exec/'`
   output_file=`echo "$test_file" | sed 's/spiral/out/'`
   real_output_file="${output_file}~"
+  asm_file=`echo "$test_file" | sed 's/spiral/s/'`
+  grit_file=`echo "$test_file" | sed 's/spiral/grit/'`
+  spine_file=`echo "$test_file" | sed 's/spiral/spine/'`
 
-  rm -f "$exec_file" "$real_output_file"
+  rm -f "$exec_file" "$real_output_file" "$asm_file" "$grit_file" "$spine_file"
 
   ok=""
   if "$SPIRAL" "$test_file" --output "$exec_file" --runtime "$RUNTIME"
@@ -30,10 +33,13 @@ do
   if [ -n "$ok" ] 
   then
     printf "  ${GREEN}passed${CLEAR}\n"
-    rm -f "$real_output_file" "$exec_file"
+    rm -f "$exec_file" "$real_output_file" "$asm_file" "$grit_file" "$spine_file"
     ok_count=$((ok_count+1))
   else
     printf "  ${RED}FAILED${CLEAR}\n"
+    "$SPIRAL" "$test_file" --output "$asm_file" --gas
+    "$SPIRAL" "$test_file" --output "$grit_file" --grit
+    "$SPIRAL" "$test_file" --output "$spine_file" --spine
     err_count=$((err_count+1))
   fi
 done

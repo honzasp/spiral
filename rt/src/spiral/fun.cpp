@@ -1,5 +1,6 @@
 #include "spiral/fun.hpp"
 #include "spiral/gc.hpp"
+#include "spiral/print.hpp"
 
 namespace spiral {
   auto fun_from_val(Bg* bg, Val val) -> FunObj* {
@@ -22,7 +23,7 @@ namespace spiral {
   }
 
   auto fun_table_from_addr(void* fun_addr) -> const FunTable* {
-    auto table_addr = reinterpret_cast<uint32_t>(fun_addr) - 16;
+    auto table_addr = reinterpret_cast<uint32_t>(fun_addr) - 32;
     assert(table_addr % 16 == 0);
     return reinterpret_cast<const FunTable*>(table_addr);
   }
@@ -70,6 +71,23 @@ namespace spiral {
   }
 
   void combinator_scavenge(GcCtx*, void*) {
+  }
+
+  void panic_invalid_fun(Bg* bg, uint32_t val) {
+    std::fprintf(stderr, "Expected fun, got ");
+    print(bg, stderr, Val(val));
+    bg_panic(bg, "invalid fun");
+  }
+
+  void panic_argc_mismatch(Bg* bg, void* fun_addr,
+      uint32_t expected_argc_, uint32_t received_argc_) {
+    auto expected_argc = Val(expected_argc_);
+    auto received_argc = Val(received_argc_);
+    assert(expected_argc.is_int());
+    assert(received_argc.is_int());
+    std::fprintf(stderr, "Fun %p expected %u args, got %u args", fun_addr, 
+        expected_argc.unwrap_int(), received_argc.unwrap_int());
+    bg_panic(bg, "argc mismatch");
   }
 
   extern "C" {

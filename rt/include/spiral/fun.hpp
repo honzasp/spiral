@@ -32,6 +32,10 @@ namespace spiral {
   void closure_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   auto combinator_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void combinator_scavenge(GcCtx* gc_ctx, void* obj_ptr);
+  
+  void panic_invalid_fun(Bg* bg, uint32_t val);
+  void panic_argc_mismatch(Bg* bg, void* fun_addr,
+      uint32_t expected_argc_, uint32_t received_argc_);
 
   extern "C" {
     extern const ObjTable spiral_closure_otable;

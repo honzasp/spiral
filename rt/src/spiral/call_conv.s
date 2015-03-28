@@ -19,13 +19,16 @@ spiral_call_fun:
   .align 16,0x90
   .type spiral_argc_mismatch,@function
 spiral_argc_mismatch:
-  pushl %esp
-  pushl $1
+  pushl %eax
+  pushl %edx
+  pushl %ecx
+  pushl %edi
   calll exit
 
   .globl spiral_invalid_fun
   .align 16,0x90
   .type spiral_invalid_fun,@function
 spiral_invalid_fun:
-  pushl $2
-  calll exit
+  pushl %ecx
+  pushl %edi
+  calll _ZN6spiral17panic_invalid_funEPNS_2BgEj

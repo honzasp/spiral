@@ -1,0 +1,24 @@
+(program
+  (var n0 (lambda (f) (lambda (x) x)))
+  (var n1 (lambda (f) (lambda (x) (f x))))
+  (var n2 (lambda (f) (lambda (x) (f (f x)))))
+  (var n3 (lambda (f) (lambda (x) (f (f (f x))))))
+  (var n4 (lambda (f) (lambda (x) (f (f (f (f x)))))))
+  (var n5 (lambda (f) (lambda (x) (f (f (f (f (f x))))))))
+
+  (fun church-to-int (n)
+    ((n (lambda (x) (+ x 1))) 0))
+  (println (church-to-int n3))
+
+  (fun succ (n)
+    (lambda (f) (lambda (x) (f ((n f) x)))))
+  (println (church-to-int (succ n4)))
+
+  (fun plus (n m)
+    (lambda (f) (lambda (x) ((n f) ((m f) x)))))
+  (println (church-to-int (plus n3 n1)))
+
+  (fun mult (n m)
+    (lambda (f) (lambda (x) ((m (n f)) x))))
+  (println (church-to-int (mult n2 n3)))
+)
