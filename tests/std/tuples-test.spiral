@@ -1,0 +1,20 @@
+(program
+  (import std)
+
+  (println (tuple-0))
+  (println (tuple-1 10))
+  (println (tuple-2 10 20))
+  (println (tuple-8 1 2 3 4 5 6 7 8))
+
+  (println (get-1 (tuple-2 10 20)))
+  (println (get-1 (tuple-3 1 2 3)))
+  (println (get-2 (tuple-4 1 2 3 4)))
+  (println (get-n (tuple-3 2 3 5) 1))
+
+  (println (tuple? (tuple-1 2)))
+  (println (tuple? 10))
+  (println (tuple-2? (tuple-2 1 2)))
+  (println (tuple-3? (tuple-1 10)))
+  (println (tuple-4? 100))
+  (println (tuple-n? (tuple-1 1000) 1))
+  (println (tuple-len (tuple-3 1 2 3))))
