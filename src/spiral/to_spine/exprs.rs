@@ -1,19 +1,13 @@
 use spiral;
 use spine;
 use spiral::to_spine::{ProgSt, Env, Res};
-use spiral::to_spine::stmts::{translate_stmts};
+use spiral::to_spine::stmts::{translate_stmts_tail};
 use spine::onion::{Onion, OnionContDef};
 
 pub fn translate_expr(st: &mut ProgSt, env: &Env, expr: &spiral::Expr)
   -> Res<(Onion, spine::Val)>
 {
   match *expr {
-    spiral::Expr::Begin(ref stmts) => {
-      let (onion, stmt_res) = try!(translate_stmts(st, env, &stmts[..]));
-      Ok((onion, stmt_res.into_val()))
-    },
-    spiral::Expr::Let(ref var_binds, ref body_stmts) =>
-      translate_let_expr(st, env, &var_binds[..], &body_stmts[..]), 
     spiral::Expr::Lambda(ref args, ref body_stmts) =>
       translate_lambda_expr(st, env, &args[..], &body_stmts[..]),
     spiral::Expr::Int(number) =>
@@ -69,14 +63,10 @@ pub fn translate_expr_tail(st: &mut ProgSt, env: &Env,
       translate_and_expr_tail(st, env, &exprs[..], result_cont),
     spiral::Expr::Or(ref exprs) =>
       translate_or_expr_tail(st, env, &exprs[..], result_cont),
-    spiral::Expr::Begin(ref stmts) => {
-      let (onion, stmt_res) = try!(translate_stmts(st, env, &stmts[..]));
-      Ok(onion.subst_term(spine::Term::Cont(result_cont, vec![stmt_res.into_val()])))
-    },
-    spiral::Expr::Let(ref var_binds, ref body_stmts) => {
-      let (onion, val) = try!(translate_let_expr(st, env, &var_binds[..], &body_stmts[..]));
-      Ok(onion.subst_term(spine::Term::Cont(result_cont, vec![val])))
-    },
+    spiral::Expr::Begin(ref stmts) => 
+      translate_stmts_tail(st, env, &stmts[..], result_cont),
+    spiral::Expr::Let(ref var_binds, ref body_stmts) => 
+      translate_let_expr_tail(st, env, &var_binds[..], &body_stmts[..], result_cont),
     spiral::Expr::Call(ref fun, ref args) =>
       translate_call_expr_tail(st, env, fun, &args[..], result_cont),
     spiral::Expr::Lambda(ref args, ref body_stmts) => {
@@ -146,11 +136,7 @@ fn translate_cond_expr_tail(st: &mut ProgSt, env: &Env,
     Ok(spine::Term::Cont(result_cont, vec![spine::Val::False]))
   } else {
     translate_branch_expr_tail(st, env, &arms[0].0,
-      |st, env, _| {
-        let (arm_onion, arm_res) = try!(translate_stmts(st, env, &arms[0].1[..]));
-        Ok(arm_onion.subst_term(spine::Term::Cont(result_cont.clone(),
-          vec![arm_res.into_val()])))
-      },
+      |st, env, _| translate_stmts_tail(st, env, &arms[0].1[..], result_cont.clone()),
       |st, env, _| translate_cond_expr_tail(st, env, &arms[1..], result_cont.clone()))
   }
 }
@@ -160,13 +146,8 @@ fn translate_when_expr_tail(st: &mut ProgSt, env: &Env,
   result_cont: spine::ContName) -> Res<spine::Term>
 {
   translate_branch_expr_tail(st, env, cond,
-    |st, env, _true_val| {
-      let (body_onion, body_res) = try!(translate_stmts(st, env, body_stmts));
-      Ok(body_onion.subst_term(spine::Term::Cont(result_cont.clone(), 
-        vec![body_res.into_val()])))
-    },
-    |_st, _env, false_val| 
-      Ok(spine::Term::Cont(result_cont.clone(), vec![false_val])))
+    |st, env, _true_val| translate_stmts_tail(st, env, body_stmts, result_cont.clone()),
+    |_st, _env, false_val| Ok(spine::Term::Cont(result_cont.clone(), vec![false_val])))
 }
 
 fn translate_unless_expr_tail(st: &mut ProgSt, env: &Env,
@@ -174,13 +155,8 @@ fn translate_unless_expr_tail(st: &mut ProgSt, env: &Env,
   result_cont: spine::ContName) -> Res<spine::Term>
 {
   translate_branch_expr_tail(st, env, cond,
-    |_st, _env, true_val| 
-      Ok(spine::Term::Cont(result_cont.clone(), vec![true_val])),
-    |st, env, _false_val| {
-      let (body_onion, body_res) = try!(translate_stmts(st, env, body_stmts));
-      Ok(body_onion.subst_term(spine::Term::Cont(result_cont.clone(), 
-        vec![body_res.into_val()])))
-    })
+    |_st, _env, true_val| Ok(spine::Term::Cont(result_cont.clone(), vec![true_val])),
+    |st, env, _false_val| translate_stmts_tail(st, env, body_stmts, result_cont.clone()))
 }
 
 fn translate_do_expr_tail(st: &mut ProgSt, env: &Env,
@@ -201,29 +177,32 @@ fn translate_do_expr_tail(st: &mut ProgSt, env: &Env,
          (spiral_var.clone(), spine::Val::Var(spine_var.clone())))
     .collect());
 
+  let body_cont = st.gen_cont_name("do-body");
   let next_cont = st.gen_cont_name("do-next");
   let loop_cont = st.gen_cont_name("do-loop");
   let exit_cont = st.gen_cont_name("do-exit");
 
+  let body_result = st.gen_var("do-body-ignored");
+
+  let body_cont_def = spine::ContDef {
+      name: body_cont.clone(),
+      args: vec![],
+      body: try!(translate_stmts_tail(st, &inner_env, body_stmts, next_cont.clone())),
+  };
+
   let next_cont_def = spine::ContDef {
       name: next_cont.clone(),
-      args: vec![],
+      args: vec![body_result],
       body: {
         let (nexts_onion, next_vals) = try!(translate_exprs(st, &inner_env, &nexts[..]));
-        let (body_onion, _) = try!(translate_stmts(st, &inner_env, body_stmts));
-        body_onion.subst_term(
-          nexts_onion.subst_term(spine::Term::Cont(loop_cont.clone(), next_vals)))
+        nexts_onion.subst_term(spine::Term::Cont(loop_cont.clone(), next_vals))
       }
     };
 
   let exit_cont_def = spine::ContDef {
       name: exit_cont.clone(),
       args: vec![],
-      body: {
-        let (exit_onion, exit_stmt_res) = try!(translate_stmts(st, &inner_env, exit_stmts));
-        exit_onion.subst_term(spine::Term::Cont(result_cont,
-          vec![exit_stmt_res.into_val()]))
-      }
+      body: try!(translate_stmts_tail(st, &inner_env, exit_stmts, result_cont)),
     };
 
   let loop_cont_def = spine::ContDef {
@@ -233,9 +212,10 @@ fn translate_do_expr_tail(st: &mut ProgSt, env: &Env,
         let (cond_onion, cond_val) = try!(translate_expr(st, &inner_env, exit_cond));
         cond_onion.subst_term(
           spine::Term::Letcont(vec![next_cont_def],
-            box spine::Term::Letcont(vec![exit_cont_def],
-              box spine::Term::Branch(spine::Boolval::IsFalse(cond_val),
-                next_cont, exit_cont))))
+            box spine::Term::Letcont(vec![body_cont_def],
+              box spine::Term::Letcont(vec![exit_cont_def],
+                box spine::Term::Branch(spine::Boolval::IsFalse(cond_val),
+                  body_cont, exit_cont)))))
       }
     };
 
@@ -278,21 +258,19 @@ fn translate_or_expr_tail(st: &mut ProgSt, env: &Env,
 }
 
 
-fn translate_let_expr(st: &mut ProgSt, env: &Env,
+fn translate_let_expr_tail(st: &mut ProgSt, env: &Env,
   var_binds: &[(spiral::Var, spiral::Expr)],
-  body_stmts: &[spiral::Stmt]) -> Res<(Onion, spine::Val)>
+  body_stmts: &[spiral::Stmt],
+  result_cont: spine::ContName) -> Res<spine::Term>
 {
   match var_binds.first() {
-    None => {
-      let (stmts_onion, stmt_res) = try!(translate_stmts(st, env, body_stmts));
-      Ok((stmts_onion, stmt_res.into_val()))
-    },
+    None =>
+      translate_stmts_tail(st, env, body_stmts, result_cont),
     Some(&(ref var, ref expr)) => {
       let (expr_onion, expr_val) = try!(translate_expr(st, env, expr));
       let inner_env = env.bind_vars(vec![(var.clone(), expr_val)]);
-      let (inner_onion, result) = try!(translate_let_expr(st, &inner_env,
-          var_binds.tail(), body_stmts));
-      Ok((expr_onion.subst_onion(inner_onion), result))
+      Ok(expr_onion.subst_term(try!(translate_let_expr_tail(st, &inner_env,
+          var_binds.tail(), body_stmts, result_cont))))
     },
   }
 }
@@ -339,10 +317,7 @@ pub fn translate_fun(st: &mut ProgSt, env: &Env,
   let inner_env = env.bind_vars(arg_binds);
 
   let ret_cont = st.gen_cont_name("return");
-  let (body_onion, body_stmt_res) =
-    try!(translate_stmts(st, &inner_env, body_stmts));
-  let body_term = body_onion.subst_term(spine::Term::Cont(ret_cont.clone(),
-    vec![body_stmt_res.into_val()]));
+  let body_term = try!(translate_stmts_tail(st, &inner_env, body_stmts, ret_cont.clone()));
 
   let mut body_free = spine::free::collect_term(&body_term);
   for arg in spine_args.iter() {

@@ -1,0 +1,7 @@
+(program
+  (import std)
+  (fun count-numbers (acc limit)
+    (if (<= limit 0) 
+      acc
+      (count-numbers (+ acc 1) (- limit 1))))
+  (println (count-numbers 0 1000000)))

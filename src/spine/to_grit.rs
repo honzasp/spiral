@@ -5,6 +5,7 @@ use grit;
 type Env = spine::env::Env<VarBind, usize, ContBind>;
 
 #[derive(Debug)]
+#[allow(dead_code)]
 enum VarBind {
   Val(grit::Val),
   Combinator(spine::FunName),

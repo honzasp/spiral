@@ -90,7 +90,7 @@ fn main_body() -> Result<(), SpiralError> {
           let sexpr = try!(parse_sexpr(&mut file));
           return sexpr::to_spiral::mod_from_sexpr(&sexpr)
         },
-        Err(e) => (),
+        Err(_) => (),
       }
     }
     Err(format!("module '{}' was not found", mod_name.0))

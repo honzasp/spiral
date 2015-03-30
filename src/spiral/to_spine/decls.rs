@@ -1,7 +1,7 @@
 use spiral;
 use spine;
 use spiral::to_spine::{ProgSt, Env, Res};
-use spiral::to_spine::stmts::{StmtRes, translate_stmts_refs};
+use spiral::to_spine::stmts::{translate_stmts};
 use spine::onion::{Onion};
 
 pub fn translate_decls(st: &mut ProgSt, env: &Env, decls: &[spiral::Decl])
@@ -20,13 +20,8 @@ pub fn translate_decls(st: &mut ProgSt, env: &Env, decls: &[spiral::Decl])
       }).collect();
 
     if !stmts.is_empty() {
-      let (stmts_onion, stmt_res) = try!(translate_stmts_refs(st, env, &stmts[..]));
-      let (next_onion, exports) = try!(match stmt_res {
-        StmtRes::Env(ref inner_env) =>
-          translate_decls(st, inner_env, &decls[stmts.len()..]),
-        StmtRes::Val(_) | StmtRes::Empty =>
-          translate_decls(st, env, &decls[stmts.len()..]),
-      });
+      let (stmts_onion, stmt_env) = try!(translate_stmts(st, env, &stmts[..]));
+      let (next_onion, exports) = try!(translate_decls(st, &stmt_env, &decls[stmts.len()..]));
       Ok((stmts_onion.subst_onion(next_onion), exports))
     } else {
       let mut exports = Vec::new();

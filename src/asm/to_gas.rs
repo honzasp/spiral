@@ -96,7 +96,6 @@ fn emit_combinator_obj(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
 
 fn translate_instr(instr: &asm::Instr) -> String {
   use asm::Instr as I;
-  use asm::Test as T;
 
   match *instr {
     I::AddRegImm(ref r1, ref i) =>
@@ -121,27 +120,12 @@ fn translate_instr(instr: &asm::Instr) -> String {
       format!("  calll *{}", mem(m)),
     I::Jump(ref i) =>
       format!("  jmp   {}", imm(i)),
+    I::JumpMem(ref m) =>
+      format!("  jmp   *{}", mem(m)),
     I::JumpIf(ref test, ref i) => 
-      format!("  {1} {0}", imm(i), match *test {
-        T::Overflow => "jo   ",
-        T::NoOverflow => "jno  ",
-        T::Above => "ja   ",
-        T::Below => "jb   ",
-        T::AboveEq => "jae  ",
-        T::BelowEq => "jbe  ",
-        T::Equal => "je   ",
-        T::NotEqual => "jne  ",
-        T::Sign => "js   ",
-        T::NoSign => "jns  ",
-        T::ParityEven => "jpe  ",
-        T::ParityOdd => "jpo  ",
-        T::Less => "jl   ",
-        T::Greater => "jg   ",
-        T::LessEq => "jle  ",
-        T::GreaterEq => "jge  ",
-        T::Zero => "jz   ",
-        T::NotZero => "jnz  ",
-      }),
+      format!("  j{} {}", cc(test), imm(i)),
+    I::JumpMemIf(ref test, ref m) => 
+      format!("  j{} *{}", cc(test), mem(m)),
     I::CmpRegImm(ref r1, ref i) =>
       format!("  cmpl  ${}, {}", imm(i), reg(r1)),
     I::CmpMemImm(ref m, ref i) =>
@@ -192,6 +176,30 @@ fn mem(mem: &asm::Mem) -> String {
       asm::AddrScale::Four => format!(", 4"),
     }).unwrap_or(format!("")),
   )
+}
+
+fn cc(test: &asm::Test) -> String {
+  use asm::Test as T;
+  (match *test {
+    T::Overflow => "o   ",
+    T::NoOverflow => "no  ",
+    T::Above => "a   ",
+    T::Below => "b   ",
+    T::AboveEq => "ae  ",
+    T::BelowEq => "be  ",
+    T::Equal => "e   ",
+    T::NotEqual => "ne  ",
+    T::Sign => "s   ",
+    T::NoSign => "ns  ",
+    T::ParityEven => "pe  ",
+    T::ParityOdd => "po  ",
+    T::Less => "l   ",
+    T::Greater => "g   ",
+    T::LessEq => "le  ",
+    T::GreaterEq => "ge  ",
+    T::Zero => "z   ",
+    T::NotZero => "nz  ",
+  }).to_string()
 }
 
 fn fun_name_symbol(name: &asm::FunName) -> String {

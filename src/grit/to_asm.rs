@@ -240,13 +240,12 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
                 translate_fun_name(fun_name))));
           },
           grit::Callee::Unknown(ref closure_val) => {
-            let invalid_fun_label = st.prog_st.gen_label("invalid_fun");
             move_reg_val(st, &mut instrs, asm::Reg::ECX, closure_val);
             instrs.push(asm::Instr::MoveRegReg(asm::Reg::EDX, asm::Reg::ECX));
             instrs.push(asm::Instr::SubRegImm(asm::Reg::EDX, asm::Imm::Int(0b01)));
             instrs.push(asm::Instr::TestRegImm(asm::Reg::EDX, asm::Imm::Int(0b11)));
             instrs.push(asm::Instr::JumpIf(asm::Test::NotZero,
-              asm::Imm::Label(invalid_fun_label.clone())));
+              asm::Imm::ExternAddr(asm::ExternName("spiral_rt_invalid_fun".to_string()))));
             instrs.push(asm::Instr::MoveRegImm(asm::Reg::EAX,
               translate_int(args.len() as i32)));
             instrs.push(asm::Instr::CallMem(asm::Mem {
@@ -255,20 +254,6 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
               index: None,
               scale: None,
             }));
-
-            let invalid_fun_block = asm::Block {
-              label: Some(invalid_fun_label),
-              instrs: vec![
-                asm::Instr::MoveMemReg(st.extern_call_arg_mem(1, 0), asm::Reg::ECX),
-                asm::Instr::MoveMemReg(st.extern_call_sp_mem(1), asm::Reg::ESP),
-                asm::Instr::MoveMemReg(st.extern_call_bg_mem(1), asm::Reg::EDI),
-                asm::Instr::AddRegImm(asm::Reg::ESP, 
-                  asm::Imm::Int(st.extern_call_stack_shift(1))),
-                asm::Instr::CallImm(asm::Imm::ExternAddr(
-                  asm::ExternName("spiral_rt_invalid_fun".to_string()))),
-              ],
-            };
-            st.post_blocks.push(invalid_fun_block);
           },
         }
 
@@ -353,12 +338,41 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
       instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_shift)));
       instrs.push(asm::Instr::Return);
     },
-    grit::Jump::TailCall(ref _callee, ref args) => {
-      let frame_size = st.stack_frame_size();
+    grit::Jump::TailCall(ref callee, ref args) => {
+      let frame_size = st.stack_frame_size() - 4;
       mass_move(st, &mut instrs, 
           &(0..args.len()).map(grit::Slot).collect::<Vec<_>>()[..], &args[..]);
-      instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_size)));
-      panic!("tail call not implemented");
+
+      match *callee {
+        grit::Callee::Combinator(ref fun_name) => {
+          instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_size)));
+          instrs.push(asm::Instr::Jump(asm::Imm::FunKnownStart(
+              translate_fun_name(fun_name))));
+        },
+        grit::Callee::KnownClosure(ref fun_name, ref closure_val) => {
+          move_reg_val(st, &mut instrs, asm::Reg::ECX, closure_val);
+          instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_size)));
+          instrs.push(asm::Instr::Jump(asm::Imm::FunKnownStart(
+              translate_fun_name(fun_name))));
+        },
+        grit::Callee::Unknown(ref closure_val) => {
+          move_reg_val(st, &mut instrs, asm::Reg::ECX, closure_val);
+          instrs.push(asm::Instr::MoveRegReg(asm::Reg::EDX, asm::Reg::ECX));
+          instrs.push(asm::Instr::SubRegImm(asm::Reg::EDX, asm::Imm::Int(0b01)));
+          instrs.push(asm::Instr::TestRegImm(asm::Reg::EDX, asm::Imm::Int(0b11)));
+          instrs.push(asm::Instr::JumpIf(asm::Test::NotZero,
+            asm::Imm::ExternAddr(asm::ExternName("spiral_rt_invalid_fun".to_string()))));
+          instrs.push(asm::Instr::MoveRegImm(asm::Reg::EAX,
+            translate_int(args.len() as i32)));
+          instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_size)));
+          instrs.push(asm::Instr::JumpMem(asm::Mem {
+            displac: Some(asm::Imm::Int(-0b01 + 4)),
+            offset: Some(asm::Reg::ECX),
+            index: None,
+            scale: None,
+          }));
+        },
+      }
     },
     grit::Jump::Branch(ref boolval, ref then_label, ref else_label) =>
       match *boolval {

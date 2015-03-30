@@ -30,5 +30,6 @@ spiral_rt_argc_mismatch:
   .type spiral_rt_invalid_fun,@function
 spiral_rt_invalid_fun:
   pushl %ecx
+  pushl %ecx
   pushl %edi
   calll _ZN6spiral17panic_invalid_funEPNS_2BgEj

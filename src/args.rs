@@ -50,7 +50,6 @@ pub fn parse_args(args: Vec<&str>) -> Result<Args, docopt::Error> {
 
 #[cfg(test)]
 mod test {
-  use docopt;
   use args::{Args, Emit, parse_args};
 
   fn default_args() -> Args { Args {

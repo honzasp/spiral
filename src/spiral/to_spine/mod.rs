@@ -3,7 +3,7 @@ use spine;
 use spiral;
 use spine::onion::{Onion};
 use spiral::to_spine::mods::{load_mods, translate_mods};
-use spiral::to_spine::stmts::{translate_stmts};
+use spiral::to_spine::stmts::{translate_stmts_tail};
 
 mod decls;
 mod exprs;
@@ -74,9 +74,8 @@ fn translate_prog(mut st: ProgSt, env: &Env, mod_onions: Vec<Onion>, prog: &spir
 {
   let halt_cont = st.gen_cont_name("halt");
   let main_name = st.gen_fun_name("main");
-  let (body_onion, body_res) = try!(translate_stmts(&mut st, env, &prog.stmts[..]));
-  let body_term = body_onion.subst_term(
-    spine::Term::Cont(halt_cont.clone(), vec![body_res.into_val()]));
+  let body_term = try!(translate_stmts_tail(&mut st, env,
+    &prog.stmts[..], halt_cont.clone()));
 
   let main_term = mod_onions.into_iter().rev().fold(body_term,
     |term, mod_onion| mod_onion.subst_term(term));
