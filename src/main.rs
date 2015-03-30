@@ -116,12 +116,23 @@ fn main_body() -> Result<(), SpiralError> {
     return dump(gas)
   }
 
-  try!(try!(fs::File::create("/tmp/assembly.s")).write_all(gas.as_bytes()));
+  let dir = try!(tempdir::TempDir::new("spiral"));
+  let asm_file = {
+    let mut buf = path::PathBuf::from(dir.path());
+    buf.push("assembly.s");
+    buf
+  };
+  let obj_file = {
+    let mut buf = path::PathBuf::from(dir.path());
+    buf.push("object.o");
+    buf
+  };
+  try!(try!(fs::File::create(&asm_file)).write_all(gas.as_bytes()));
 
   let gas_cmd = args.flag_gas_cmd.clone().unwrap_or("as".to_string());
   let gas_out = try!(process::Command::new(&gas_cmd[..])
-    .arg("/tmp/assembly.s")
-    .arg("-o").arg("/tmp/object.o")
+    .arg(&asm_file)
+    .arg("-o").arg(&obj_file)
     .output());
   if !gas_out.status.success() {
     try!(Err(format!("Assembler failed:\n{}", String::from_utf8_lossy(&gas_out.stderr))))
@@ -130,7 +141,7 @@ fn main_body() -> Result<(), SpiralError> {
   let runtime_path = args.flag_runtime.clone().unwrap_or("runtime.a".to_string());
   let link_cmd = args.flag_link_cmd.clone().unwrap_or("clang".to_string());
   let link_out = try!(process::Command::new(&link_cmd[..])
-    .arg("/tmp/object.o")
+    .arg(&obj_file)
     .arg(&runtime_path[..])
     .arg("-o").arg(&output_path)
     .output());
