@@ -55,10 +55,14 @@ pub fn collect_closure_def(clos_def: &spine::ClosureDef) -> HashSet<spine::Var> 
 
 fn collect_val(val: &spine::Val) -> Option<spine::Var> {
   match *val {
-    spine::Val::Var(ref var) => Some(var.clone()),
+    spine::Val::Var(ref var) =>
+      Some(var.clone()),
     spine::Val::Combinator(_) |
     spine::Val::Int(_) |
-    spine::Val::True | spine::Val::False => None,
+    spine::Val::Obj(_) |
+    spine::Val::True |
+    spine::Val::False =>
+      None,
   }
 }
 

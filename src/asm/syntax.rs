@@ -3,6 +3,7 @@
 #[derive(PartialEq, Debug)]
 pub struct ProgDef {
   pub fun_defs: Vec<FunDef>,
+  pub obj_defs: Vec<ObjDef>,
   pub string_defs: Vec<StringDef>,
   pub main_fun: FunName,
 }
@@ -20,13 +21,24 @@ pub struct FunTable {
   pub slot_count: u32,
   pub arg_count: u32,
   pub capture_count: u32,
-  pub is_combinator: bool,
-  pub fun_name_str: StringLabel,
+  pub fun_name: StringName,
+}
+
+#[derive(PartialEq, Debug)]
+pub struct ObjDef {
+  pub name: ObjName,
+  pub obj: Obj,
+}
+
+#[derive(PartialEq, Debug)]
+pub enum Obj {
+  Combinator(FunName),
+  String(usize, StringName),
 }
 
 #[derive(PartialEq, Debug)]
 pub struct StringDef {
-  pub label: StringLabel,
+  pub name: StringName,
   pub bytes: Vec<u8>,
 }
 
@@ -39,7 +51,9 @@ pub struct Block {
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Label(pub String);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
-pub struct StringLabel(pub usize);
+pub struct ObjName(pub usize);
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct StringName(pub usize);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct FunName(pub String);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
@@ -112,7 +126,7 @@ pub enum Imm {
   FunAddr(FunName),
   FunKnownStart(FunName),
   ExternAddr(ExternName),
-  CombinatorObj(FunName),
+  ObjAddr(ObjName),
   Plus(Box<Imm>, Box<Imm>),
   Minus(Box<Imm>, Box<Imm>),
   True,

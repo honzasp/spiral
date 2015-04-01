@@ -96,6 +96,8 @@ pub fn val_to_sexpr(val: &grit::Val) -> sexpr::Elem {
       sexpr::Elem::List(vec![ident("capture"), sexpr::Elem::Int(idx as i32)]),
     grit::Val::Combinator(ref fun_name) => 
       sexpr::Elem::List(vec![ident("combinator"), fun_name_to_sexpr(fun_name)]),
+    grit::Val::Obj(ref obj_name) => 
+      sexpr::Elem::List(vec![ident("obj"), obj_name_to_sexpr(obj_name)]),
     grit::Val::Int(num) => sexpr::Elem::Int(num),
     grit::Val::True => ident("true"),
     grit::Val::False => ident("false"),
@@ -123,6 +125,7 @@ pub fn callee_to_sexpr(callee: &grit::Callee) -> sexpr::Elem {
 pub fn var_to_sexpr(var: &grit::Var) -> sexpr::Elem { sexpr::Elem::Int(var.0 as i32) }
 pub fn fun_name_to_sexpr(i: &grit::FunName) -> sexpr::Elem { ident(&i.0[..]) }
 pub fn extern_name_to_sexpr(i: &grit::ExternName) -> sexpr::Elem { ident(&i.0[..]) }
+pub fn obj_name_to_sexpr(i: &grit::ObjName) -> sexpr::Elem { ident(&i.0[..]) }
 pub fn label_to_sexpr(i: &grit::Label) -> sexpr::Elem { ident(&i.0[..]) }
 
 fn ident(id: &str) -> sexpr::Elem {

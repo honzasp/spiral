@@ -15,17 +15,16 @@ pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
     emit_fun_def(&mut lines, fun_def);
   }
 
+  lines.push(format!("  .section .rodata,\"a\",@progbits"));
+  for obj_def in prog.obj_defs.iter() {
+    emit_obj_def(&mut lines, obj_def);
+  }
+
   lines.push(format!("  .section .rodata,\"aMS\",@progbits"));
   for str_def in prog.string_defs.iter() {
     emit_str_def(&mut lines, str_def);
   }
 
-  lines.push(format!("  .section .rodata,\"a\",@progbits"));
-  for fun_def in prog.fun_defs.iter() {
-    if fun_def.fun_table.is_combinator {
-      emit_combinator_obj(&mut lines, fun_def);
-    }
-  }
 
   lines.connect("\n")
 }
@@ -58,11 +57,31 @@ fn emit_fun_def(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
   lines.push(format!(""));
 }
 
-fn emit_str_def(lines: &mut Vec<String>, str_def: &asm::StringDef) {
-  let symbol = str_label_symbol(&str_def.label);
+fn emit_obj_def(lines: &mut Vec<String>, obj_def: &asm::ObjDef) {
+  let symbol = obj_symbol(&obj_def.name);
+  lines.push(format!("  .align 4"));
   lines.push(format!("  .type {},@object", symbol));
   lines.push(format!("{}:", symbol));
-  lines.push(format!("  .asciz  {}", escape_asciz(&str_def.bytes[..])));
+
+  match obj_def.obj {
+    asm::Obj::Combinator(ref fun_name) => {
+      lines.push(format!("  .long _ZN6spiral17combinator_otableE"));
+      lines.push(format!("  .long {}", fun_name_symbol(fun_name)));
+      lines.push(format!("  .size {},8", symbol));
+    },
+    asm::Obj::String(length, ref str_name) => {
+      lines.push(format!("  .long _ZN6spiral17static_str_otableE"));
+      lines.push(format!("  .long {}", length));
+      lines.push(format!("  .long {}", str_symbol(str_name)));
+      lines.push(format!("  .size {},12", symbol));
+    },
+  }
+}
+
+fn emit_str_def(lines: &mut Vec<String>, str_def: &asm::StringDef) {
+  let symbol = str_symbol(&str_def.name);
+  lines.push(format!("{}:", symbol));
+  lines.push(format!("  .asciz {}", escape_ascii(&str_def.bytes)));
   lines.push(format!("  .size {},{}", symbol, str_def.bytes.len() + 1));
 }
 
@@ -75,23 +94,9 @@ fn emit_fun_table(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
   lines.push(format!("  .long {}", table.slot_count));
   lines.push(format!("  .long {}", table.arg_count));
   lines.push(format!("  .long {}", table.capture_count));
-  lines.push(format!("  .byte {}", if table.is_combinator { 1 } else { 0 }));
-  lines.push(format!("  .skip 3"));
-  lines.push(format!("  .long {}", str_label_symbol(&table.fun_name_str)));
-  lines.push(format!("  .skip 12"));
-  lines.push(format!("  .size {},16", symbol));
-}
-
-fn emit_combinator_obj(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
-  let table = &fun_def.fun_table;
-  let symbol = combinator_obj_symbol(&fun_def.name);
-  assert!(table.is_combinator);
-  lines.push(format!("  .align 4"));
-  lines.push(format!("  .type {},@object", symbol));
-  lines.push(format!("{}:", symbol));
-  lines.push(format!("  .long  _ZN6spiral17combinator_otableE"));
-  lines.push(format!("  .long {}", fun_name_symbol(&fun_def.name)));
-  lines.push(format!("  .size {},8", symbol));
+  lines.push(format!("  .long {}", str_symbol(&table.fun_name)));
+  lines.push(format!("  .skip 20"));
+  lines.push(format!("  .size {},32", symbol));
 }
 
 fn translate_instr(instr: &asm::Instr) -> String {
@@ -144,7 +149,7 @@ fn imm(i: &asm::Imm) -> String {
     asm::Imm::FunAddr(ref name) => fun_name_symbol(name),
     asm::Imm::FunKnownStart(ref name) => fun_known_start_symbol(name),
     asm::Imm::ExternAddr(ref ext_name) => extern_name_symbol(ext_name),
-    asm::Imm::CombinatorObj(ref fun_name) => combinator_obj_symbol(fun_name),
+    asm::Imm::ObjAddr(ref obj_name) => obj_symbol(obj_name),
     asm::Imm::Plus(ref l, ref r) => format!("({}) + ({})", imm(&**l), imm(&**r)),
     asm::Imm::Minus(ref l, ref r) => format!("({}) - ({})", imm(&**l), imm(&**r)),
     asm::Imm::True => format!("(_ZN6spiral8true_objE + 0b11)"),
@@ -210,14 +215,9 @@ fn extern_name_symbol(name: &asm::ExternName) -> String {
   name.0.clone()
 }
 
-fn combinator_obj_symbol(name: &asm::FunName) -> String {
-  format!(".Lcomb_{}", z_code(&name.0[..]))
-}
-
 fn fun_known_start_symbol(name: &asm::FunName) -> String {
   format!(".Lks_{}", z_code(&name.0[..]))
 }
-
 
 fn fun_table_symbol(name: &asm::FunName) -> String {
   format!(".Lft_{}", z_code(&name.0[..]))
@@ -227,11 +227,15 @@ fn label_symbol(label: &asm::Label) -> String {
   format!(".L_{}", z_code(&label.0[..]))
 }
 
-fn str_label_symbol(str_label: &asm::StringLabel) -> String {
-  format!(".Lstr{}", str_label.0)
+fn obj_symbol(obj_name: &asm::ObjName) -> String {
+  format!(".Lobj_{}", obj_name.0)
 }
 
-fn escape_asciz(bytes: &[u8]) -> String {
+fn str_symbol(str_name: &asm::StringName) -> String {
+  format!(".Lstr_{}", str_name.0)
+}
+
+fn escape_ascii(bytes: &[u8]) -> String {
   use std::char;
   let mut buf = String::new();
   buf.push('"');

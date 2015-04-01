@@ -172,7 +172,9 @@ pub fn expr_from_sexpr(expr: &sexpr::Elem) -> Result<Expr, String> {
     sexpr::Elem::Int(number) =>
       Ok(Expr::Int(number)),
     sexpr::Elem::Float(_) =>
-      Err(format!("floats are not supported")),
+      Err(format!("floats are not supported yet")),
+    sexpr::Elem::String(ref txt) =>
+      Ok(Expr::String(txt.clone())),
     sexpr::Elem::List(ref list) => match list.get(0) {
       Some(&sexpr::Elem::Identifier(ref id)) => match id.as_slice() {
         "if" => if_from_sexpr(&list[1..]),
@@ -655,5 +657,11 @@ mod test {
   fn test_extern() {
     assert_eq!(parse_expr("(extern blow_up 1 2 3)"),
       s::Expr::Extern(var("blow_up"), vec![int_expr(1), int_expr(2), int_expr(3)]));
+  }
+
+  #[test]
+  fn test_string() {
+    assert_eq!(parse_expr("\"befunge\""),
+      s::Expr::String("befunge".to_string()));
   }
 }

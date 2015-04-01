@@ -1,0 +1,5 @@
+(program
+  (import std)
+  (println "Spiral")
+  (println (str-len "spine"))
+  (println (str-get "grit" 1)))

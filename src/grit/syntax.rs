@@ -3,6 +3,7 @@
 #[derive(PartialEq, Debug, Clone)]
 pub struct ProgDef {
   pub fun_defs: Vec<FunDef>,
+  pub obj_defs: Vec<ObjDef>,
   pub main_fun: FunName,
 }
 
@@ -14,6 +15,17 @@ pub struct FunDef {
   pub var_count: usize,
   pub blocks: Vec<Block>,
   pub start_label: Label,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ObjDef {
+  pub name: ObjName,
+  pub obj: Obj,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum Obj {
+  String(Vec<u8>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -51,6 +63,8 @@ pub struct Var(pub usize);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct Label(pub String);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct ObjName(pub String);
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct FunName(pub String);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ExternName(pub String);
@@ -64,6 +78,7 @@ pub enum Val {
   Arg(usize),
   Capture(usize),
   Combinator(FunName),
+  Obj(ObjName),
   Int(i32),
   True,
   False,

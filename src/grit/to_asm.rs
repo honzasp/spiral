@@ -5,15 +5,33 @@ use asm;
 pub fn asm_from_grit(prog: &grit::ProgDef) -> asm::ProgDef {
   let mut prog_st = ProgSt {
       used_labels: HashSet::new(),
+      combinator_map: HashMap::new(),
+      obj_map: HashMap::new(),
+      fun_defs: Vec::new(),
+      obj_defs: Vec::new(),
       string_defs: Vec::new(),
     };
 
-  let fun_defs = prog.fun_defs.iter()
-    .map(|fun_def| translate_fun_def(&mut prog_st, fun_def))
-    .collect();
+  for fun_def in prog.fun_defs.iter() {
+    if fun_def.capture_count == 0 {
+      let obj = asm::Obj::Combinator(translate_fun_name(&fun_def.name));
+      let obj_name = prog_st.gen_obj(obj);
+      prog_st.combinator_map.insert(fun_def.name.clone(), obj_name);
+    }
+  }
+
+  for obj_def in prog.obj_defs.iter() {
+    emit_obj_def(&mut prog_st, obj_def);
+  }
+
+
+  for fun_def in prog.fun_defs.iter() {
+    emit_fun_def(&mut prog_st, fun_def);
+  }
 
   asm::ProgDef {
-    fun_defs: fun_defs,
+    fun_defs: prog_st.fun_defs,
+    obj_defs: prog_st.obj_defs,
     string_defs: prog_st.string_defs,
     main_fun: translate_fun_name(&prog.main_fun),
   }
@@ -21,6 +39,10 @@ pub fn asm_from_grit(prog: &grit::ProgDef) -> asm::ProgDef {
 
 struct ProgSt {
   used_labels: HashSet<asm::Label>,
+  obj_map: HashMap<grit::ObjName, asm::ObjName>,
+  combinator_map: HashMap<grit::FunName, asm::ObjName>,
+  fun_defs: Vec<asm::FunDef>,
+  obj_defs: Vec<asm::ObjDef>,
   string_defs: Vec<asm::StringDef>,
 }
 
@@ -35,13 +57,22 @@ impl ProgSt {
     unreachable!()
   }
 
-  fn gen_string(&mut self, bytes: Vec<u8>) -> asm::StringLabel {
-    let str_label = asm::StringLabel(self.string_defs.len());
+  fn gen_obj(&mut self, obj: asm::Obj) -> asm::ObjName {
+    let obj_name = asm::ObjName(self.obj_defs.len());
+    self.obj_defs.push(asm::ObjDef {
+      name: obj_name.clone(),
+      obj: obj,
+    });
+    obj_name
+  }
+
+  fn gen_string(&mut self, bytes: Vec<u8>) -> asm::StringName {
+    let str_name = asm::StringName(self.string_defs.len());
     self.string_defs.push(asm::StringDef {
-      label: str_label.clone(),
+      name: str_name.clone(),
       bytes: bytes,
     });
-    str_label
+    str_name
   }
 }
 
@@ -129,7 +160,18 @@ impl<'d> FunSt<'d> {
   }
 }
 
-fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDef {
+fn emit_obj_def(prog_st: &mut ProgSt, obj_def: &grit::ObjDef) {
+  let asm_obj = match obj_def.obj {
+    grit::Obj::String(ref bytes) => {
+      let asm_str_name = prog_st.gen_string(bytes.clone());
+      asm::Obj::String(bytes.len(), asm_str_name)
+    },
+  };
+  let asm_obj_name = prog_st.gen_obj(asm_obj);
+  prog_st.obj_map.insert(obj_def.name.clone(), asm_obj_name);
+}
+
+fn emit_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) {
   let slot_alloc = grit::slot_alloc::alloc(fun_def);
   let mut st = FunSt {
       prog_st: prog_st,
@@ -174,7 +216,7 @@ fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDe
     instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(-frame_shift)));
     if fun_def.capture_count == 0 {
       instrs.push(asm::Instr::MoveMemImm(closure_mem,
-        translate_combinator_obj(&fun_def.name)))
+        translate_combinator_obj(&st.prog_st, &fun_def.name)))
     } else {
       instrs.push(asm::Instr::MoveMemReg(closure_mem, asm::Reg::ECX))
     }
@@ -195,15 +237,14 @@ fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDe
   st.blocks.push(make_frame_block);
   emit_block(&mut st, &fun_def.start_label);
 
-  let fun_name_str_label = st.prog_st.gen_string(fun_def.name.0.clone().into_bytes());
-  asm::FunDef {
+  let fun_name_str_name = st.prog_st.gen_string(fun_def.name.0.clone().into_bytes());
+  let fun_def = asm::FunDef {
     name: translate_fun_name(&fun_def.name),
     fun_table: asm::FunTable {
       slot_count: st.slot_alloc.slot_count as u32,
       arg_count: fun_def.arg_count as u32,
       capture_count: fun_def.capture_count as u32,
-      is_combinator: fun_def.capture_count == 0,
-      fun_name_str: fun_name_str_label,
+      fun_name: fun_name_str_name,
     },
     known_start: make_frame_label,
     blocks: {
@@ -211,7 +252,9 @@ fn translate_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) -> asm::FunDe
       blocks.extend(st.post_blocks.into_iter());
       blocks
     }
-  }
+  };
+
+  st.prog_st.fun_defs.push(fun_def);
 }
 
 fn emit_block(st: &mut FunSt, label: &grit::Label) {
@@ -266,7 +309,7 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
         for &(ref var, ref fun_name, ref captures) in closures.iter() {
           if captures.is_empty() {
             instrs.push(asm::Instr::MoveMemImm(st.var_mem(var),
-              translate_combinator_obj(fun_name)));
+              translate_combinator_obj(&st.prog_st, fun_name)));
           } else {
             instrs.push(asm::Instr::MoveMemImm(st.extern_call_arg_mem(2, 0),
               asm::Imm::FunAddr(translate_fun_name(fun_name))));
@@ -431,7 +474,11 @@ fn move_mem_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
       instrs.push(asm::Instr::MoveMemReg(mem, asm::Reg::EAX));
     },
     grit::Val::Combinator(ref fun_name) =>
-      instrs.push(asm::Instr::MoveMemImm(mem, translate_combinator_obj(fun_name))),
+      instrs.push(asm::Instr::MoveMemImm(mem,
+        translate_combinator_obj(&st.prog_st, fun_name))),
+    grit::Val::Obj(ref obj_name) =>
+      instrs.push(asm::Instr::MoveMemImm(mem,
+        translate_obj(&st.prog_st, obj_name))),
     grit::Val::True =>
       instrs.push(asm::Instr::MoveMemImm(mem, asm::Imm::True)),
     grit::Val::False =>
@@ -452,7 +499,11 @@ fn move_reg_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
     grit::Val::Capture(capture_idx) =>
       instrs.push(asm::Instr::MoveRegMem(reg, st.capture_mem(capture_idx as i32))),
     grit::Val::Combinator(ref fun_name) =>
-      instrs.push(asm::Instr::MoveRegImm(reg, translate_combinator_obj(fun_name))),
+      instrs.push(asm::Instr::MoveRegImm(reg,
+        translate_combinator_obj(&st.prog_st, fun_name))),
+    grit::Val::Obj(ref obj_name) =>
+      instrs.push(asm::Instr::MoveRegImm(reg,
+        translate_obj(&st.prog_st, obj_name))),
     grit::Val::True =>
       instrs.push(asm::Instr::MoveRegImm(reg, asm::Imm::True)),
     grit::Val::False =>
@@ -485,6 +536,7 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
         grit::Val::Arg(slot) => Some(grit::Slot(slot)),
         grit::Val::Capture(_) => None,
         grit::Val::Combinator(_) => None,
+        grit::Val::Obj(_) => None,
         grit::Val::Int(_) | grit::Val::True | grit::Val::False =>
           None,
       }).collect();
@@ -519,7 +571,10 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
           },
           grit::Val::Combinator(ref fun_name) =>
             instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot),
-              translate_combinator_obj(fun_name))),
+              translate_combinator_obj(&st.prog_st, fun_name))),
+          grit::Val::Obj(ref obj_name) =>
+            instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot),
+              translate_obj(&st.prog_st, obj_name))),
           grit::Val::Int(num) => 
             instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), translate_int(num))),
           grit::Val::True =>
@@ -563,7 +618,12 @@ fn cmp_val_imm(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
     },
     grit::Val::Combinator(ref fun_name) => {
       instrs.push(asm::Instr::MoveRegImm(asm::Reg::EAX,
-        translate_combinator_obj(fun_name)));
+        translate_combinator_obj(&st.prog_st, fun_name)));
+      instrs.push(asm::Instr::CmpRegImm(asm::Reg::EAX, imm));
+    },
+    grit::Val::Obj(ref obj_name) => {
+      instrs.push(asm::Instr::MoveRegImm(asm::Reg::EAX,
+        translate_obj(&st.prog_st, obj_name)));
       instrs.push(asm::Instr::CmpRegImm(asm::Reg::EAX, imm));
     },
     grit::Val::True => {
@@ -585,9 +645,17 @@ fn translate_extern_name(name: &grit::ExternName) -> asm::ExternName {
   asm::ExternName(name.0.clone())
 }
 
-fn translate_combinator_obj(fun_name: &grit::FunName) -> asm::Imm {
+fn translate_obj(st: &ProgSt, obj_name: &grit::ObjName) -> asm::Imm {
+  let obj_name = st.obj_map.get(obj_name).expect("undefined obj");
   asm::Imm::Plus(
-    box asm::Imm::CombinatorObj(translate_fun_name(fun_name)),
+    box asm::Imm::ObjAddr(obj_name.clone()),
+    box asm::Imm::Int(0b11))
+}
+
+fn translate_combinator_obj(st: &ProgSt, fun_name: &grit::FunName) -> asm::Imm {
+  let obj_name = st.combinator_map.get(fun_name).expect("undefined combinator obj");
+  asm::Imm::Plus(
+    box asm::Imm::ObjAddr(obj_name.clone()),
     box asm::Imm::Int(0b01))
 }
 

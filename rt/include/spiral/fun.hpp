@@ -13,10 +13,8 @@ namespace spiral {
     uint32_t slot_count;
     uint32_t arg_count;
     uint32_t capture_count;
-    uint8_t is_combinator;
-    uint8_t padding_0[3];
     const char* fun_name;
-    uint8_t padding_1[12];
+    uint8_t padding_0[16];
   };
 
   auto fun_from_val(Bg* bg, Val val) -> FunObj*;

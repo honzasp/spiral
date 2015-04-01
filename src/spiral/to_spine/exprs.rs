@@ -12,6 +12,8 @@ pub fn translate_expr(st: &mut ProgSt, env: &Env, expr: &spiral::Expr)
       translate_lambda_expr(st, env, &args[..], &body_stmts[..]),
     spiral::Expr::Int(number) =>
       Ok((Onion::Hole, spine::Val::Int(number))),
+    spiral::Expr::String(ref txt) => 
+      Ok((Onion::Hole, translate_string(st, &txt[..]))),
     spiral::Expr::Var(ref var) => match env.lookup_var(var) {
       Some(spine_val) =>
         return Ok((Onion::Hole, spine_val.clone())),
@@ -83,6 +85,8 @@ pub fn translate_expr_tail(st: &mut ProgSt, env: &Env,
     },
     spiral::Expr::Int(number) => 
       Ok(spine::Term::Cont(result_cont, vec![spine::Val::Int(number)])),
+    spiral::Expr::String(ref txt) => 
+      Ok(spine::Term::Cont(result_cont, vec![translate_string(st, &txt[..])])),
   }
 }
 
@@ -340,3 +344,11 @@ pub fn translate_fun(st: &mut ProgSt, env: &Env,
   })
 }
 
+fn translate_string(st: &mut ProgSt, txt: &str) -> spine::Val {
+  let obj_name = st.gen_obj_name("str");
+  st.obj_defs.push(spine::ObjDef {
+    name: obj_name.clone(),
+    obj: spine::Obj::String(txt.to_string().into_bytes()),
+  });
+  spine::Val::Obj(obj_name)
+}

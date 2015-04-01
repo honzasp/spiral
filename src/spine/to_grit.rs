@@ -2,7 +2,7 @@ use std::collections::{HashSet};
 use spine;
 use grit;
 
-type Env = spine::env::Env<VarBind, usize, ContBind>;
+type Env = spine::env::Env<VarBind, usize, ContBind, ()>;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -51,6 +51,8 @@ pub fn grit_from_spine(prog: &spine::ProgDef) -> grit::ProgDef {
   grit::ProgDef {
     fun_defs: prog.fun_defs.iter()
       .map(|fun_def| translate_fun_def(&env, fun_def)).collect(),
+    obj_defs: prog.obj_defs.iter()
+      .map(|obj_def| translate_obj_def(obj_def)).collect(),
     main_fun: translate_fun_name(&prog.main_fun),
   }
 }
@@ -82,6 +84,15 @@ fn translate_fun_def(env: &Env, fun_def: &spine::FunDef) -> grit::FunDef {
     var_count: st.var_count,
     blocks: st.blocks,
     start_label: start_label,
+  }
+}
+
+fn translate_obj_def(obj_def: &spine::ObjDef) -> grit::ObjDef {
+  grit::ObjDef {
+    name: translate_obj_name(&obj_def.name),
+    obj: match obj_def.obj {
+      spine::Obj::String(ref bytes) => grit::Obj::String(bytes.clone()),
+    },
   }
 }
 
@@ -275,6 +286,8 @@ fn translate_val(_: &mut FunSt, env: &Env, val: &spine::Val) -> grit::Val {
   match *val {
     spine::Val::Combinator(ref fun_name) =>
       grit::Val::Combinator(translate_fun_name(fun_name)),
+    spine::Val::Obj(ref obj_name) =>
+      grit::Val::Obj(translate_obj_name(obj_name)),
     spine::Val::Int(num) =>
       grit::Val::Int(num),
     spine::Val::Var(ref var) => match *env.lookup_var(var).unwrap() {
@@ -326,4 +339,8 @@ fn translate_boolval(st: &mut FunSt, env: &Env, boolval: &spine::Boolval)
 
 fn translate_fun_name(name: &spine::FunName) -> grit::FunName {
   grit::FunName(name.0.clone())
+}
+
+fn translate_obj_name(name: &spine::ObjName) -> grit::ObjName {
+  grit::ObjName(name.0.clone())
 }

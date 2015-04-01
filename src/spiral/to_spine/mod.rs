@@ -17,8 +17,10 @@ pub fn spine_from_spiral(prog: &spiral::Prog,
 {
   let mut st = ProgSt {
       fun_defs: Vec::new(),
+      obj_defs: Vec::new(),
       fun_names: HashSet::new(),
       cont_names: HashSet::new(),
+      obj_names: HashSet::new(),
       vars: HashSet::new(),
     };
   let empty_env = spiral::env::Env::new();
@@ -32,8 +34,10 @@ pub type Env = spiral::env::Env<spine::Val, Vec<(spiral::Var, spine::Val)>>;
 
 pub struct ProgSt {
   pub fun_defs: Vec<spine::FunDef>,
+  pub obj_defs: Vec<spine::ObjDef>,
   pub fun_names: HashSet<spine::FunName>,
   pub cont_names: HashSet<spine::ContName>,
+  pub obj_names: HashSet<spine::ObjName>,
   pub vars: HashSet<spine::Var>,
 }
 
@@ -53,6 +57,16 @@ impl ProgSt {
       let cont_name = spine::ContName(format!("{}_{}", base, i));
       if self.cont_names.insert(cont_name.clone()) {
         return cont_name
+      }
+    }
+    unreachable!()
+  }
+
+  fn gen_obj_name(&mut self, base: &str) -> spine::ObjName {
+    for i in 1.. {
+      let obj_name = spine::ObjName(format!("{}_{}", base, i));
+      if self.obj_names.insert(obj_name.clone()) {
+        return obj_name
       }
     }
     unreachable!()
@@ -90,6 +104,7 @@ fn translate_prog(mut st: ProgSt, env: &Env, mod_onions: Vec<Onion>, prog: &spir
 
   Ok(spine::ProgDef {
       fun_defs: st.fun_defs,
+      obj_defs: st.obj_defs,
       main_fun: main_name,
     })
 }

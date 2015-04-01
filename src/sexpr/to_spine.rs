@@ -11,13 +11,27 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<spine::ProgDef, String> {
 
       let main_fun = try!(fun_name_from_sexpr(try!(list.get(1)
         .ok_or_else(|| format!("program has to specify main fun")))));
+
       let mut fun_defs = Vec::new();
-      for elem in list[2..].iter() {
-        fun_defs.push(try!(fun_def_from_sexpr(elem)));
+      let mut obj_defs = Vec::new();
+      for def in list[2..].iter() {
+        match *def {
+          sexpr::Elem::List(ref def_list) => 
+            match def_list.get(0) {
+              Some(&sexpr::Elem::Identifier(ref def_head)) => match &def_head[..] {
+                "fun" => fun_defs.push(try!(fun_def_from_sexprs(&def_list[1..]))),
+                "string" => obj_defs.push(try!(str_def_from_sexprs(&def_list[1..]))),
+                _ => return Err(format!("invalid def head")),
+              },
+              _ => return Err(format!("def must begin with an identifier")),
+            },
+          _ => return Err(format!("def must be a list")),
+        }
       }
 
       Ok(spine::ProgDef {
         fun_defs: fun_defs,
+        obj_defs: obj_defs,
         main_fun: main_fun,
       })
     },
@@ -27,20 +41,51 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<spine::ProgDef, String> {
 
 pub fn fun_def_from_sexpr(elem: &sexpr::Elem) -> Result<spine::FunDef, String> {
   match *elem {
-    sexpr::Elem::List(ref list) => {
-      if list.len() == 5 {
-        let name = try!(fun_name_from_sexpr(&list[0]));
-        let ret = try!(cont_name_from_sexpr(&list[1]));
-        let captures = try!(vars_from_sexpr(&list[2]));
-        let args = try!(vars_from_sexpr(&list[3]));
-        let body = try!(term_from_sexpr(&list[4]));
-        Ok(spine::FunDef { name: name, ret: ret, captures: captures, 
-          args: args, body: body })
-      } else {
-        Err(format!("fun def must have 5 elems"))
-      }
-    },
+    sexpr::Elem::List(ref list) => 
+      match list.get(0) {
+        Some(&sexpr::Elem::Identifier(ref head)) if head.as_slice() == "fun" =>
+          fun_def_from_sexprs(&list[1..]),
+        _ => Err(format!("fun def must begin with 'fun'")),
+      },
     _ => Err(format!("fun def must be a list")),
+  }
+}
+
+fn fun_def_from_sexprs(list: &[sexpr::Elem]) -> Result<spine::FunDef, String> {
+  if list.len() == 5 {
+    let name = try!(fun_name_from_sexpr(&list[0]));
+    let ret = try!(cont_name_from_sexpr(&list[1]));
+    let captures = try!(vars_from_sexpr(&list[2]));
+    let args = try!(vars_from_sexpr(&list[3]));
+    let body = try!(term_from_sexpr(&list[4]));
+    Ok(spine::FunDef { name: name, ret: ret, captures: captures, 
+      args: args, body: body })
+  } else {
+    Err(format!("fun def must have 6 elems"))
+  }
+}
+
+fn str_def_from_sexprs(list: &[sexpr::Elem]) -> Result<spine::ObjDef, String> {
+  if list.len() == 2 {
+    let name = try!(obj_name_from_sexpr(&list[0]));
+    let bytes = match list[1] {
+      sexpr::Elem::String(ref txt) => txt.clone().into_bytes(),
+      sexpr::Elem::Int(byte) if byte >= 0 && byte < 256 => vec![byte as u8],
+      _ => return Err(format!("string def must contain a string or bytes")),
+    };
+    Ok(spine::ObjDef { name: name, obj: spine::Obj::String(bytes) })
+  } else if list.len() > 2 {
+    let name = try!(obj_name_from_sexpr(&list[0]));
+    let mut bytes = Vec::new();
+    for elem in &list[1..] {
+      match *elem {
+        sexpr::Elem::Int(byte) if byte >= 0 && byte < 256 => bytes.push(byte as u8),
+        _ => return Err(format!("string def must contain bytes")),
+      }
+    }
+    Ok(spine::ObjDef { name: name, obj: spine::Obj::String(bytes) })
+  } else {
+    Err(format!("string def must have 3 elems"))
   }
 }
 
@@ -154,18 +199,19 @@ fn val_from_sexpr(elem: &sexpr::Elem) -> Result<spine::Val, String> {
       Ok(spine::Val::Var(spine::Var(id.clone()))),
     sexpr::Elem::Int(num) =>
       Ok(spine::Val::Int(num)),
-    sexpr::Elem::Float(_) =>
-      Err(format!("floats not supported")),
     sexpr::Elem::List(ref elems) => match elems.get(0) {
       Some(&sexpr::Elem::Identifier(ref id)) => match &id[..] {
         "true" if elems.len() == 1 => Ok(spine::Val::True),
         "false" if elems.len() == 1 => Ok(spine::Val::False),
         "combinator" if elems.len() == 2 => 
           Ok(spine::Val::Combinator(try!(fun_name_from_sexpr(&elems[1])))),
+        "obj" if elems.len() == 2 =>
+          Ok(spine::Val::Obj(try!(obj_name_from_sexpr(&elems[1])))),
         _ => Err(format!("invalid val list")),
       },
       _ => Err(format!("invalid val list")),
     },
+    _ => Err(format!("invalid val")),
   }
 }
 
@@ -266,6 +312,14 @@ fn extern_name_from_sexpr(elem: &sexpr::Elem) -> Result<spine::ExternName, Strin
   }
 }
 
+fn obj_name_from_sexpr(elem: &sexpr::Elem) -> Result<spine::ObjName, String> {
+  match *elem {
+    sexpr::Elem::Identifier(ref id) =>
+      Ok(spine::ObjName(id.clone())),
+    _ => Err(format!("expected an object name")),
+  }
+}
+
 
 #[cfg(test)]
 mod test {
@@ -287,18 +341,23 @@ mod test {
     sexpr::to_spine::term_from_sexpr(&sexpr).unwrap()
   }
 
+  fn byte_str(txt: &str) -> Vec<u8> {
+    txt.to_string().into_bytes()
+  }
+
   #[test]
   fn test_empty_prog() {
     assert_eq!(parse_prog("(program start)"),
       ProgDef {
         main_fun: fun("start"),
         fun_defs: vec![],
+        obj_defs: vec![],
       });
   }
 
   #[test]
   fn test_prog_with_fun() {
-    assert_eq!(parse_prog("(program start (start r () () (cont r)))"),
+    assert_eq!(parse_prog("(program start (fun start r () () (cont r)))"),
       ProgDef {
         main_fun: fun("start"),
         fun_defs: vec![
@@ -309,13 +368,26 @@ mod test {
             args: vec![],
             body: Cont(cont("r"), vec![]),
           }
-        ]
+        ],
+        obj_defs: vec![],
+      });
+  }
+
+  #[test]
+  fn test_prog_with_string() {
+    assert_eq!(parse_prog("(program main (string s1 \"spiral\"))"),
+      ProgDef {
+        main_fun: fun("main"),
+        fun_defs: vec![],
+        obj_defs: vec![
+          ObjDef { name: obj("s1"), obj: Obj::String(byte_str("spiral")) },
+        ],
       });
   }
 
   #[test]
   fn test_fun_def() {
-    assert_eq!(parse_fun_def("(compute-zero ret (x y) (a b) (cont ret 0))"),
+    assert_eq!(parse_fun_def("(fun compute-zero ret (x y) (a b) (cont ret 0))"),
       FunDef {
         name: fun("compute-zero"),
         ret: cont("ret"),
@@ -400,5 +472,11 @@ mod test {
       Cont(cont("cc"), vec![var_val("x"), var_val("y"), var_val("z")]));
     assert_eq!(parse_term("(cont cc true false)"),
       Cont(cont("cc"), vec![var_val("true"), var_val("false")]));
+  }
+
+  #[test]
+  fn test_obj_val() {
+    assert_eq!(parse_term("(cont cc (obj o1) (obj o2))"),
+      Cont(cont("cc"), vec![Val::Obj(obj("o1")), Val::Obj(obj("o2"))]));
   }
 }

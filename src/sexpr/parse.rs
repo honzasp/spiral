@@ -17,6 +17,7 @@ fn read_element<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
   match input.trim_left().slice_shift_char() {
     Some((ch, _)) => match ch {
       '(' => read_list(input),
+      '"' => read_string(input),
       ch if ch.is_digit(10) => read_number(input),
       _ => read_identifier(input),
     },
@@ -72,6 +73,41 @@ fn read_identifier<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
   } else {
     Err(format!("invalid identifier"))
   }
+}
+
+fn read_string<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
+  let mut input = match input.slice_shift_char() {
+    Some(('"', rest)) => rest,
+    _ => return Err(format!("String must start with '\"'")),
+  };
+
+  let mut buf = String::new();
+  while let Some((ch, rest)) = input.slice_shift_char() {
+    match ch {
+      '"' => return Ok((Elem::String(buf), rest)),
+      '\\' => match rest.slice_shift_char() {
+          None => return Err(format!("unterminated escape sequence")),
+          Some((esc, rest)) => {
+            buf.push(match esc {
+              '"' => '"',
+              '\\' => '\\',
+              'r' => '\r',
+              'n' => '\n',
+              't' => '\t',
+              'e' => '\u{1b}',
+              _ => return Err(format!("undefined escape {:?}", esc)),
+            });
+            input = rest;
+          },
+      },
+      _ => {
+        buf.push(ch);
+        input = rest;
+      },
+    }
+  }
+
+  Err(format!("unterminated string"))
 }
 
 fn read_list<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
@@ -132,5 +168,17 @@ mod test {
     assert_eq!(parse_sexpr("(+ (neg 2) 3)"),
       Ok(Elem::List(vec![id("+"), Elem::List(vec![id("neg"), i(2)]), i(3)])));
     assert_eq!(parse_sexpr("( ) "), Ok(Elem::List(vec![])));
+  }
+
+  #[test]
+  fn test_string() {
+    assert_eq!(parse_sexpr("\"\""), Ok(Elem::String("".to_string())));
+    assert_eq!(parse_sexpr("\"foo\""), Ok(Elem::String("foo".to_string())));
+    assert_eq!(parse_sexpr("\"A quote: \\\"\""),
+      Ok(Elem::String("A quote: \"".to_string())));
+    assert_eq!(parse_sexpr("\"C:\\\\Windows\""),
+      Ok(Elem::String("C:\\Windows".to_string())));
+    assert_eq!(parse_sexpr("\"\\r\\n\\t\\e\""), 
+      Ok(Elem::String("\r\n\t\u{1b}".to_string())));
   }
 }

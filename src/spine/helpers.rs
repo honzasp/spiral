@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use spine;
-pub use spine::{ProgDef, FunDef, ContDef, ClosureDef, Term, Val, Boolval};
+pub use spine::{ProgDef, FunDef, ContDef, ClosureDef, Term, Val, Boolval, Obj, ObjDef};
 pub use spine::Term::{Letcont, Letclos, Call, ExternCall, Cont, Branch};
 pub use spine::Val::{Combinator, Int, Var, True, False};
 pub use spine::Boolval::{IsTrue, IsFalse};
@@ -20,6 +20,11 @@ pub fn fun(id: &str) -> spine::FunName {
 pub fn ext_name(id: &str) -> spine::ExternName {
   spine::ExternName(id.to_string())
 }
+
+pub fn obj(id: &str) -> spine::ObjName {
+  spine::ObjName(id.to_string())
+}
+
 
 pub fn add_call(ret: &str, l: spine::Val, r: spine::Val) -> spine::Term {
   spine::Term::ExternCall(ext_name("spiral_ext_add"), cont(ret), vec![l, r])

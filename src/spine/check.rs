@@ -1,7 +1,7 @@
 use spine;
 use std::collections::{HashSet};
 
-type Env = spine::env::Env<(), FunBind, ContBind>;
+type Env = spine::env::Env<(), FunBind, ContBind, ()>;
 
 struct FunBind {
   arg_count: usize,
@@ -20,19 +20,21 @@ pub fn check(prog: &spine::ProgDef) -> Vec<String> {
         capture_count: fun_def.captures.len(),
       })
     }).collect();
-  let empty_env = spine::env::Env::new();
-  let fun_env = empty_env.bind_funs(fun_binds);
+  let obj_binds = prog.obj_defs.iter()
+    .map(|obj_def| (obj_def.name.clone(), ())).collect();
+
+  let env = spine::env::Env::new().bind_funs(fun_binds).bind_objs(obj_binds);
 
   let mut errors = Vec::new();
   let mut fun_names = HashSet::new();
   for fun_def in prog.fun_defs.iter() {
-    errors.extend(check_fun_def(&fun_env, fun_def).into_iter());
+    errors.extend(check_fun_def(&env, fun_def).into_iter());
     if !fun_names.insert(&fun_def.name) {
       errors.push(format!("redefined function: '{}'", fun_def.name.0));
     }
   }
 
-  match fun_env.lookup_fun(&prog.main_fun) {
+  match env.lookup_fun(&prog.main_fun) {
     Some(fun_bind) => {
       if fun_bind.arg_count != 0 {
         errors.push(format!("main fun args mismatch: '{}' must have 0 args",
@@ -189,8 +191,12 @@ fn check_val(env: &Env, val: &spine::Val) -> Vec<String> {
       None => vec![format!("undefined fun: '{}'", fun_name.0)],
     },
     spine::Val::Var(ref var) => match env.lookup_var(var) {
-      Some(&()) => vec![],
+      Some(_) => vec![],
       None => vec![format!("undefined var: '{}'", var.0)],
+    },
+    spine::Val::Obj(ref obj_name) => match env.lookup_obj(obj_name) {
+      Some(_) => vec![],
+      None => vec![format!("undefined obj: '{}'", obj_name.0)],
     },
   }
 }
@@ -215,7 +221,7 @@ mod test {
 
   #[test]
   fn test_missing_main() {
-    let errs = parse_check("(program question (answer r () () (cont r 42)))");
+    let errs = parse_check("(program question (fun answer r () () (cont r 42)))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("undefined main function: 'question'"));
   }
@@ -223,7 +229,7 @@ mod test {
   #[test]
   fn test_main_args_mismatch() {
     let errs = parse_check("(program main
-      (main k () (arg) (cont k 10)))");
+      (fun main k () (arg) (cont k 10)))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("main fun args mismatch: 'main' must have 0 args"));
   }
@@ -231,7 +237,7 @@ mod test {
   #[test]
   fn test_main_captures_mismatch() {
     let errs = parse_check("(program main
-      (main k (capture) () (cont k 10)))");
+      (fun main k (capture) () (cont k 10)))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("main fun captures mismatch: 'main' must have 0 captures"));
   }
@@ -239,26 +245,33 @@ mod test {
   #[test]
   fn test_double_fun_defs() {
     let errs = parse_check("(program main 
-      (main k () () (cont k 10))
-      (main k () () (cont k 20)))");
+      (fun main k () () (cont k 10))
+      (fun main k () () (cont k 20)))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("redefined function: 'main'"));
   }
 
   #[test]
   fn test_undefined_var() {
-    let errs = parse_check("(program main (main halt () () (cont halt x)))");
+    let errs = parse_check("(program main (fun main halt () () (cont halt x)))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("undefined var: 'x'"));
+  }
+
+  #[test]
+  fn test_undefined_obj() {
+    let errs = parse_check("(program main (fun main halt () () (cont halt (obj missing))))");
+    assert_eq!(errs.len(), 1);
+    assert!(errs[0].contains("undefined obj: 'missing'"));
   }
 
   #[test]
   fn test_undefined_conts() {
     let errs = parse_check(
       "(program main 
-        (fun r () (a b) (cont r 100))
-        (main r () () 
-          (letcont ((bad-call () (call (combinator fun) cc1 1 2))
+        (fun f r () (a b) (cont r 100))
+        (fun main r () () 
+          (letcont ((bad-call () (call (combinator f) cc1 1 2))
                     (bad-ext-call () (extern-call ext_add cc2 1 2))
                     (bad-cont () (cont cc3 3))
                     (bad-branch () (branch (is-true 1) cc4 cc5)))
@@ -275,17 +288,17 @@ mod test {
   fn test_cont_args_mismatch() {
     let errs = parse_check(
       "(program main
-        (main r () () (cont r 0))
-        (return-42 r () () (cont r 42))
-        (bad-return-2 ret () (a b) (cont ret a b))
-        (bad-return-0 ret () (a b) (cont ret))
-        (bad-call r () () 
+        (fun main r () () (cont r 0))
+        (fun return-42 r () () (cont r 42))
+        (fun bad-return-2 ret () (a b) (cont ret a b))
+        (fun bad-return-0 ret () (a b) (cont ret))
+        (fun bad-call r () () 
           (letcont ((needs-two-args (x y) (cont r x)))
             (call (combinator return-42) needs-two-args)))
-        (bad-extern-call r () ()
+        (fun bad-extern-call r () ()
           (letcont ((needs-zero-args () (cont r 10)))
             (extern-call __boo__ needs-zero-args 1 2 3)))
-        (bad-branch r () ()
+        (fun bad-branch r () ()
           (letcont ((needs-one-arg (x) (cont r x))
                     (needs-two-args (x y) (cont r y)))
             (branch (is-true 0) needs-one-arg needs-two-args))))");
@@ -305,7 +318,7 @@ mod test {
   fn test_missing_fun_in_combinator() {
     let errs = parse_check(
       "(program main
-        (main r () () (call (combinator bad-fun) r)))");
+        (fun main r () () (call (combinator bad-fun) r)))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("undefined fun: 'bad-fun'"));
   }
@@ -314,7 +327,7 @@ mod test {
   fn test_missing_fun_in_letclos() {
     let errs = parse_check(
       "(program main
-        (main r () () (letclos ((clos bad-fun 1 2)) (cont r 3))))");
+        (fun main r () () (letclos ((clos bad-fun 1 2)) (cont r 3))))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("undefined fun: 'bad-fun'"));
   }
@@ -323,8 +336,8 @@ mod test {
   fn test_invalid_combinator() {
     let errs = parse_check(
       "(program main
-        (has-captures r (a b) () (cont r a))
-        (main r () () (call (combinator has-captures) r)))");
+        (fun has-captures r (a b) () (cont r a))
+        (fun main r () () (call (combinator has-captures) r)))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("invalid combinator: 'has-captures' has 2 captures"));
   }
@@ -333,34 +346,11 @@ mod test {
   fn test_captures_mismatch() {
     let errs = parse_check(
       "(program main
-        (closure-3-captures ret (a b c) (x y) (cont ret b))
-        (main r () () 
+        (fun closure-3-captures ret (a b c) (x y) (cont ret b))
+        (fun main r () () 
           (letclos ((clos closure-3-captures 10 20))
             (call clos r 30 40))))");
     assert_eq!(errs.len(), 1);
     assert!(errs[0].contains("captures mismatch: 'closure-3-captures' expects 3 captures"));
-  }
-
-  #[test] #[ignore]
-  fn test_known_call_args_mismatch() {
-    let errs = parse_check(
-      "(program main
-        (combinator-2-args ret () (a b) (cont ret a))
-        (closure-2-args ret (x y) (a b) (cont ret x))
-        (closure-3-args ret (x y) (a b c) (cont ret x))
-        (main r () ()
-          (letcont ((cc-1 ( ) (call (combinator combinator-2-args) cc-2 10))
-                    (cc-2 (_) 
-                      (letclos ((known-clos closure-2-args 20 30))
-                        (call known-clos cc-3 40 50 60)))
-                    (cc-3 (_)
-                      (letclos ((clos closure-3-args 40 50))
-                        (cont cc-4 clos)))
-                    (cc-4 (unknown-clos)
-                      (call unknown-clos r 60)))
-            (cont cc-1))))");
-    assert_eq!(errs.len(), 2);
-    assert!(errs[0].contains("known args mismatch: 'combinator-2-args' expects 2 args"));
-    assert!(errs[1].contains("known args mismatch: 'closure-2-args' expects 2 args"));
   }
 }

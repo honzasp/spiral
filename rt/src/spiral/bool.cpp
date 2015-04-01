@@ -36,10 +36,10 @@ namespace spiral {
   }
 
   void bool_scavenge(GcCtx* gc_ctx, void*) {
-    bg_panic(gc_ctx->bg, "bool scavenged");
+    assert("bool scavenged");
   }
 
   void bool_drop(Bg* bg, void*) {
-    bg_panic(bg, "bool dropped");
+    assert("bool dropped");
   }
 }

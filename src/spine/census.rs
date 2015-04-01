@@ -112,7 +112,8 @@ fn walk_term(census: &mut Census, term: &spine::Term) -> Term {
 
 fn walk_val(census: &mut Census, val: &spine::Val) -> spine::Val {
   match *val {
-    spine::Val::Int(_) | spine::Val::True | spine::Val::False => (),
+    spine::Val::Obj(_) | spine::Val::Int(_) => (),
+    spine::Val::True | spine::Val::False => (),
     spine::Val::Combinator(_) => (),
     spine::Val::Var(ref var) => { census.vars.insert(var.clone()); },
   }

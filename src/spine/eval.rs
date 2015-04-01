@@ -197,6 +197,7 @@ fn eval_val(vars: &HashMap<spine::Var, RtVal>, val: &spine::Val) -> RtVal {
     spine::Val::Var(ref var) => vars.get(var).expect("undefined var").clone(),
     spine::Val::True => RtVal::True,
     spine::Val::False => RtVal::False,
+    spine::Val::Obj(_) => panic!("objects not implemented"),
   }
 }
 
@@ -224,7 +225,7 @@ mod test {
   #[test]
   fn test_output() {
     assert_eq!(parse_eval("(program main
-      (main halt () ()
+      (fun main halt () ()
         (letcont ((landpad (ignored) (cont halt (false))))
           (extern-call println landpad 42))))"),
       vec![Int(42)])
@@ -233,11 +234,11 @@ mod test {
   #[test]
   fn test_combinator() {
     assert_eq!(parse_eval("(program main
-      (fst ret () (a b) 
+      (fun fst ret () (a b) 
         (cont ret a))
-      (snd ret () (a b)
+      (fun snd ret () (a b)
         (cont ret b))
-      (main halt () ()
+      (fun main halt () ()
         (letcont ((cc1 () (call (combinator fst) cc2 10 20))
                   (cc2 (x) (extern-call println cc3 x))
                   (cc3 (ignore) (call (combinator snd) cc4 40 50))
@@ -250,11 +251,11 @@ mod test {
   #[test]
   fn test_closure() {
     assert_eq!(parse_eval("(program main
-      (print-capture-1 ret (c0 c1) (a0 a1 a2)
+      (fun print-capture-1 ret (c0 c1) (a0 a1 a2)
         (extern-call println ret c1))
-      (print-arg-0 ret (c0 c1) (a0 a1 a2)
+      (fun print-arg-0 ret (c0 c1) (a0 a1 a2)
         (extern-call println ret a0))
-      (main halt () ()
+      (fun main halt () ()
         (letclos ((clos-1 print-capture-1 10 20)
                   (clos-2 print-capture-1 30 40)
                   (clos-3 print-arg-0 50 60))

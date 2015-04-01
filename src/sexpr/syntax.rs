@@ -4,5 +4,6 @@ pub enum Elem {
   Identifier(String),
   Int(i32),
   Float(f32),
+  String(String),
 }
 
