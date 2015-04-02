@@ -1,3 +1,7 @@
 *.exec
+*.spine
+*.grit
+*.s
+*.txt
 *.out~
 !*.spiral
