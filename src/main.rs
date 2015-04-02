@@ -107,6 +107,7 @@ fn main_body() -> Result<(), SpiralError> {
   }
 
   let asm = grit::to_asm::asm_from_grit(&grit);
+  let asm = asm::simplify::simplify_prog(asm);
   if args.flag_emit == Some(Emit::Asm) {
     return dump(format!("{:?}", asm))
   }

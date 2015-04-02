@@ -107,6 +107,8 @@ fn translate_instr(instr: &asm::Instr) -> String {
       format!("  addl  ${}, {}", imm(i), reg(r1)),
     I::SubRegImm(ref r1, ref i) =>
       format!("  subl  ${}, {}", imm(i), reg(r1)),
+    I::XorRegReg(ref r1, ref r2) =>
+      format!("  xorl {}, {}", reg(r1), reg(r2)),
     I::MoveRegImm(ref r1, ref i) =>
       format!("  movl  ${}, {}", imm(i), reg(r1)),
     I::MoveRegReg(ref r1, ref r2) =>

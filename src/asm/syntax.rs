@@ -59,10 +59,11 @@ pub struct FunName(pub String);
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct ExternName(pub String);
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Instr {
   AddRegImm(Reg, Imm),
   SubRegImm(Reg, Imm),
+  XorRegReg(Reg, Reg),
   MoveRegImm(Reg, Imm),
   MoveRegReg(Reg, Reg),
   MoveMemImm(Mem, Imm),
@@ -103,23 +104,23 @@ pub enum Test {
   NotZero,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Reg {
   EAX, EBX, ECX, EDX,
   ESI, EDI, ESP, EBP,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Mem {
   pub displac: Option<Imm>,
   pub offset: Option<Reg>,
   pub index: Option<Reg>,
   pub scale: Option<AddrScale>,
 }
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum AddrScale { One, Two, Four }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum Imm {
   Int(i32),
   Label(Label),
