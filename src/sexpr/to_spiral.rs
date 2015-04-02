@@ -171,8 +171,8 @@ pub fn expr_from_sexpr(expr: &sexpr::Elem) -> Result<Expr, String> {
       Ok(Expr::Var(Var(name.clone()))),
     sexpr::Elem::Int(number) =>
       Ok(Expr::Int(number)),
-    sexpr::Elem::Float(_) =>
-      Err(format!("floats are not supported yet")),
+    sexpr::Elem::Double(number) =>
+      Ok(Expr::Double(number)),
     sexpr::Elem::String(ref txt) =>
       Ok(Expr::String(txt.clone())),
     sexpr::Elem::List(ref list) => match list.get(0) {
@@ -663,5 +663,10 @@ mod test {
   fn test_string() {
     assert_eq!(parse_expr("\"befunge\""),
       s::Expr::String("befunge".to_string()));
+  }
+
+  #[test]
+  fn test_double() {
+    assert_eq!(parse_expr("1.25"), s::Expr::Double(1.25));
   }
 }

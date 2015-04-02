@@ -34,6 +34,7 @@ pub struct ObjDef {
 pub enum Obj {
   Combinator(FunName),
   String(usize, StringName),
+  Double(f64),
 }
 
 #[derive(PartialEq, Debug)]

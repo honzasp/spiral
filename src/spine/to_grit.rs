@@ -92,6 +92,7 @@ fn translate_obj_def(obj_def: &spine::ObjDef) -> grit::ObjDef {
     name: translate_obj_name(&obj_def.name),
     obj: match obj_def.obj {
       spine::Obj::String(ref bytes) => grit::Obj::String(bytes.clone()),
+      spine::Obj::Double(number) => grit::Obj::Double(number),
     },
   }
 }

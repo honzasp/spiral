@@ -21,6 +21,7 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<spine::ProgDef, String> {
               Some(&sexpr::Elem::Identifier(ref def_head)) => match &def_head[..] {
                 "fun" => fun_defs.push(try!(fun_def_from_sexprs(&def_list[1..]))),
                 "string" => obj_defs.push(try!(str_def_from_sexprs(&def_list[1..]))),
+                "double" => obj_defs.push(try!(dbl_def_from_sexprs(&def_list[1..]))),
                 _ => return Err(format!("invalid def head")),
               },
               _ => return Err(format!("def must begin with an identifier")),
@@ -86,6 +87,20 @@ fn str_def_from_sexprs(list: &[sexpr::Elem]) -> Result<spine::ObjDef, String> {
     Ok(spine::ObjDef { name: name, obj: spine::Obj::String(bytes) })
   } else {
     Err(format!("string def must have 3 elems"))
+  }
+}
+
+fn dbl_def_from_sexprs(list: &[sexpr::Elem]) -> Result<spine::ObjDef, String> {
+  if list.len() == 2 {
+    let name = try!(obj_name_from_sexpr(&list[0]));
+    let number = match list[1] {
+      sexpr::Elem::Double(num) => num,
+      sexpr::Elem::Int(num) => num as f64,
+      _ => return Err(format!("double value must be a number")),
+    };
+    Ok(spine::ObjDef { name: name, obj: spine::Obj::Double(number) })
+  } else {
+    Err(format!("double def must have 3 elems"))
   }
 }
 
@@ -381,6 +396,18 @@ mod test {
         fun_defs: vec![],
         obj_defs: vec![
           ObjDef { name: obj("s1"), obj: Obj::String(byte_str("spiral")) },
+        ],
+      });
+  }
+
+  #[test]
+  fn test_prog_with_double() {
+    assert_eq!(parse_prog("(program main (double half 0.5))"),
+      ProgDef {
+        main_fun: fun("main"),
+        fun_defs: vec![],
+        obj_defs: vec![
+          ObjDef { name: obj("half"), obj: Obj::Double(0.5) },
         ],
       });
   }

@@ -61,5 +61,6 @@ pub enum Expr {
   Extern(Var, Vec<Expr>),
   Var(Var),
   Int(i32),
+  Double(f64),
   String(String),
 }

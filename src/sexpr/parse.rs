@@ -27,8 +27,8 @@ fn read_element<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
 
 fn read_number<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
   let mut int_part = 0i32;
-  let mut frac_part = 0f32;
-  let mut frac_place = 0.1f32;
+  let mut frac_part = 0f64;
+  let mut frac_place = 0.1f64;
   let mut had_dot = false;
 
   let mut input = input;
@@ -40,7 +40,7 @@ fn read_number<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
         Some(digit) if !had_dot =>
           int_part = 10 * int_part + digit as i32,
         Some(digit) if had_dot => {
-          frac_part = frac_part + (digit as f32) * frac_place;
+          frac_part = frac_part + (digit as f64) * frac_place;
           frac_place = frac_place / 10.0;
         },
         _ => break,
@@ -50,7 +50,7 @@ fn read_number<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
   }
 
   if had_dot {
-    Ok((Elem::Float(int_part as f32 + frac_part), input))
+    Ok((Elem::Double(int_part as f64 + frac_part), input))
   } else {
     Ok((Elem::Int(int_part), input))
   }
@@ -138,15 +138,15 @@ mod test {
   use sexpr::{Elem};
   use super::{parse_sexpr};
 
-  fn f(x: f32) -> Elem { Elem::Float(x) }
+  fn d(x: f64) -> Elem { Elem::Double(x) }
   fn i(x: i32) -> Elem { Elem::Int(x) }
   fn id(id: &str) -> Elem { Elem::Identifier(id.to_string()) }
 
   #[test]
   fn test_number() {
-    assert_eq!(parse_sexpr("23.50"), Ok(f(23.5)));
-    assert_eq!(parse_sexpr(" 23_000.50"), Ok(f(23000.5)));
-    assert_eq!(parse_sexpr("0.1_25"), Ok(f(0.125)));
+    assert_eq!(parse_sexpr("23.50"), Ok(d(23.5)));
+    assert_eq!(parse_sexpr(" 23_000.50"), Ok(d(23000.5)));
+    assert_eq!(parse_sexpr("0.1_25"), Ok(d(0.125)));
     assert_eq!(parse_sexpr("42"), Ok(i(42)));
   }
 

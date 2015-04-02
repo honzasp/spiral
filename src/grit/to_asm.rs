@@ -166,6 +166,8 @@ fn emit_obj_def(prog_st: &mut ProgSt, obj_def: &grit::ObjDef) {
       let asm_str_name = prog_st.gen_string(bytes.clone());
       asm::Obj::String(bytes.len(), asm_str_name)
     },
+    grit::Obj::Double(number) =>
+      asm::Obj::Double(number),
   };
   let asm_obj_name = prog_st.gen_obj(asm_obj);
   prog_st.obj_map.insert(obj_def.name.clone(), asm_obj_name);

@@ -31,6 +31,8 @@ pub fn obj_def_to_sexpr(def: &grit::ObjDef) -> sexpr::Elem {
       list.extend(bytes.iter().map(|&b| sexpr::Elem::Int(b as i32)));
       list
     },
+    grit::Obj::Double(number) =>
+      vec![ident("double"), sexpr::Elem::Double(number)],
   })
 }
 

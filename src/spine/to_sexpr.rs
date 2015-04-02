@@ -30,6 +30,8 @@ pub fn obj_def_to_sexpr(def: &spine::ObjDef) -> sexpr::Elem {
       };
       header.into_iter().chain(body.into_iter()).collect()
     },
+    spine::Obj::Double(number) => 
+      vec![ident("double"), sexpr::Elem::Double(number)],
   })
 }
 

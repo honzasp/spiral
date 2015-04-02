@@ -26,6 +26,7 @@ pub struct ObjDef {
 #[derive(PartialEq, Debug, Clone)]
 pub enum Obj {
   String(Vec<u8>),
+  Double(f64),
 }
 
 #[derive(PartialEq, Debug, Clone)]

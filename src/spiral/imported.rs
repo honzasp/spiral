@@ -94,6 +94,7 @@ fn collect_expr(imported: &mut HashSet<spiral::ModName>, expr: &spiral::Expr) {
     },
     spiral::Expr::Var(_) |
     spiral::Expr::String(_) |
+    spiral::Expr::Double(_) |
     spiral::Expr::Int(_) => (),
   }
 }

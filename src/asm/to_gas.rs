@@ -75,6 +75,13 @@ fn emit_obj_def(lines: &mut Vec<String>, obj_def: &asm::ObjDef) {
       lines.push(format!("  .long {}", str_symbol(str_name)));
       lines.push(format!("  .size {},12", symbol));
     },
+    asm::Obj::Double(number) => {
+      lines.push(format!("  .long _ZN6spiral13double_otableE"));
+      lines.push(format!("  .double {}", number));
+      lines.push(format!("  .byte 1"));
+      lines.push(format!("  .skip 3"));
+      lines.push(format!("  .size {},16", symbol));
+    },
   }
 }
 
