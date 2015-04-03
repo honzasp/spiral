@@ -13,8 +13,8 @@ pub struct FunDef {
   pub capture_count: usize,
   pub arg_count: usize,
   pub var_count: usize,
-  pub blocks: Vec<Block>,
   pub start_label: Label,
+  pub blocks: Vec<Block>,
 }
 
 #[derive(PartialEq, Debug, Clone)]

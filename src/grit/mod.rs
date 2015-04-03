@@ -1,4 +1,5 @@
 pub use grit::syntax::*;
+pub mod interf;
 pub mod slot_alloc;
 pub mod syntax;
 pub mod to_asm;

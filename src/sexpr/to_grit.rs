@@ -21,6 +21,7 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<grit::ProgDef, String> {
               Some(&sexpr::Elem::Identifier(ref def_head)) => match &def_head[..] {
                 "fun" => fun_defs.push(try!(fun_def_from_sexprs(&def_list[1..]))),
                 "string" => obj_defs.push(try!(str_def_from_sexprs(&def_list[1..]))),
+                "double" => obj_defs.push(try!(double_def_from_sexprs(&def_list[1..]))),
                 _ => return Err(format!("invalid def head")),
               },
               _ => return Err(format!("def must begin with an identifier")),
@@ -78,7 +79,15 @@ fn fun_def_from_sexprs(list: &[sexpr::Elem]) -> Result<grit::FunDef, String> {
 }
 
 fn str_def_from_sexprs(list: &[sexpr::Elem]) -> Result<grit::ObjDef, String> {
-  if list.len() > 2 {
+  if list.len() == 2 {
+    let name = try!(obj_name_from_sexpr(&list[0]));
+    let bytes = match list[1] {
+      sexpr::Elem::Int(byte) if byte >= 0 && byte < 256 => vec![byte as u8],
+      sexpr::Elem::String(ref txt) => txt.clone().into_bytes(),
+      _ => return Err(format!("string must be defined by bytes or by string")),
+    };
+    Ok(grit::ObjDef { name: name, obj: grit::Obj::String(bytes) })
+  } else if list.len() >= 1 {
     let name = try!(obj_name_from_sexpr(&list[0]));
     let mut bytes = Vec::new();
     for elem in &list[1..] {
@@ -89,11 +98,25 @@ fn str_def_from_sexprs(list: &[sexpr::Elem]) -> Result<grit::ObjDef, String> {
     }
     Ok(grit::ObjDef { name: name, obj: grit::Obj::String(bytes) })
   } else {
-    Err(format!("string def must have 3 elems"))
+    Err(format!("string def must have at least 2 elems"))
   }
 }
 
-fn block_from_sexpr(elem: &sexpr::Elem) -> Result<grit::Block, String> {
+fn double_def_from_sexprs(list: &[sexpr::Elem]) -> Result<grit::ObjDef, String> {
+  if list.len() == 2 {
+    let name = try!(obj_name_from_sexpr(&list[0]));
+    let num = try!(match list[1] {
+      sexpr::Elem::Double(num) => Ok(num),
+      sexpr::Elem::Int(num) => Ok(num as f64),
+      _ => Err(format!("invalid double value")),
+    });
+    Ok(grit::ObjDef { name: name, obj: grit::Obj::Double(num) })
+  } else {
+    Err(format!("double def must have 3 elems"))
+  }
+}
+
+pub fn block_from_sexpr(elem: &sexpr::Elem) -> Result<grit::Block, String> {
   match *elem {
     sexpr::Elem::List(ref elems) => 
       if elems.len() >= 2 {
@@ -128,42 +151,33 @@ fn op_from_sexpr(elem: &sexpr::Elem) -> Result<grit::Op, String> {
 }
 
 fn call_from_sexprs(elems: &[sexpr::Elem]) -> Result<grit::Op, String> {
-  if elems.len() == 3 {
+  if elems.len() >= 2 {
     let dst_var = try!(var_from_sexpr(&elems[0]));
     let callee = try!(callee_from_sexpr(&elems[1]));
-    let args = try!(vals_from_sexpr(&elems[2]));
+    let args = try!(vals_from_sexprs(&elems[2..]));
     Ok(grit::Op::Call(dst_var, callee, args))
   } else {
-    Err(format!("call must have 4 elems"))
+    Err(format!("call must have at least 3 elems"))
   }
 }
 
 fn extern_call_from_sexprs(elems: &[sexpr::Elem]) -> Result<grit::Op, String> {
-  if elems.len() == 3 {
+  if elems.len() >= 2 {
     let dst_var = try!(var_from_sexpr(&elems[0]));
     let extern_name = try!(extern_name_from_sexpr(&elems[1]));
-    let args = try!(vals_from_sexpr(&elems[2]));
+    let args = try!(vals_from_sexprs(&elems[2..]));
     Ok(grit::Op::ExternCall(dst_var, extern_name, args))
   } else {
-    Err(format!("extern-call must have 4 elems"))
+    Err(format!("extern-call must have at least 3 elems"))
   }
 }
 
 fn alloc_clos_from_sexprs(elems: &[sexpr::Elem]) -> Result<grit::Op, String> {
-  if elems.len() == 1 {
-    match elems[0] {
-      sexpr::Elem::List(ref list) => {
-        let mut closs = Vec::new();
-        for elem in list.iter() {
-          closs.push(try!(clos_from_sexpr(elem)));
-        }
-        Ok(grit::Op::AllocClos(closs))
-      },
-      _ => Err(format!("expected list of closures")),
-    }
-  } else {
-    Err(format!("alloc-clos must have 2 elems"))
+  let mut closs = Vec::new();
+  for elem in elems.iter() {
+    closs.push(try!(clos_from_sexpr(elem)));
   }
+  Ok(grit::Op::AllocClos(closs))
 }
 
 fn clos_from_sexpr(elem: &sexpr::Elem) 
@@ -171,33 +185,24 @@ fn clos_from_sexpr(elem: &sexpr::Elem)
 {
   match *elem {
     sexpr::Elem::List(ref list) =>
-      if list.len() == 3 {
+      if list.len() >= 2 {
         let var = try!(var_from_sexpr(&list[0]));
         let name = try!(fun_name_from_sexpr(&list[1]));
-        let captures = try!(vals_from_sexpr(&list[2]));
+        let captures = try!(vals_from_sexprs(&list[2..]));
         Ok((var, name, captures))
       } else {
-        Err(format!("clos allocation must have 3 elems"))
+        Err(format!("clos allocation must have at least 2 elems"))
       },
     _ => Err(format!("clos allocation must be a list")),
   }
 }
 
 fn assign_from_sexprs(elems: &[sexpr::Elem]) -> Result<grit::Op, String> {
-  if elems.len() == 1 {
-    match elems[0] {
-      sexpr::Elem::List(ref list) => {
-        let mut assigns = Vec::new();
-        for elem in list.iter() {
-          assigns.push(try!(var_val_from_sexpr(elem)));
-        }
-        Ok(grit::Op::Assign(assigns))
-      },
-      _ => Err(format!("expected list of assign")),
-    }
-  } else {
-    Err(format!("assign must have 2 elems"))
+  let mut assigns = Vec::new();
+  for elem in elems.iter() {
+    assigns.push(try!(var_val_from_sexpr(elem)));
   }
+  Ok(grit::Op::Assign(assigns))
 }
 
 fn var_val_from_sexpr(elem: &sexpr::Elem) -> Result<(grit::Var, grit::Val), String> {
@@ -249,9 +254,9 @@ fn return_from_sexprs(elems: &[sexpr::Elem]) -> Result<grit::Jump, String> {
 }
 
 fn tail_call_from_sexprs(elems: &[sexpr::Elem]) -> Result<grit::Jump, String> {
-  if elems.len() == 1 {
+  if elems.len() >= 1 {
     let callee = try!(callee_from_sexpr(&elems[0]));
-    let args = try!(vals_from_sexpr(&elems[1]));
+    let args = try!(vals_from_sexprs(&elems[1..]));
     Ok(grit::Jump::TailCall(callee, args))
   } else {
     Err(format!("tail-call must have 3 elems"))
@@ -310,17 +315,12 @@ fn callee_from_sexpr(elem: &sexpr::Elem) -> Result<grit::Callee, String> {
   }
 }
 
-fn vals_from_sexpr(elem: &sexpr::Elem) -> Result<Vec<grit::Val>, String> {
-  match *elem {
-    sexpr::Elem::List(ref elems) => {
-      let mut vals = Vec::new();
-      for elem in elems.iter() {
-        vals.push(try!(val_from_sexpr(elem)));
-      }
-      Ok(vals)
-    },
-    _ => Err(format!("expected a list of vals")),
+fn vals_from_sexprs(elems: &[sexpr::Elem]) -> Result<Vec<grit::Val>, String> {
+  let mut vals = Vec::new();
+  for elem in elems.iter() {
+    vals.push(try!(val_from_sexpr(elem)));
   }
+  Ok(vals)
 }
 
 fn val_from_sexpr(elem: &sexpr::Elem) -> Result<grit::Val, String> {
@@ -333,6 +333,8 @@ fn val_from_sexpr(elem: &sexpr::Elem) -> Result<grit::Val, String> {
           Ok(grit::Val::Arg(try!(int_from_sexpr(&elems[1])) as usize)),
         "capture" if elems.len() == 2 =>
           Ok(grit::Val::Capture(try!(int_from_sexpr(&elems[1])) as usize)),
+        "combinator" if elems.len() == 2 =>
+          Ok(grit::Val::Combinator(try!(fun_name_from_sexpr(&elems[1])))),
         "obj" if elems.len() == 2 =>
           Ok(grit::Val::Obj(try!(obj_name_from_sexpr(&elems[1])))),
         "int" if elems.len() == 2 =>
@@ -343,7 +345,7 @@ fn val_from_sexpr(elem: &sexpr::Elem) -> Result<grit::Val, String> {
       },
       _ => Err(format!("invalid val head")),
     },
-    _ => Err(format!("val must be a string")),
+    _ => Err(format!("val must be a list")),
   }
 }
 
@@ -408,5 +410,231 @@ fn obj_name_from_sexpr(elem: &sexpr::Elem) -> Result<grit::ObjName, String> {
     sexpr::Elem::Identifier(ref id) =>
       Ok(grit::ObjName(id.clone())),
     _ => Err(format!("expected an object name")),
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use sexpr;
+  use grit::*;
+
+  fn parse_prog(txt: &str) -> ProgDef {
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    sexpr::to_grit::prog_from_sexpr(&sexpr).unwrap()
+  }
+
+  fn parse_fun_def(txt: &str) -> FunDef {
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    sexpr::to_grit::fun_def_from_sexpr(&sexpr).unwrap()
+  }
+
+  fn parse_block(txt: &str) -> Block {
+    let sexpr = sexpr::parse::parse_sexpr(txt).unwrap();
+    sexpr::to_grit::block_from_sexpr(&sexpr).unwrap()
+  }
+
+  fn var(i: usize) -> Var { Var(i) }
+  fn label(id: &str) -> Label { Label(id.to_string()) }
+  fn obj_name(id: &str) -> ObjName { ObjName(id.to_string()) }
+  fn fun(id: &str) -> FunName { FunName(id.to_string()) }
+  fn extern_name(id: &str) -> ExternName { ExternName(id.to_string()) }
+  fn byte_str(txt: &str) -> Vec<u8> { txt.to_string().into_bytes() }
+
+  #[test]
+  fn test_empty_prog() {
+    assert_eq!(parse_prog("(program main)"),
+      ProgDef {
+        main_fun: fun("main"),
+        fun_defs: vec![],
+        obj_defs: vec![],
+      });
+  }
+
+  #[test]
+  fn test_prog_with_fun() {
+    assert_eq!(parse_prog("(program main (fun main 1 2 3 start))"),
+      ProgDef {
+        main_fun: fun("main"),
+        fun_defs: vec![
+          FunDef { name: fun("main"),
+            capture_count: 1,
+            arg_count: 2,
+            var_count: 3,
+            start_label: label("start"),
+            blocks: vec![],
+          },
+        ],
+        obj_defs: vec![],
+      });
+  }
+
+  #[test]
+  fn test_prog_with_strings() {
+    assert_eq!(parse_prog("(program main
+      (string s1 \"spiral\")
+      (string s2 1 2 3 4)
+      (string s3 1)
+      (string s4))"),
+      ProgDef {
+        main_fun: fun("main"),
+        fun_defs: vec![],
+        obj_defs: vec![
+          ObjDef { name: obj_name("s1"), obj: Obj::String(byte_str("spiral")) },
+          ObjDef { name: obj_name("s2"), obj: Obj::String(vec![1,2,3,4]) },
+          ObjDef { name: obj_name("s3"), obj: Obj::String(vec![1]) },
+          ObjDef { name: obj_name("s4"), obj: Obj::String(vec![]) },
+        ],
+      });
+  }
+
+  #[test]
+  fn test_prog_with_double() {
+    assert_eq!(parse_prog("(program main (double half 0.5))"),
+      ProgDef {
+        main_fun: fun("main"),
+        fun_defs: vec![],
+        obj_defs: vec![
+          ObjDef { name: obj_name("half"), obj: Obj::Double(0.5) },
+        ],
+      });
+  }
+
+  #[test]
+  fn test_fun_def() {
+    assert_eq!(parse_fun_def("(fun ff 1 2 3 start
+        (start
+          (assign (0 (int 10)))
+          (goto end))
+        (end
+          (return (int 100))))"),
+      FunDef { name: fun("ff"),
+        capture_count: 1,
+        arg_count: 2,
+        var_count: 3,
+        start_label: label("start"),
+        blocks: vec![
+          Block { label: label("start"), ops: vec![
+              Op::Assign(vec![(var(0), Val::Int(10))]),
+            ], jump: Jump::Goto(label("end")) },
+          Block { label: label("end"), ops: vec![
+            ], jump: Jump::Return(Val::Int(100)) },
+        ]});
+  }
+
+  #[test]
+  fn test_assign() {
+    assert_eq!(parse_block("(bb
+        (assign)
+        (assign (1 (int 10)) (2 (int 20)) (3 (int 30)))
+        (return (int 1)))"),
+      Block { label: label("bb"), ops: vec![
+          Op::Assign(vec![]),
+          Op::Assign(vec![
+            (var(1), Val::Int(10)),
+            (var(2), Val::Int(20)),
+            (var(3), Val::Int(30)),
+          ]),
+        ], jump: Jump::Return(Val::Int(1)) });
+  }
+        
+  #[test]
+  fn test_calls() {
+    assert_eq!(parse_block("(bb
+        (call 1 (combinator f) (int 1))
+        (call 2 (combinator g))
+        (extern-call 3 __boom__ (int 2) (int 3))
+        (extern-call 4 __boom__)
+        (return (int 1)))"),
+      Block { label: label("bb"), ops: vec![
+          Op::Call(var(1), Callee::Combinator(fun("f")), vec![Val::Int(1)]),
+          Op::Call(var(2), Callee::Combinator(fun("g")), vec![]),
+          Op::ExternCall(var(3), extern_name("__boom__"), vec![Val::Int(2), Val::Int(3)]),
+          Op::ExternCall(var(4), extern_name("__boom__"), vec![]),
+        ], jump: Jump::Return(Val::Int(1)) });
+  }
+
+  #[test]
+  fn test_callees() {
+    assert_eq!(parse_block("(bb
+        (call 1 (combinator f) (int 1))
+        (call 2 (known-closure f (var 0)) (int 2))
+        (call 3 (unknown (var 1)) (int 3))
+        (return (int 1)))"),
+      Block { label: label("bb"), ops: vec![
+          Op::Call(var(1), Callee::Combinator(fun("f")), vec![Val::Int(1)]),
+          Op::Call(var(2), Callee::KnownClosure(fun("f"), Val::Var(var(0))),
+            vec![Val::Int(2)]),
+          Op::Call(var(3), Callee::Unknown(Val::Var(var(1))), vec![Val::Int(3)]),
+        ], jump: Jump::Return(Val::Int(1)) });
+  }
+        
+  #[test]
+  fn test_alloc_clos() {
+    assert_eq!(parse_block("(bb
+        (alloc-clos (0 ff (int 1) (int 2)) (1 gg (int 3)))
+        (return (int 1)))"),
+      Block { label: label("bb"), ops: vec![
+          Op::AllocClos(vec![
+            (var(0), fun("ff"), vec![Val::Int(1), Val::Int(2)]),
+            (var(1), fun("gg"), vec![Val::Int(3)]),
+          ])
+        ], jump: Jump::Return(Val::Int(1)) });
+  }
+        
+  #[test]
+  fn test_goto() {
+    assert_eq!(parse_block("(bb (goto bb-2))"),
+      Block { label: label("bb"), ops: vec![],
+        jump: Jump::Goto(label("bb-2")) });
+  }
+
+  #[test]
+  fn test_return() {
+    assert_eq!(parse_block("(bb (return (int 60)))"),
+      Block { label: label("bb"), ops: vec![],
+        jump: Jump::Return(Val::Int(60)) });
+  }
+
+  #[test]
+  fn test_tail_call() {
+    assert_eq!(parse_block("(bb (tail-call (combinator ff) (int 1) (int 2)))"),
+      Block { label: label("bb"), ops: vec![],
+        jump: Jump::TailCall(Callee::Combinator(fun("ff")),
+          vec![Val::Int(1), Val::Int(2)]) });
+  }
+
+  #[test]
+  fn test_branch() {
+    assert_eq!(parse_block("(bb (branch (is-true (int 1)) bb-2 bb-3))"),
+      Block { label: label("bb"), ops: vec![],
+        jump: Jump::Branch(Boolval::IsTrue(Val::Int(1)), label("bb-2"), label("bb-3")) });
+    assert_eq!(parse_block("(bb (branch (is-false (int 1)) bb-2 bb-3))"),
+      Block { label: label("bb"), ops: vec![],
+        jump: Jump::Branch(Boolval::IsFalse(Val::Int(1)), label("bb-2"), label("bb-3")) });
+  }
+
+  #[test]
+  fn test_vals() {
+    assert_eq!(parse_block("(bb
+      (tail-call (combinator ff)
+        (var 1)
+        (arg 2)
+        (capture 3)
+        (combinator ff)
+        (obj his-object)
+        (int 100)
+        (true)
+        (false)))"),
+      Block { label: label("bb"), ops: vec![], 
+        jump: Jump::TailCall(Callee::Combinator(fun("ff")), vec![
+          Val::Var(var(1)),
+          Val::Arg(2),
+          Val::Capture(3),
+          Val::Combinator(fun("ff")),
+          Val::Obj(obj_name("his-object")),
+          Val::Int(100),
+          Val::True,
+          Val::False,
+        ])});
   }
 }
