@@ -89,9 +89,13 @@ struct FunSt<'d> {
 
 impl<'d> FunSt<'d> {
   fn capture_mem(&self, index: i32) -> asm::Mem {
+    self.capture_mem_reg(asm::Reg::ECX, index)
+  }
+
+  fn capture_mem_reg (&self, closure_reg: asm::Reg, index: i32) -> asm::Mem {
     asm::Mem {
       displac: Some(asm::Imm::Int(index * 4 + 8 - 0b01)),
-      offset: Some(asm::Reg::ECX),
+      offset: Some(closure_reg),
       index: None,
       scale: None,
     }
@@ -367,7 +371,7 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
           .map(|&(ref var, _)| st.var_to_slot(var)).collect::<Vec<_>>();
         let vals = vars_vals.iter()
           .map(|&(_, ref val)| val.clone()).collect::<Vec<_>>();
-        mass_move(st, &mut instrs, &slots[..], &vals[..]);
+        mass_move(st, &mut instrs, &slots[..], &vals[..], asm::Reg::ECX);
       },
     }
   }
@@ -385,23 +389,27 @@ fn emit_block(st: &mut FunSt, label: &grit::Label) {
     },
     grit::Jump::TailCall(ref callee, ref args) => {
       let frame_size = st.stack_frame_size() - 4;
-      mass_move(st, &mut instrs, 
-          &(0..args.len()).map(grit::Slot).collect::<Vec<_>>()[..], &args[..]);
+      let arg_slots = (0..args.len()).map(grit::Slot).collect::<Vec<_>>();
 
       match *callee {
         grit::Callee::Combinator(ref fun_name) => {
+          mass_move(st, &mut instrs, &arg_slots[..], &args[..], asm::Reg::ECX);
           instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_size)));
           instrs.push(asm::Instr::Jump(asm::Imm::FunKnownStart(
               translate_fun_name(fun_name))));
         },
         grit::Callee::KnownClosure(ref fun_name, ref closure_val) => {
+          instrs.push(asm::Instr::MoveRegMem(asm::Reg::EBX, st.closure_mem()));
           move_reg_val(st, &mut instrs, asm::Reg::ECX, closure_val);
+          mass_move(st, &mut instrs, &arg_slots[..], &args[..], asm::Reg::EBX);
           instrs.push(asm::Instr::AddRegImm(asm::Reg::ESP, asm::Imm::Int(frame_size)));
           instrs.push(asm::Instr::Jump(asm::Imm::FunKnownStart(
               translate_fun_name(fun_name))));
         },
         grit::Callee::Unknown(ref closure_val) => {
+          instrs.push(asm::Instr::MoveRegMem(asm::Reg::EBX, st.closure_mem()));
           move_reg_val(st, &mut instrs, asm::Reg::ECX, closure_val);
+          mass_move(st, &mut instrs, &arg_slots[..], &args[..], asm::Reg::EBX);
           instrs.push(asm::Instr::MoveRegReg(asm::Reg::EDX, asm::Reg::ECX));
           instrs.push(asm::Instr::SubRegImm(asm::Reg::EDX, asm::Imm::Int(0b01)));
           instrs.push(asm::Instr::TestRegImm(asm::Reg::EDX, asm::Imm::Int(0b11)));
@@ -514,7 +522,7 @@ fn move_reg_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
 }
 
 fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
-  slots: &[grit::Slot], vals: &[grit::Val])
+  slots: &[grit::Slot], vals: &[grit::Val], closure_reg: asm::Reg)
 {
   let mut assigns: HashSet<usize> = (0..slots.len())
     .filter(|&i| match vals[i] {
@@ -568,7 +576,7 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
           },
           grit::Val::Capture(capture_idx) => {
             instrs.push(asm::Instr::MoveRegMem(asm::Reg::EAX,
-              st.capture_mem(capture_idx as i32)));
+              st.capture_mem_reg(closure_reg.clone(), capture_idx as i32)));
             instrs.push(asm::Instr::MoveMemReg(st.slot_mem(lslot), asm::Reg::EAX));
           },
           grit::Val::Combinator(ref fun_name) =>
