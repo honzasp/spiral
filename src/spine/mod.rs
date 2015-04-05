@@ -5,7 +5,6 @@ pub mod check;
 pub mod env;
 pub mod eval;
 pub mod free;
-pub mod helpers;
 pub mod onion;
 pub mod syntax;
 pub mod to_grit;

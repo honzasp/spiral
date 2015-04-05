@@ -13,9 +13,9 @@ pub fn translate_expr(st: &mut ProgSt, env: &Env, expr: &spiral::Expr)
     spiral::Expr::Int(number) =>
       Ok((Onion::Hole, spine::Val::Int(number))),
     spiral::Expr::String(ref txt) => 
-      Ok((Onion::Hole, translate_string(st, &txt[..]))),
+      translate_string_expr(st, &txt[..]),
     spiral::Expr::Double(number) => 
-      Ok((Onion::Hole, translate_double(st, number))),
+      translate_double_expr(st, number),
     spiral::Expr::Var(ref var) => match env.lookup_var(var) {
       Some(spine_val) =>
         return Ok((Onion::Hole, spine_val.clone())),
@@ -87,10 +87,14 @@ pub fn translate_expr_tail(st: &mut ProgSt, env: &Env,
     },
     spiral::Expr::Int(number) => 
       Ok(spine::Term::Cont(result_cont, vec![spine::Val::Int(number)])),
-    spiral::Expr::Double(number) =>
-      Ok(spine::Term::Cont(result_cont, vec![translate_double(st, number)])),
-    spiral::Expr::String(ref txt) => 
-      Ok(spine::Term::Cont(result_cont, vec![translate_string(st, &txt[..])])),
+    spiral::Expr::Double(number) => {
+      let (onion, val) = try!(translate_double_expr(st, number));
+      Ok(onion.subst_term(spine::Term::Cont(result_cont, vec![val])))
+    },
+    spiral::Expr::String(ref txt) => {
+      let (onion, val) = try!(translate_string_expr(st, txt));
+      Ok(onion.subst_term(spine::Term::Cont(result_cont, vec![val])))
+    },
   }
 }
 
@@ -297,11 +301,9 @@ fn translate_call_expr_tail(st: &mut ProgSt, env: &Env,
 fn translate_lambda_expr(st: &mut ProgSt, env: &Env,
   args: &[spiral::Var], body_stmts: &[spiral::Stmt]) -> Res<(Onion, spine::Val)>
 {
-  let spine_var = st.gen_var("lambda");
-  let spine_name = st.gen_fun_name("lambda");
-  let clos_def = try!(translate_fun(st, env, spine_var.clone(), spine_name,
-    args, body_stmts));
-  Ok((Onion::Letclos(vec![clos_def], box Onion::Hole), spine::Val::Var(spine_var)))
+  let var = st.gen_var("lambda");
+  let fun_def = try!(translate_fun(st, env, var.clone(), args, body_stmts));
+  Ok((Onion::Letfun(vec![fun_def], box Onion::Hole), spine::Val::Var(var)))
 }
 
 fn translate_extern_call_expr_tail(st: &mut ProgSt, env: &Env,
@@ -314,9 +316,8 @@ fn translate_extern_call_expr_tail(st: &mut ProgSt, env: &Env,
   Ok(args_onion.subst_term(spine::Term::ExternCall(spine_name, result_cont, arg_vals)))
 }
 
-pub fn translate_fun(st: &mut ProgSt, env: &Env,
-  spine_var: spine::Var, spine_name: spine::FunName,
-  args: &[spiral::Var], body_stmts: &[spiral::Stmt]) -> Res<spine::ClosureDef>
+pub fn translate_fun(st: &mut ProgSt, env: &Env, spine_var: spine::Var, 
+  args: &[spiral::Var], body_stmts: &[spiral::Stmt]) -> Res<spine::FunDef>
 {
   let spine_args: Vec<_> = args.iter().map(|arg| st.gen_var(&arg.0[..])).collect();
   let arg_binds = args.iter().zip(spine_args.iter())
@@ -333,35 +334,28 @@ pub fn translate_fun(st: &mut ProgSt, env: &Env,
   }
   let captured_vars: Vec<_> = body_free.into_iter().collect();
 
-  st.fun_defs.push(spine::FunDef {
-      name: spine_name.clone(),
-      ret: ret_cont,
-      captures: captured_vars.clone(),
-      args: spine_args,
-      body: body_term,
-    });
-
-  Ok(spine::ClosureDef {
+  Ok(spine::FunDef {
     var: spine_var,
-    fun_name: spine_name,
-    captures: captured_vars.into_iter().map(spine::Val::Var).collect(),
+    ret: ret_cont,
+    captures: captured_vars,
+    args: spine_args,
+    body: body_term,
   })
 }
 
-fn translate_string(st: &mut ProgSt, txt: &str) -> spine::Val {
-  let obj_name = st.gen_obj_name("str");
-  st.obj_defs.push(spine::ObjDef {
-    name: obj_name.clone(),
-    obj: spine::Obj::String(txt.to_string().into_bytes()),
-  });
-  spine::Val::Obj(obj_name)
+fn translate_string_expr(st: &mut ProgSt, txt: &str) -> Res<(Onion, spine::Val)> {
+  let var = st.gen_var("str");
+  Ok((Onion::Letobj(spine::ObjDef {
+      var: var.clone(),
+      obj: spine::Obj::String(txt.to_string().into_bytes()),
+    }, box Onion::Hole), spine::Val::Var(var)))
 }
 
-fn translate_double(st: &mut ProgSt, number: f64) -> spine::Val {
-  let obj_name = st.gen_obj_name("dbl");
-  st.obj_defs.push(spine::ObjDef {
-    name: obj_name.clone(),
-    obj: spine::Obj::Double(number),
-  });
-  spine::Val::Obj(obj_name)
+fn translate_double_expr(st: &mut ProgSt, number: f64) -> Res<(Onion, spine::Val)> {
+  let var = st.gen_var("double");
+  Ok((Onion::Letobj(spine::ObjDef {
+      var: var.clone(),
+      obj: spine::Obj::Double(number),
+    }, box Onion::Hole), spine::Val::Var(var)))
 }
+

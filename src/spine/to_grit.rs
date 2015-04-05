@@ -2,13 +2,7 @@ use std::collections::{HashSet};
 use spine;
 use grit;
 
-type Env = spine::env::Env<VarBind, usize, ContBind, ()>;
-
-#[derive(Debug)]
-enum VarBind {
-  Val(grit::Val),
-  KnownClosure(spine::FunName, grit::Val),
-}
+type Env = spine::env::Env<grit::Val, ContBind>;
 
 #[derive(Debug)]
 enum ContBind {
@@ -17,13 +11,44 @@ enum ContBind {
 }
 
 #[derive(Debug)]
-struct FunSt {
+struct ProgSt {
+  fun_names: HashSet<grit::FunName>,
+  obj_names: HashSet<grit::ObjName>,
+  fun_defs: Vec<grit::FunDef>,
+  obj_defs: Vec<grit::ObjDef>,
+}
+
+#[derive(Debug)]
+struct FunSt<'p> {
+  prog_st: &'p mut ProgSt,
   var_count: usize,
   blocks: Vec<grit::Block>,
   labels: HashSet<grit::Label>,
 }
 
-impl FunSt {
+impl ProgSt {
+  fn gen_fun_name(&mut self, base: &str) -> grit::FunName {
+    for i in 1.. {
+      let name = grit::FunName(format!("{}_{}", base, i));
+      if self.fun_names.insert(name.clone()) {
+        return name
+      }
+    }
+    unreachable!()
+  }
+
+  fn gen_obj_name(&mut self, base: &str) -> grit::ObjName {
+    for i in 1.. {
+      let name = grit::ObjName(format!("{}_{}", base, i));
+      if self.obj_names.insert(name.clone()) {
+        return name
+      }
+    }
+    unreachable!()
+  }
+}
+
+impl<'p> FunSt<'p> {
   fn gen_label(&mut self, base: &str) -> grit::Label {
     for i in 1.. {
       let label = grit::Label(format!("{}_{}", base, i));
@@ -41,57 +66,39 @@ impl FunSt {
 }
 
 pub fn grit_from_spine(prog: &spine::ProgDef) -> grit::ProgDef {
-  let fun_binds = prog.fun_defs.iter().map(|fun_def| {
-      (fun_def.name.clone(), fun_def.args.len())
-    }).collect();
-  let env = spine::env::Env::new().bind_funs(fun_binds);
+  let mut prog_st = ProgSt {
+    fun_names: HashSet::new(),
+    obj_names: HashSet::new(),
+    fun_defs: Vec::new(),
+    obj_defs: Vec::new(),
+  };
+
+  let main_name = prog_st.gen_fun_name("main");
+  { 
+    let mut main_st = FunSt {
+      prog_st: &mut prog_st,
+      var_count: 0,
+      blocks: Vec::new(),
+      labels: HashSet::new(),
+    };
+    let start_label = main_st.gen_label("start");
+    let env = spine::env::Env::new()
+      .bind_conts(vec![(prog.halt_cont.clone(), ContBind::Return)]);
+    translate_term(&mut main_st, &env, start_label.clone(), &prog.body);
+    main_st.prog_st.fun_defs.push(grit::FunDef {
+      name: main_name.clone(),
+      capture_count: 0,
+      arg_count: 0,
+      var_count: main_st.var_count,
+      blocks: main_st.blocks,
+      start_label: start_label,
+    });
+  }
 
   grit::ProgDef {
-    fun_defs: prog.fun_defs.iter()
-      .map(|fun_def| translate_fun_def(&env, fun_def)).collect(),
-    obj_defs: prog.obj_defs.iter()
-      .map(|obj_def| translate_obj_def(obj_def)).collect(),
-    main_fun: translate_fun_name(&prog.main_fun),
-  }
-}
-
-fn translate_fun_def(env: &Env, fun_def: &spine::FunDef) -> grit::FunDef {
-  let ret_bind = (fun_def.ret.clone(), ContBind::Return);
-  let arg_binds = fun_def.args.iter().enumerate()
-      .map(|(idx, arg)| (arg.clone(), VarBind::Val(grit::Val::Arg(idx))));
-  let capture_binds = fun_def.captures.iter().enumerate()
-      .map(|(idx, capture)| (capture.clone(), VarBind::Val(grit::Val::Capture(idx))));
-
-  let env = env
-    .bind_conts(vec![ret_bind])
-    .bind_vars(arg_binds.chain(capture_binds).collect());
-
-  let mut st = FunSt {
-    var_count: 0,
-    blocks: Vec::new(),
-    labels: HashSet::new(),
-  };
-  let start_label = st.gen_label("start");
-
-  translate_term(&mut st, &env, start_label.clone(), &fun_def.body);
-
-  grit::FunDef {
-    name: translate_fun_name(&fun_def.name),
-    capture_count: fun_def.captures.len(),
-    arg_count: fun_def.args.len(),
-    var_count: st.var_count,
-    blocks: st.blocks,
-    start_label: start_label,
-  }
-}
-
-fn translate_obj_def(obj_def: &spine::ObjDef) -> grit::ObjDef {
-  grit::ObjDef {
-    name: translate_obj_name(&obj_def.name),
-    obj: match obj_def.obj {
-      spine::Obj::String(ref bytes) => grit::Obj::String(bytes.clone()),
-      spine::Obj::Double(number) => grit::Obj::Double(number),
-    },
+    fun_defs: prog_st.fun_defs,
+    obj_defs: prog_st.obj_defs,
+    main_fun: main_name,
   }
 }
 
@@ -99,8 +106,10 @@ fn translate_term(st: &mut FunSt, env: &Env, label: grit::Label, term: &spine::T
   match *term {
     spine::Term::Letcont(ref cont_defs, ref body) => 
       translate_letcont(st, env, label, &cont_defs[..], &**body),
-    spine::Term::Letclos(ref clos_defs, ref body) => 
-      translate_letclos(st, env, label, &clos_defs[..], &**body),
+    spine::Term::Letfun(ref fun_defs, ref body) => 
+      translate_letfun(st, env, label, &fun_defs[..], &**body),
+    spine::Term::Letobj(ref obj_def, ref body) =>
+      translate_letobj(st, env, label, obj_def, &**body),
     spine::Term::Call(ref fun, ref cont_name, ref args) => 
       translate_call(st, env, label, fun, cont_name, &args[..]),
     spine::Term::ExternCall(ref extern_name, ref cont_name, ref args) => 
@@ -135,35 +144,35 @@ fn translate_letcont(st: &mut FunSt, env: &Env, label: grit::Label,
     let inner_env = outer_env.bind_vars(
       cont_def.args.iter()
         .zip(arg_vars.into_iter())
-        .map(|(arg, arg_var)| {
-          (arg.clone(), VarBind::Val(grit::Val::Var(arg_var)))
-        }).collect());
+        .map(|(arg, arg_var)| (arg.clone(), grit::Val::Var(arg_var))).collect());
     translate_term(st, &inner_env, label.clone(), &cont_def.body);
   }
 
   translate_term(st, &outer_env, label, body)
 }
 
-fn translate_letclos(st: &mut FunSt, env: &Env, 
-  label: grit::Label, clos_defs: &[spine::ClosureDef], body: &spine::Term)
+fn translate_letfun(st: &mut FunSt, env: &Env, label: grit::Label,
+  fun_defs: &[spine::FunDef], body: &spine::Term)
 {
-  let body_label = st.gen_label("letclos_body");
-  let clos_vars: Vec<_> = clos_defs.iter().map(|_| st.gen_var()).collect();
+  let body_label = st.gen_label("letfun");
+  let fun_vars: Vec<_> = fun_defs.iter().map(|_| st.gen_var()).collect();
+  let fun_names: Vec<_> = fun_defs.iter()
+    .map(|def| st.prog_st.gen_fun_name(&def.var.0[..]))
+    .collect();
 
-  let clos_binds = clos_defs.iter().zip(clos_vars.iter())
-    .map(|(clos_def, var)| {
-        let val = grit::Val::Var(var.clone());
-        let bind = VarBind::KnownClosure(clos_def.fun_name.clone(), val);
-        (clos_def.var.clone(), bind)
-      }).collect();
-  let inner_env = env.bind_vars(clos_binds);
+  let fun_binds = fun_defs.iter().zip(fun_vars.iter())
+    .map(|(fun_def, var)| (fun_def.var.clone(), grit::Val::Var(var.clone())))
+    .collect();
+  let inner_env = env.bind_vars(fun_binds);
 
-  let alloc_clos = clos_vars.into_iter()
-    .zip(clos_defs.iter())
-    .map(|(clos_var, clos_def)| {
-      let captures = clos_def.captures.iter().map(|capt| 
-          translate_val(st, &inner_env, capt)).collect();
-      (clos_var, translate_fun_name(&clos_def.fun_name), captures)
+  let alloc_clos = fun_vars.into_iter()
+    .zip(fun_defs.iter())
+    .zip(fun_names.iter())
+    .map(|((fun_var, fun_def), fun_name)| {
+      let captures = fun_def.captures.iter()
+        .map(|capture| inner_env.lookup_var(capture).unwrap().clone())
+        .collect();
+      (fun_var, fun_name.clone(), captures)
     }).collect();
 
   st.blocks.push(grit::Block {
@@ -173,13 +182,33 @@ fn translate_letclos(st: &mut FunSt, env: &Env,
   });
          
   translate_term(st, &inner_env, body_label, body);
+
+  for (fun_def, fun_name) in fun_defs.iter().zip(fun_names.into_iter()) {
+    translate_fun_def(st.prog_st, fun_name, fun_def)
+  }
+}
+
+fn translate_letobj(st: &mut FunSt, env: &Env, label: grit::Label,
+  obj_def: &spine::ObjDef, body: &spine::Term)
+{
+  let obj_name = st.prog_st.gen_obj_name(&obj_def.var.0[..]);
+  st.prog_st.obj_defs.push(grit::ObjDef {
+    name: obj_name.clone(),
+    obj: match obj_def.obj {
+      spine::Obj::String(ref bytes) => grit::Obj::String(bytes.clone()),
+      spine::Obj::Double(number) => grit::Obj::Double(number),
+    },
+  });
+
+  let inner_env = env.bind_vars(vec![(obj_def.var.clone(), grit::Val::Obj(obj_name))]);
+  translate_term(st, &inner_env, label, body);
 }
 
 fn translate_call(st: &mut FunSt, env: &Env, label: grit::Label,
   fun: &spine::Val, ret_cont: &spine::ContName, args: &[spine::Val])
 {
   let cont_bind = env.lookup_cont(ret_cont).expect("undefined return cont");
-  let grit_callee = translate_callee(st, env, fun, args.len());
+  let grit_callee = grit::Callee::Unknown(translate_val(st, env, fun));
   let grit_args = args.iter().map(|arg| translate_val(st, env, arg)).collect();
 
   st.blocks.push(match *cont_bind {
@@ -283,42 +312,48 @@ fn translate_branch(st: &mut FunSt, env: &Env, label: grit::Label,
     });
 }
 
+fn translate_fun_def(prog_st: &mut ProgSt,
+  fun_name: grit::FunName, fun_def: &spine::FunDef) 
+{
+  let ret_bind = (fun_def.ret.clone(), ContBind::Return);
+  let arg_binds = fun_def.args.iter().enumerate()
+      .map(|(idx, arg)| (arg.clone(), grit::Val::Arg(idx)));
+  let capture_binds = fun_def.captures.iter().enumerate()
+      .map(|(idx, capture)| (capture.clone(), grit::Val::Capture(idx)));
+  let env = spine::env::Env::new()
+    .bind_conts(vec![ret_bind])
+    .bind_vars(arg_binds.chain(capture_binds).collect());
+
+  let def = {
+    let mut st = FunSt {
+      prog_st: prog_st,
+      var_count: 0,
+      blocks: Vec::new(),
+      labels: HashSet::new(),
+    };
+    let start_label = st.gen_label("start");
+    translate_term(&mut st, &env, start_label.clone(), &fun_def.body);
+    grit::FunDef {
+      name: fun_name,
+      capture_count: fun_def.captures.len(),
+      arg_count: fun_def.args.len(),
+      var_count: st.var_count,
+      blocks: st.blocks,
+      start_label: start_label,
+    }
+  };
+  prog_st.fun_defs.push(def);
+}
+
+
 fn translate_val(_: &mut FunSt, env: &Env, val: &spine::Val) -> grit::Val {
   match *val {
-    spine::Val::Combinator(ref fun_name) =>
-      grit::Val::Combinator(translate_fun_name(fun_name)),
-    spine::Val::Obj(ref obj_name) =>
-      grit::Val::Obj(translate_obj_name(obj_name)),
     spine::Val::Int(num) =>
       grit::Val::Int(num),
-    spine::Val::Var(ref var) => match *env.lookup_var(var).unwrap() {
-      VarBind::Val(ref val) => val.clone(),
-      VarBind::KnownClosure(_, ref val) => val.clone(),
-    },
+    spine::Val::Var(ref var) => env.lookup_var(var).unwrap().clone(),
     spine::Val::True => grit::Val::True,
     spine::Val::False => grit::Val::False,
   }
-}
-
-fn translate_callee(st: &mut FunSt, env: &Env, val: &spine::Val, argc: usize) 
-  -> grit::Callee 
-{
-  match *val {
-    spine::Val::Combinator(ref fun_name) =>
-      if *env.lookup_fun(fun_name).expect("undefined fun") == argc {
-        return grit::Callee::Combinator(translate_fun_name(fun_name))
-      },
-    spine::Val::Var(ref var) => match *env.lookup_var(var).unwrap() {
-      VarBind::KnownClosure(ref fun_name, ref val) => 
-        if *env.lookup_fun(fun_name).expect("undefined fun") == argc {
-          return grit::Callee::KnownClosure(translate_fun_name(fun_name), val.clone())
-        },
-      _ => ()
-    },
-    _ => ()
-  }
-
-  grit::Callee::Unknown(translate_val(st, env, val))
 }
 
 fn translate_boolval(st: &mut FunSt, env: &Env, boolval: &spine::Boolval) 
@@ -330,12 +365,4 @@ fn translate_boolval(st: &mut FunSt, env: &Env, boolval: &spine::Boolval)
     spine::Boolval::IsFalse(ref val) =>
       grit::Boolval::IsFalse(translate_val(st, env, val)),
   }
-}
-
-fn translate_fun_name(name: &spine::FunName) -> grit::FunName {
-  grit::FunName(name.0.clone())
-}
-
-fn translate_obj_name(name: &spine::ObjName) -> grit::ObjName {
-  grit::ObjName(name.0.clone())
 }

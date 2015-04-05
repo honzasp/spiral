@@ -58,24 +58,19 @@ fn translate_fun_stmts(st: &mut ProgSt, env: &Env, fun_defs: &[&spiral::FunDef])
   let spine_vars: Vec<_> = fun_defs.iter().map(|fun_def| {
       st.gen_var(&fun_def.var.0[..])
     }).collect();
-  let spine_names: Vec<_> = fun_defs.iter().map(|fun_def| {
-      st.gen_fun_name(&fun_def.var.0[..])
-    }).collect();
 
   let inner_env = env.bind_vars(fun_defs.iter().zip(spine_vars.iter())
       .map(|(fun_def, spine_var)| {
         (fun_def.var.clone(), spine::Val::Var(spine_var.clone()))
       }).collect());
 
-  let mut clos_defs = Vec::new();
-  for (fun_def, (spine_var, spine_name)) in fun_defs.iter()
-    .zip(spine_vars.into_iter().zip(spine_names.into_iter()))
-  {
-    clos_defs.push(try!(translate_fun(st, &inner_env, spine_var, spine_name,
+  let mut spine_defs = Vec::new();
+  for (fun_def, spine_var) in fun_defs.iter().zip(spine_vars.into_iter()) {
+    spine_defs.push(try!(translate_fun(st, &inner_env, spine_var, 
         &fun_def.args[..], &fun_def.stmts[..])));
   }
 
-  Ok((Onion::Letclos(clos_defs, box Onion::Hole), inner_env))
+  Ok((Onion::Letfun(spine_defs, box Onion::Hole), inner_env))
 }
 
 fn translate_stmt_tail(st: &mut ProgSt, env: &Env, stmt: &spiral::Stmt,

@@ -5,43 +5,32 @@ use spine;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RtVal {
   Closure(usize),
-  Combinator(spine::FunName),
   Int(i32),
   True,
   False,
 }
 
 pub fn eval(prog: &spine::ProgDef) -> Vec<RtVal> {
-  let halt_cont = spine::ContName("halt".to_string());
-  let call_main = spine::Term::Call(
-    spine::Val::Combinator(prog.main_fun.clone()),
-    halt_cont.clone(),
-    vec![]);
-
   let mut st = ProgSt {
       steps: 5_000,
       test_output: Vec::new(),
-      fun_defs: prog.fun_defs.iter()
-        .map(|fun_def| (fun_def.name.clone(), fun_def))
-        .collect(),
       closures: Vec::new(),
     };
 
-  let jump = eval_term(&mut st, HashMap::new(), &call_main);
-  assert_eq!(jump.cont, halt_cont);
+  let jump = eval_term(&mut st, HashMap::new(), &prog.body);
+  assert_eq!(jump.cont, prog.halt_cont);
   assert_eq!(jump.args.len(), 1);
   st.test_output
 }
 
-struct ProgSt<'g> {
+struct ProgSt<'p> {
   steps: i32,
   test_output: Vec<RtVal>,
-  fun_defs: HashMap<spine::FunName, &'g spine::FunDef>,
-  closures: Vec<Closure>,
+  closures: Vec<Closure<'p>>,
 }
 
-struct Closure {
-  fun_name: spine::FunName,
+struct Closure<'p> {
+  fun_def: &'p spine::FunDef,
   captures: Vec<RtVal>,
 }
 
@@ -50,8 +39,8 @@ struct Jump {
   args: Vec<RtVal>,
 }
 
-fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, RtVal>,
-  term: &'g spine::Term) -> Jump 
+fn eval_term<'p>(st: &mut ProgSt<'p>, vars: HashMap<spine::Var, RtVal>,
+  term: &'p spine::Term) -> Jump 
 {
   if st.steps <= 0 {
     panic!("eval step limit exceeded");
@@ -77,29 +66,31 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, RtVal>,
         return jump;
       }
     },
-    spine::Term::Letclos(ref clos_defs, ref body) => {
+    spine::Term::Letfun(ref fun_defs, ref body) => {
       let mut inner_vars = vars;
-      for (idx, clos_def) in clos_defs.iter().enumerate() {
+      for (idx, fun_def) in fun_defs.iter().enumerate() {
         let rt_val = RtVal::Closure(st.closures.len() + idx);
-        inner_vars.insert(clos_def.var.clone(), rt_val);
+        inner_vars.insert(fun_def.var.clone(), rt_val);
       }
 
-      for clos_def in clos_defs.iter() {
+      for fun_def in fun_defs.iter() {
         st.closures.push(Closure {
-          fun_name: clos_def.fun_name.clone(),
-          captures: clos_def.captures.iter()
-            .map(|c| eval_val(&inner_vars, c)).collect(),
+          fun_def: fun_def,
+          captures: fun_def.captures.iter()
+            .map(|v| inner_vars.get(v).unwrap().clone()).collect(),
         })
       }
 
       eval_term(st, inner_vars, &**body)
     },
+    spine::Term::Letobj(_, _) =>
+      panic!("letobj not implemented"),
     spine::Term::Call(ref fun, ref ret_cont, ref args) => {
       match eval_val(&vars, fun) {
         RtVal::Closure(clos_idx) => {
           let (fun_def, inner_vars) = {
             let closure = &st.closures[clos_idx];
-            let fun_def = *st.fun_defs.get(&closure.fun_name).unwrap();
+            let fun_def = closure.fun_def;
             assert_eq!(fun_def.args.len(), args.len());
             assert_eq!(fun_def.captures.len(), closure.captures.len());
 
@@ -110,18 +101,6 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, RtVal>,
             let inner_vars = arg_binds.chain(capture_binds).collect();
             (fun_def, inner_vars)
           };
-
-          let jump = eval_term(st, inner_vars, &fun_def.body);
-          assert_eq!(jump.cont, fun_def.ret);
-          assert_eq!(jump.args.len(), 1);
-          Jump { cont: ret_cont.clone(), args: jump.args }
-        },
-        RtVal::Combinator(ref fun_name) => {
-          let fun_def = *st.fun_defs.get(fun_name).unwrap();
-          assert_eq!(fun_def.captures.len(), 0);
-          let arg_binds = fun_def.args.iter().zip(args.iter())
-            .map(|(var, val)| (var.clone(), eval_val(&vars, val)));
-          let inner_vars = arg_binds.collect();
 
           let jump = eval_term(st, inner_vars, &fun_def.body);
           assert_eq!(jump.cont, fun_def.ret);
@@ -193,12 +172,10 @@ fn eval_term<'g>(st: &mut ProgSt<'g>, vars: HashMap<spine::Var, RtVal>,
 
 fn eval_val(vars: &HashMap<spine::Var, RtVal>, val: &spine::Val) -> RtVal {
   match *val {
-    spine::Val::Combinator(ref fun_name) => RtVal::Combinator(fun_name.clone()),
     spine::Val::Int(number) => RtVal::Int(number),
     spine::Val::Var(ref var) => vars.get(var).expect("undefined var").clone(),
     spine::Val::True => RtVal::True,
     spine::Val::False => RtVal::False,
-    spine::Val::Obj(_) => panic!("objects not implemented"),
   }
 }
 
@@ -225,45 +202,18 @@ mod test {
 
   #[test]
   fn test_output() {
-    assert_eq!(parse_eval("(program main
-      (fun main halt () ()
-        (letcont ((landpad (ignored) (cont halt (false))))
-          (extern-call println landpad 42))))"),
+    assert_eq!(parse_eval("(program halt
+        (extern-call println halt 42))"),
       vec![Int(42)])
   }
 
   #[test]
-  fn test_combinator() {
-    assert_eq!(parse_eval("(program main
-      (fun fst ret () (a b) 
-        (cont ret a))
-      (fun snd ret () (a b)
-        (cont ret b))
-      (fun main halt () ()
-        (letcont ((cc1 () (call (combinator fst) cc2 10 20))
-                  (cc2 (x) (extern-call println cc3 x))
-                  (cc3 (ignore) (call (combinator snd) cc4 40 50))
-                  (cc4 (y) (extern-call println cc5 y))
-                  (cc5 (ignore) (cont halt (true))))
-          (cont cc1))))"),
-      vec![Int(10), Int(50)]);
-  }
-
-  #[test]
   fn test_closure() {
-    assert_eq!(parse_eval("(program main
-      (fun print-capture-1 ret (c0 c1) (a0 a1 a2)
-        (extern-call println ret c1))
-      (fun print-arg-0 ret (c0 c1) (a0 a1 a2)
-        (extern-call println ret a0))
-      (fun main halt () ()
-        (letclos ((clos-1 print-capture-1 10 20)
-                  (clos-2 print-capture-1 30 40)
-                  (clos-3 print-arg-0 50 60))
-          (letcont ((cc1 ( ) (call clos-1 cc2 70 80 90))
-                    (cc2 (_) (call clos-2 cc3 100 110 120))
-                    (cc3 (_) (call clos-3 halt 130 140 150)))
-            (cont cc1)))))"),
-      vec![Int(20), Int(40), Int(130)]);
+    assert_eq!(parse_eval("(program halt
+      (letfun (ff-1 r () (a b)
+                (letfun (ff-2 q (a) () (extern-call println q a))
+                  (call ff-2 r)))
+        (call ff-1 halt 10 20)))"),
+      vec![Int(10)]);
   }
 }

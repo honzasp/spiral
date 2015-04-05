@@ -4,7 +4,8 @@ use spine;
 pub enum Onion {
   Letcont(Vec<spine::ContDef>, Box<Onion>),
   Letjoin(Box<OnionContDef>, Box<spine::Term>),
-  Letclos(Vec<spine::ClosureDef>, Box<Onion>),
+  Letfun(Vec<spine::FunDef>, Box<Onion>),
+  Letobj(spine::ObjDef, Box<Onion>),
   Hole,
 }
 
@@ -22,8 +23,10 @@ impl Onion {
         spine::Term::Letcont(cont_defs, box onion.subst_term(term)),
       Onion::Letjoin(onion_cont_def, body) =>
         spine::Term::Letcont(vec![onion_cont_def.subst_term(term)], body),
-      Onion::Letclos(clos_defs, onion) =>
-        spine::Term::Letclos(clos_defs, box onion.subst_term(term)),
+      Onion::Letfun(fun_defs, onion) =>
+        spine::Term::Letfun(fun_defs, box onion.subst_term(term)),
+      Onion::Letobj(obj_defs, onion) =>
+        spine::Term::Letobj(obj_defs, box onion.subst_term(term)),
       Onion::Hole =>
         term,
     }
@@ -35,8 +38,10 @@ impl Onion {
         Onion::Letcont(cont_defs, box body_onion.subst_onion(onion)),
       Onion::Letjoin(onion_cont_def, body) =>
         Onion::Letjoin(box onion_cont_def.subst_onion(onion), body),
-      Onion::Letclos(clos_defs, body_onion) =>
-        Onion::Letclos(clos_defs, box body_onion.subst_onion(onion)),
+      Onion::Letfun(fun_defs, body_onion) =>
+        Onion::Letfun(fun_defs, box body_onion.subst_onion(onion)),
+      Onion::Letobj(obj_defs, body_onion) =>
+        Onion::Letobj(obj_defs, box body_onion.subst_onion(onion)),
       Onion::Hole =>
         onion,
     }

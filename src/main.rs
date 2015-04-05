@@ -97,6 +97,8 @@ fn main_body() -> Result<(), SpiralError> {
   };
 
   let spine = try!(spiral::to_spine::spine_from_spiral(&spiral, &mut mod_loader));
+  let spine_errs = spine::check::check(&spine);
+  assert_eq!(spine_errs, Vec::<String>::new());
   if args.flag_emit == Some(Emit::Spine) {
     return dump_sexpr(&spine::to_sexpr::prog_to_sexpr(&spine));
   }

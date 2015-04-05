@@ -10,14 +10,18 @@ pub fn collect_term(term: &spine::Term) -> HashSet<spine::Var> {
         free.extend(collect_cont_def(cont_def).into_iter());
       }
     },
-    spine::Term::Letclos(ref clos_defs, ref body) => {
+    spine::Term::Letfun(ref fun_defs, ref body) => {
       free = collect_term(&**body);
-      for clos_def in clos_defs.iter() {
-        free.extend(collect_closure_def(clos_def).into_iter());
+      for fun_def in fun_defs.iter() {
+        free.extend(fun_def.captures.iter().cloned())
       }
-      for clos_def in clos_defs.iter() {
-        free.remove(&clos_def.var);
+      for fun_def in fun_defs.iter() {
+        free.remove(&fun_def.var);
       }
+    },
+    spine::Term::Letobj(ref obj_def, ref body) => {
+      free = collect_term(&**body);
+      free.remove(&obj_def.var);
     },
     spine::Term::Call(ref fun, _, ref args) => {
       free = collect_val(fun).into_iter().collect();
@@ -45,21 +49,11 @@ pub fn collect_cont_def(cont_def: &spine::ContDef) -> HashSet<spine::Var> {
   free
 }
 
-pub fn collect_closure_def(clos_def: &spine::ClosureDef) -> HashSet<spine::Var> {
-  let mut free = HashSet::new();
-  for capture in clos_def.captures.iter() {
-    free.extend(collect_val(capture).into_iter());
-  }
-  free
-}
-
 fn collect_val(val: &spine::Val) -> Option<spine::Var> {
   match *val {
     spine::Val::Var(ref var) =>
       Some(var.clone()),
-    spine::Val::Combinator(_) |
     spine::Val::Int(_) |
-    spine::Val::Obj(_) |
     spine::Val::True |
     spine::Val::False =>
       None,
@@ -91,8 +85,6 @@ mod test {
 
   #[test]
   fn test_collect_simple_term() {
-    assert_eq!(parse_collect("(call (combinator Y) k a 10 b)"),
-      var_set(vec!["a", "b"]));
     assert_eq!(parse_collect("(call f k a b)"),
       var_set(vec!["f", "a", "b"]));
     assert_eq!(parse_collect("(extern-call panic k a b c)"),
@@ -106,26 +98,25 @@ mod test {
   }
 
   #[test]
-  fn test_collect_letclos() {
+  fn test_collect_letfun() {
     assert_eq!(parse_collect(
-      "(letclos
-        ((clos-1 fun-1 a b clos-2)
-         (clos-2 fun-2 clos-1 c)
-         (clos-3 fun-3 d e)
-         (clos-4 fun-4 clos-3 clos-2 clos-4 f))
-        (cont cc clos-1 clos-2))"),
-      var_set(vec!["a", "b", "c", "d", "e", "f"]));
+      "(letfun (clos-1 r-1 (a b clos-2) (x y) (cont r-1 a))
+               (clos-2 r-2 (clos-1 c) (z) (cont r-2 2))
+               (clos-3 r-3 (d e) (x y z) (cont r-3 x))
+               (clos-4 r-4 (clos-3 clos-2 clos-4 f) (x) (cont r-4 x))
+        (cont cc clos-1 clos-2 k))"),
+      var_set(vec!["a", "b", "c", "d", "e", "f", "k"]));
   }
 
   #[test]
   fn test_collect_letcont() {
     assert_eq!(parse_collect(
         "(letcont
-          ((cc1 (a b) (cont cc a b x))
+           (cc1 (a b) (cont cc a b x))
            (cc2 (c) (cont cc a))
            (cc3 (b e) 
-            (letcont ((cc4 (z) (cont cc b z w)))
-              (cont cc b))))
+            (letcont (cc4 (z) (cont cc b z w))
+              (cont cc b)))
           (cont cc d e))"),
         var_set(vec!["x", "a", "w", "d", "e"]));
   }

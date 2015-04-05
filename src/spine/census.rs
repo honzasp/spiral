@@ -15,7 +15,8 @@ pub struct ContDef {
 #[derive(PartialEq, Debug)]
 pub enum Term {
   Letcont(Vec<ContDef>, Box<Term>),
-  Letclos(Vec<spine::ClosureDef>, Box<Term>),
+  Letfun(Vec<spine::FunDef>, Box<Term>),
+  Letobj(spine::ObjDef, Box<Term>),
   Call(spine::Val, spine::ContName, Vec<spine::Val>),
   ExternCall(spine::ExternName, spine::ContName, Vec<spine::Val>),
   Cont(spine::ContName, Vec<spine::Val>),
@@ -67,25 +68,28 @@ fn walk_term(census: &mut Census, term: &spine::Term) -> Term {
       }
       Term::Letcont(census_defs, box walked_body)
     },
-    spine::Term::Letclos(ref clos_defs, ref body) => {
+    spine::Term::Letfun(ref fun_defs, ref body) => {
       let mut body_census = Census {
         vars: HashSet::new(),
         conts: HashSet::new(),
       };
       let body_term = walk_term(&mut body_census, &**body);
 
-      for clos_def in clos_defs.iter() {
-        for capture in clos_def.captures.iter() {
-          walk_val(&mut body_census, capture);
-        }
+      for fun_def in fun_defs.iter() {
+        body_census.vars.extend(fun_def.captures.iter().cloned());
+      }
+      for fun_def in fun_defs.iter() {
+        body_census.vars.remove(&fun_def.var);
       }
 
-      for clos_def in clos_defs.iter() {
-        body_census.vars.remove(&clos_def.var);
-      }
       census.vars.extend(body_census.vars.into_iter());
       census.conts.extend(body_census.conts.into_iter());
-      Term::Letclos(clos_defs.clone(), box body_term)
+      Term::Letfun(fun_defs.clone(), box body_term)
+    },
+    spine::Term::Letobj(ref obj_def, ref body) => {
+      let body_term = walk_term(census, &**body);
+      census.vars.remove(&obj_def.var);
+      Term::Letobj(obj_def.clone(), box body_term)
     },
     spine::Term::Call(ref fun, ref ret_cont, ref args) => {
       census.conts.insert(ret_cont.clone());
@@ -112,10 +116,9 @@ fn walk_term(census: &mut Census, term: &spine::Term) -> Term {
 
 fn walk_val(census: &mut Census, val: &spine::Val) -> spine::Val {
   match *val {
-    spine::Val::Obj(_) | spine::Val::Int(_) => (),
-    spine::Val::True | spine::Val::False => (),
-    spine::Val::Combinator(_) => (),
     spine::Val::Var(ref var) => { census.vars.insert(var.clone()); },
+    spine::Val::Int(_) => (),
+    spine::Val::True | spine::Val::False => (),
   }
   val.clone()
 }
