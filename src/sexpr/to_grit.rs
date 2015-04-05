@@ -1,3 +1,4 @@
+#![cfg(test)]
 use sexpr;
 use grit;
 

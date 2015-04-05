@@ -111,7 +111,7 @@ impl<'d> FunSt<'d> {
   }
 
   fn slot_mem(&self, slot: &grit::Slot) -> asm::Mem {
-    FunSt::stack_mem((self.slot_alloc.slot_count - slot.0) as i32)
+    FunSt::stack_mem(self.slot_alloc.slot_count as i32 - slot.0 as i32)
   }
 
   fn var_mem(&self, var: &grit::Var) -> asm::Mem {

@@ -1,5 +1,6 @@
 pub use grit::syntax::*;
 pub mod interf;
+pub mod optimize_dead_vals;
 pub mod optimize_callees;
 pub mod slot_alloc;
 pub mod syntax;
