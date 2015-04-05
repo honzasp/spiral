@@ -102,6 +102,7 @@ fn main_body() -> Result<(), SpiralError> {
   }
 
   let grit = spine::to_grit::grit_from_spine(&spine);
+  let grit = grit::optimize_callees::optimize(grit);
   if args.flag_emit == Some(Emit::Grit) {
     return dump_sexpr(&grit::to_sexpr::prog_to_sexpr(&grit));
   }

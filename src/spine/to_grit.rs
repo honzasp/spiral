@@ -5,10 +5,8 @@ use grit;
 type Env = spine::env::Env<VarBind, usize, ContBind, ()>;
 
 #[derive(Debug)]
-#[allow(dead_code)]
 enum VarBind {
   Val(grit::Val),
-  Combinator(spine::FunName),
   KnownClosure(spine::FunName, grit::Val),
 }
 
@@ -153,9 +151,11 @@ fn translate_letclos(st: &mut FunSt, env: &Env,
   let clos_vars: Vec<_> = clos_defs.iter().map(|_| st.gen_var()).collect();
 
   let clos_binds = clos_defs.iter().zip(clos_vars.iter())
-    .map(|(clos_def, var)| 
-        (clos_def.var.clone(), VarBind::Val(grit::Val::Var(var.clone()))))
-    .collect();
+    .map(|(clos_def, var)| {
+        let val = grit::Val::Var(var.clone());
+        let bind = VarBind::KnownClosure(clos_def.fun_name.clone(), val);
+        (clos_def.var.clone(), bind)
+      }).collect();
   let inner_env = env.bind_vars(clos_binds);
 
   let alloc_clos = clos_vars.into_iter()
@@ -293,8 +293,6 @@ fn translate_val(_: &mut FunSt, env: &Env, val: &spine::Val) -> grit::Val {
       grit::Val::Int(num),
     spine::Val::Var(ref var) => match *env.lookup_var(var).unwrap() {
       VarBind::Val(ref val) => val.clone(),
-      VarBind::Combinator(ref fun_name) =>
-        grit::Val::Combinator(translate_fun_name(&fun_name.clone())),
       VarBind::KnownClosure(_, ref val) => val.clone(),
     },
     spine::Val::True => grit::Val::True,
@@ -311,10 +309,6 @@ fn translate_callee(st: &mut FunSt, env: &Env, val: &spine::Val, argc: usize)
         return grit::Callee::Combinator(translate_fun_name(fun_name))
       },
     spine::Val::Var(ref var) => match *env.lookup_var(var).unwrap() {
-      VarBind::Combinator(ref fun_name) =>
-        if *env.lookup_fun(fun_name).expect("undefined fun") == argc {
-          return grit::Callee::Combinator(translate_fun_name(fun_name))
-        },
       VarBind::KnownClosure(ref fun_name, ref val) => 
         if *env.lookup_fun(fun_name).expect("undefined fun") == argc {
           return grit::Callee::KnownClosure(translate_fun_name(fun_name), val.clone())

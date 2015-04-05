@@ -10,21 +10,23 @@ pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
   lines.push(format!("spiral_start_addr:"));
   lines.push(format!("  .long {}", fun_name_symbol(&prog.main_fun)));
   lines.push(format!("  .size spiral_start_addr, 4"));
+  lines.push(format!(""));
 
   for fun_def in prog.fun_defs.iter() {
     emit_fun_def(&mut lines, fun_def);
   }
 
+  lines.push(format!(""));
   lines.push(format!("  .section .rodata,\"a\",@progbits"));
   for obj_def in prog.obj_defs.iter() {
     emit_obj_def(&mut lines, obj_def);
   }
 
+  lines.push(format!(""));
   lines.push(format!("  .section .rodata,\"aMS\",@progbits"));
   for str_def in prog.string_defs.iter() {
     emit_str_def(&mut lines, str_def);
   }
-
 
   lines.connect("\n")
 }
