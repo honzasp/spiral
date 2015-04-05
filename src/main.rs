@@ -107,6 +107,7 @@ fn main_body() -> Result<(), SpiralError> {
   let grit = grit::optimize_callees::optimize(grit);
   let grit = grit::optimize_dead_vals::optimize(grit);
   let grit = grit::optimize_inline::optimize(grit);
+  let grit = grit::optimize_dead_defs::optimize(grit);
   if args.flag_emit == Some(Emit::Grit) {
     return dump_sexpr(&grit::to_sexpr::prog_to_sexpr(&grit));
   }
