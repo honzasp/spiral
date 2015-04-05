@@ -35,11 +35,11 @@ namespace spiral {
     return Val::wrap_data_obj(obj_ptr);
   }
 
-  void bool_scavenge(GcCtx* gc_ctx, void*) {
+  void bool_scavenge(GcCtx*, void*) {
     assert("bool scavenged");
   }
 
-  void bool_drop(Bg* bg, void*) {
+  void bool_drop(Bg*, void*) {
     assert("bool dropped");
   }
 }

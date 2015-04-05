@@ -27,6 +27,8 @@ namespace spiral {
     auto spiral_std_sub(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
     auto spiral_std_mul(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
     auto spiral_std_div(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_std_idiv(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_std_imod(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
 
     auto spiral_std_lt(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
     auto spiral_std_le(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
@@ -34,6 +36,9 @@ namespace spiral {
     auto spiral_std_ne(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
     auto spiral_std_ge(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
     auto spiral_std_gt(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+
+    auto spiral_std_floor(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_ceil(Bg* bg, void* sp, uint32_t a) -> uint32_t;
   }
 }
 #endif

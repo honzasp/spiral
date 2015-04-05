@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdio>
 #include "spiral/core.hpp"
 #include "spiral/gc.hpp"
@@ -101,6 +102,55 @@ namespace spiral {
     }
   }
 
+  template<typename D>
+  static auto binop_dbl(Bg* bg, void* sp, uint32_t a, uint32_t b, D dbl_op) -> uint32_t {
+    auto a_val = Val(a), b_val = Val(b);
+    double a_dbl, b_dbl;
+
+    if(a_val.is_int()) {
+      a_dbl = static_cast<double>(a_val.unwrap_int());
+    } else if(a_val.is_obj() && a_val.get_otable() == &double_otable) {
+      auto a_dbl_obj = reinterpret_cast<DoubleObj*>(a_val.unwrap_obj());
+      a_dbl = a_dbl_obj->num;
+    } else {
+      bg_panic(bg, "binary operation did not get a number");
+    }
+
+    if(b_val.is_int()) {
+      b_dbl = static_cast<double>(b_val.unwrap_int());
+    } else if(b_val.is_obj() && b_val.get_otable() == &double_otable) {
+      auto b_dbl_obj = reinterpret_cast<DoubleObj*>(b_val.unwrap_obj());
+      b_dbl = b_dbl_obj->num;
+    } else {
+      bg_panic(bg, "binary operation did not get a number");
+    }
+
+    return double_new(bg, sp, dbl_op(a_dbl, b_dbl)).u32;
+  }
+
+  template<typename I, typename D>
+  static auto unop_num(Bg* bg, void* sp, uint32_t a, I int_op, D dbl_op) -> uint32_t {
+    auto a_val = Val(a);
+    if(a_val.is_int()) {
+      return Val::wrap_int(int_op(a_val.unwrap_int())).u32;
+    } else if(a_val.is_obj() && a_val.get_otable() == &double_otable) {
+      auto a_dbl_obj = reinterpret_cast<DoubleObj*>(a_val.unwrap_obj());
+      return double_new(bg, sp, dbl_op(a_dbl_obj->num)).u32;
+    } else {
+      bg_panic(bg, "unary operation did not get a number");
+    }
+  }
+
+  template<typename I>
+  static auto binop_int(Bg* bg, void*, uint32_t a, uint32_t b, I int_op) -> uint32_t {
+    auto a_val = Val(a), b_val = Val(b);
+    if(a_val.is_int() && b_val.is_int()) {
+      return Val::wrap_int(int_op(a_val.unwrap_int(), b_val.unwrap_int())).u32;
+    } else {
+      bg_panic(bg, "binary operation did not get ints");
+    }
+  }
+
   template<typename I, typename D>
   static auto cmp_num(Bg* bg, uint32_t a, uint32_t b, I int_cmp, D dbl_cmp) 
     -> uint32_t 
@@ -147,9 +197,16 @@ namespace spiral {
           [](double a, double b){ return a * b; });
     }
     auto spiral_std_div(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t {
-      return binop_num(bg, sp, a, b,
-          [](int32_t a, int32_t b){ return a / b; },
+      return binop_dbl(bg, sp, a, b,
           [](double a, double b){ return a / b; });
+    }
+    auto spiral_std_idiv(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t {
+      return binop_int(bg, sp, a, b,
+          [](int32_t a, int32_t b){ return a / b; });
+    }
+    auto spiral_std_imod(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t {
+      return binop_int(bg, sp, a, b,
+          [](int32_t a, int32_t b){ return a % b; });
     }
 
     auto spiral_std_lt(Bg* bg, void*, uint32_t a, uint32_t b) -> uint32_t {
@@ -181,6 +238,18 @@ namespace spiral {
       return cmp_num(bg, a, b, 
           [](int32_t a, int32_t b){ return a > b; },
           [](double a, double b){ return a > b; });
+    }
+
+    auto spiral_std_floor(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_num(bg, sp, a,
+          [](int32_t a){ return a; },
+          [](double a){ return std::floor(a); });
+    }
+
+    auto spiral_std_ceil(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_num(bg, sp, a,
+          [](int32_t a){ return a; },
+          [](double a){ return std::ceil(a); });
     }
   }
 }

@@ -102,7 +102,7 @@ fn emit_fun_table(lines: &mut Vec<String>, fun_def: &asm::FunDef) {
   lines.push(format!("  .long {}", table.arg_count));
   lines.push(format!("  .long {}", table.capture_count));
   lines.push(format!("  .long {}", str_symbol(&table.fun_name)));
-  lines.push(format!("  .skip 20"));
+  lines.push(format!("  .skip 16"));
   lines.push(format!("  .size {},32", symbol));
 }
 

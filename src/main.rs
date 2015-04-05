@@ -145,6 +145,7 @@ fn main_body() -> Result<(), SpiralError> {
     .arg(&obj_file)
     .arg(&runtime_path[..])
     .arg("-o").arg(&output_path)
+    .arg("-lm")
     .output());
   if !link_out.status.success() {
     try!(Err(format!("Linker failed:\n{}", String::from_utf8_lossy(&link_out.stderr))))
