@@ -8,11 +8,6 @@
 \usepackage{listings}
 \usepackage{lmodern}
 \usepackage{syntax}
-\usepackage{makeidx}
-\usepackage{graphicx}
-\usepackage{float}
-\usepackage{caption}
-\usepackage{subcaption}
 \usepackage[fixlanguage]{babelbib}
 \usepackage{amsmath}
 \usepackage{amsfonts}
@@ -54,11 +49,17 @@
 \lstdefinestyle{spiral}{style=ttcode,language=Spiral}
 \lstdefinestyle{spine}{style=ttcode,language=Spine}
 \lstdefinestyle{grit}{style=ttcode,language=Grit}
+\lstdefinestyle{gram}{style=ttcode,
+  basicstyle=\bfseries\ttfamily\small,
+  % hack: format <rule>s as comments
+  comment=[s]{<}{>},
+  commentstyle=\mdseries,
+}
 
 \lstnewenvironment{spiral}[1][]{\lstset{style=spiral,#1}}{}
 \lstnewenvironment{spine}[1][]{\lstset{style=spine,#1}}{}
 \lstnewenvironment{grit}[1][]{\lstset{style=grit,#1}}{}
-\lstnewenvironment{assembler}[1][]{\lstset{style=assembler,#1}}{}
+\lstnewenvironment{gram}[1][]{\lstset{style=gram,#1}}{}
 \lstnewenvironment{ttcode}[1][]{\lstset{style=ttcode,#1}}{}
 
 \DisableLigatures[>,<]{encoding = T1,family=tt*} %
@@ -83,7 +84,6 @@
 \input{tex/intro.tex}
 \input{tex/spiral.tex}
 \input{tex/translation.tex}
-\printindex
 
 \bibliographystyle{babplain}
 \bibliography{references}

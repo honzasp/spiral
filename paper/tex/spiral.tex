@@ -90,7 +90,7 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
 
 \subsection{Výrazy}
 
-\begin{ttcode}
+\begin{gram}
 <expr>        = (if <expr> <expr> <expr>)
               | (cond (<expr> <stmt>...)...)
               | (when <expr> <stmt>...)
@@ -106,7 +106,7 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
               | <integer-literal>
               | <float-literal>
               | <string-literal>
-\end{ttcode}
+\end{gram}
 
 \begin{description}
   \item[\texttt{<integer-literal>}, \texttt{<float-literal>}] jsou číselné
@@ -146,16 +146,16 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
     s~danými argumenty a příkazy, které tvoří její tělo. Uvnitř funkce je možno
     používat proměnné z~vnějšku funkce.
 
-  \item[\texttt{(<fun> <arg>...))}] je výraz volání. Nejprve se vyhodnotí
+  \item[\texttt{(<fun> <arg>...)}] je výraz volání. Nejprve se vyhodnotí
     všechny argumenty zleva doprava a poté výraz funkce, která je vzápětí
     zavolána. Pokud se první výraz nevyhodnotí na funkci, program skončí s~chybou.
 
-  \item[\texttt{(extern <fun-name> <arg>...))}] je volání externí funkce
+  \item[\texttt{(extern <fun-name> <arg>...)}] je volání externí funkce
     (definované v~jazyku C) s~danými argumenty. Normálně se tato volání objevují
     pouze ve standardní knihovně. Počet argumentů ani existenci funkce není
     možno zkontrolovat, korektnost je tedy na programátorovi.
 
-  \item[\texttt{(begin <body-stmt>...))}] vyhodnotí všechny příkazy a vrátí
+  \item[\texttt{(begin <body-stmt>...)}] vyhodnotí všechny příkazy a vrátí
     hodnotu posledního.
 
   \item[\texttt{(do ((<var> <init> <next>)...) (<exit-condition> <exit-stmt>...)
