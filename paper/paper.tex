@@ -1,4 +1,4 @@
-\documentclass[a4paper,twoside,11pt]{report}
+\documentclass[a4paper,twoside,11pt,openany]{memoir}
 \usepackage{geometry}
 \usepackage[czech]{babel}
 \usepackage[utf8]{inputenc}
@@ -19,6 +19,9 @@
   inner=3.0cm,outer=2.0cm,
   top=2cm,bottom=2cm,
 }
+
+\chapterstyle{article}
+\pagestyle{plain}
 
 \selectbiblanguage{czech}
 
@@ -64,8 +67,8 @@
 
 \DisableLigatures[>,<]{encoding = T1,family=tt*} %
 
-\def\Cplusplus{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}}
-\def\Csh{C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\scriptsize\bf \#}}
+\def\Cplusplus{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bfseries ++}}}
+\def\Csh{C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\scriptsize\bfseries \#}}
 
 \hypersetup{
   unicode=true,
@@ -78,13 +81,17 @@
 \newcounter{dummy}
 
 \begin{document}
+\frontmatter
 \input{tex/title.tex}
 \input{tex/abstract.tex}
 \tableofcontents
+
+\mainmatter
 \input{tex/intro.tex}
 \input{tex/spiral.tex}
 \input{tex/translation.tex}
 
+\backmatter
 \bibliographystyle{babplain}
 \bibliography{references}
 \end{document}
