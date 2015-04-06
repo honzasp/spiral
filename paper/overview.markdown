@@ -1,0 +1,79 @@
+# Překladač jednoduchého programovacího jazyka
+
+- úvod
+  - rozdělení programovacích jazyků (z pohledu implementace)
+    - paradigma -- způsob organizace kódu a dat 
+      - objektové -- zapouzdření dat a operací, subtyping (polymorfismus) (C++,
+        Java, Ruby, Smalltalk)
+      - funkcionální -- neměnitelnost, higher order functions, algebraické
+        datové typy, polymorfismus (Haskell, ML)
+    - bezpečnost -- nakolik je chování programu určeno specifikací
+      - nízkoúrovňové jazyky -- C, C++
+        - ruční nekontrolovaná správa paměti
+      - bezpečné jazyky
+        - garbage collector
+        - ruční kontrolovaná správa paměti (Rust)
+    - typování -- způsob zajištění korektnosti programu
+      - statické
+        - jednoduché -- C, C++, Java
+        - vyšší -- Haskell, ML, Rust
+      - dynamické -- Ruby, JavaScript
+      - souvisí s reprezentací dat
+  - struktura typického překladače s odkazy na literaturu
+    - frontend, middle end, backend
+    - GHC -- Haskell -> Core -> STG
+    - LLVM
+    - lambda kalkulus
+    - continuation passing style
+- popis jazyka Spiral
+  - neformální syntaxe a sémantika jazyka
+  - standardní knihovna a základní typy
+  - ovládání překladače (příkazová řádka)
+  - příklady
+- postup překladu
+  - s-expressions 
+    - gramatika
+  - spiral 
+    - gramatika
+  - spine 
+    - continuation passing style
+    - gramatika
+    - pravidla korektnosti
+    - překlad ze spiral (tails, onions)
+  - grit 
+    - gramatika
+    - překlad ze spine (klasifikace volání, continuations)
+    - optimalizace
+      - optimalizace volání známých funkcí
+      - odstranění nepotřebných hodnot
+      - inlining funkcí
+      - odstranění nepotřebných definic
+  - alokace slotů 
+    - sestavení grafu interference
+    - barvení grafu interference
+  - assembler 
+    - struktura výsledného assembleru
+    - registry, calling convention a struktura zásobníku
+    - přiřazování mezi sloty a hromadný zápis
+- runtime
+  - reprezentace hodnot (32 bitů, tagy)
+  - reprezentace objektů (array, tuple, string, double)
+  - garbage collection 
+    - rozvržení paměti
+    - vyvolání a postup collection (evacuate, scavenge)
+  - rozhraní programu a runtime
+- implementace
+  - překladač (Rust) 
+    - proč Rust, drobný popis jazyka, výhody a nevýhody
+    - organizace kódu, anotace modulů
+  - runtime (C++) 
+    - proč C++
+    - organizace kódu, anotace souborů
+  - testy
+    - jednotkové testy v překladači
+    - celkové testy
+    - (todo: benchmarky)
+- závěr
+  - výkon přeložených programů (todo: benchmarky)
+  - účel (?)
+  - postřehy z vývoje
