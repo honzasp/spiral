@@ -38,7 +38,6 @@
   - spine 
     - continuation passing style
     - gramatika
-    - pravidla korektnosti
     - překlad ze spiral (tails, onions)
   - grit 
     - gramatika

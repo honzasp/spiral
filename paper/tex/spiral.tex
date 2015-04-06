@@ -1,0 +1,197 @@
+\chapter{Popis jazyka Spiral}
+
+Samotný jazyk je velmi prostý, jelikož poskytuje pouze
+nástroje pro definici modulů, tvorbu funkcí a proměnných, podmíněné
+vyhodnocování a literály.  Primitivní operace (například sčítání čísel či
+přístup k~prvku pole) jsou definovány ve standardní knihovně, kde jsou
+implementovány jako externí volání podpůrné knihovny. Za zmínku stojí, že
+identifikátory jako \texttt{+} a \texttt{*} nejsou zabudované operátory, ale
+klasické proměnné. 
+
+Proměnné jsou neměnitelné, neexistuje proto žádný příkaz přiřazení, některé
+objekty ze standardní knihovny, například pole, je ale možno interně upravovat.
+Funkce, které mění nějaký objekt, je zvykem pojmenovávat s~vykřičníkem na konci
+(\texttt{array-set!}).
+
+Volání funkcí v~koncových pozicích (\emph{tail-calls}) jsou implementována tak,
+že umožňují neomezené množství rekurzivních volání bez hrozby přetečení
+zásobníku, což umožňuje vyjádřit všechny iterace pomocí rekurze.
+
+\section{Gramatika}
+
+Syntaxe jazyka Spiral je založena na syntaxi jazyka Scheme \cite{scheme7}.
+Program je tak zapsán ve formě uzávorkovaných prefixových výrazů
+(\emph{s-expressions}). Tento způsob zápisu je jednoduchý na parsování a
+příjemný na psaní.
+
+\subsection{Programy a moduly}
+\begin{ttcode}
+<top-level>   = <program> | <module>
+<program>     = (program <stmt>...)
+<module>      = (module <ident> <decl>...)
+<decl>        = (export <ident>...) | <stmt>
+\end{ttcode}
+
+Program obsahuje seznam příkazů (\emph{statement}, \texttt{<stmt>}), které jsou
+postupně vykonány. Modul obsahuje deklarace, které kromě příkazů zahrnují i
+exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
+
+~
+\subsection{Příkazy}
+\begin{ttcode}
+<import-def>  = <ident>
+              | (only <import-def> <ident>...)
+              | (except <import-def> <ident>...)
+              | (prefix <import-def> <ident>)
+<stmt>        = (import <import-def>...)
+              | (fun <ident> (<ident>...) <stmt>...)
+              | (var <ident> <expr>)
+              | <expr>
+\end{ttcode}
+
+\begin{description}
+
+\item[\texttt{(import <import-def>...)}] Příkaz importu načte modul a umožní
+  používat jeho exportované proměnné v~aktuálním kontextu. Je možno importovat jen
+  vybraná jména pomocí \texttt{(only ...)}, nebo importovat všechny kromě zadaných
+  \texttt{(except ...)} nebo všem importovaným jménům předřadit prefix
+  \texttt{(prefix ...)}.
+
+  Příklady importů:
+
+  \begin{itemize}
+    \item \texttt{(import std std.math)} importuje všechna jména z~modulů
+      \texttt{std} a \texttt{std.math}.
+    \item \texttt{(import (only std + - *))} importuje ze \texttt{std} pouze jména
+      \texttt{+}, \texttt{-} a \texttt{*}.
+    \item \texttt{(import (except std.math sin cos))} importuje
+      z~\texttt{std.math} všechna jména kromě \texttt{sin} a \texttt{cos}.
+    \item \texttt{(import (prefix (only std.math div mod) m.))} importuje z~modulu
+      \texttt{std.math} jména \texttt{div} a \texttt{mod} a přidá jim prefix
+      \texttt{m.} (takže se na ně bude možno odkázat jako \texttt{m.div} a
+      \texttt{m.mod}).
+  \end{itemize}
+
+\item[\texttt{(fun <fun-name> (<arg>...) <body-stmt>...)}] definuje pojmenovanou
+  funkci. Funkce, které jsou takto definovány těsně za sebou, mohou být vzájemně
+  rekurzivní, takže funkce definovaná v~pořadí dříve \uv{vidí} definici pozdější
+  funkce (včetně sebe sama). Kromě toho je ve funkcích možno použít veškeré
+  proměnné definované vně (taková funkce se nazývá \emph{closure}).
+
+\item[\texttt{(var <var-name> <value>)}] definuje proměnnou. Proměnná, narozdíl
+  of funkce,odkazovat na sebe samu nemůže, jelikož její hodnota může být použíta
+  až po její definici.
+
+\item[\texttt{<expr>}] -- pokud je na místě příkazu nalezen výraz, je vyhodnocen.
+  Pokud je na posledním místě v~posloupnosti příkazů, je jeho hodnota použíta jako
+  hodnota celé posloupnosti, jinak je výsledek zahozen.
+
+\end{description}
+
+\subsection{Výrazy}
+
+\begin{ttcode}
+<expr>        = (if <expr> <expr> <expr>)
+              | (cond (<expr> <stmt>...)...)
+              | (when <expr> <stmt>...)
+              | (unless <expr> <stmt>...)
+              | (do ((<ident> <expr> <expr>)...) (<expr> <stmt>...) <stmt>...)
+              | (and <expr>...)
+              | (or <expr>...)
+              | (begin <stmt>...)
+              | (let ((<ident> <expr>)...) <stmt>...)
+              | (lambda (<ident>...) <stmt>...)
+              | (<expr> <expr>...)
+              | (extern <ident> <expr>...)
+              | <integer-literal>
+              | <float-literal>
+              | <string-literal>
+\end{ttcode}
+
+\begin{description}
+  \item[\texttt{<integer-literal>}, \texttt{<float-literal>}] jsou číselné
+    konstanty, které se vyhodnotí na číslo, které reprezentují. Číslice je
+    množno oddělovat podtržitky a v~zápisu desetinného čísla je možno použít
+    exponent.
+
+  \item[\texttt{<string-literal>}] je řetězcový literál uzavřený v~uvozovkách,
+    ve kterém je možné použít escape sekvence z~jazyka C a podobných
+    (například \texttt{\textbackslash{}n} je znak nového řádku,
+    \texttt{\textbackslash{}"} je uvozovka).
+
+  \item[\texttt{(if <condition> <then> <else>)}] je podmíněný příkaz, který
+    nejprve vyhodnotí podmínku, a pokud je pravdivá, vyhodnotí první výraz,
+    jinak vyhodnotí druhý výraz. Za pravdivé jsou považovány všechny hodnoty
+    kromě \texttt{false}.
+
+  \item[\texttt{(when <condition> <body-stmt>...)}] vyhodnotí podmínku a pokud
+    je pravdivá, vyhodnotí následující příkazy. 
+
+  \item[\texttt{(unless <condition> <body-stmt>...)}] je obdobou \texttt{when},
+    ale příkazy vyhodnotí pokud je podmínka nepravdivá.
+
+  \item[\texttt{(cond (<condition> <stmt>...)..)}] postupně zkouší vyhodnocovat
+    podmínky a vyhodnotí příkazy u první, která je pravdivá.
+
+  \item[\texttt{(and <expr>...)}] vyhodnocuje výrazy zleva a vrátí hodnotu
+    prvního, který je nepravdivý, čímž implementuje logické \uv{a}.
+
+  \item[\texttt{(or <expr>...)}] vyhodnocuje výrazy zleva a vrátí hodnotu
+    prvního, který je pravdivý, což je obdoba logického \uv{nebo}.
+
+  \item[\texttt{(let ((<var> <expr>)...) <body-stmt>...)}] přiřadí proměnným
+    hodnoty daných výrazů a poté vyhodnotí následující příkazy.
+
+  \item[\texttt{(lambda (<arg>...) <body-stmt>...)}] vytvoří anonymní funkci
+    s~danými argumenty a příkazy, které tvoří její tělo. Uvnitř funkce je možno
+    používat proměnné z~vnějšku funkce.
+
+  \item[\texttt{(<fun> <arg>...))}] je výraz volání. Nejprve se vyhodnotí
+    všechny argumenty zleva doprava a poté výraz funkce, která je vzápětí
+    zavolána. Pokud se první výraz nevyhodnotí na funkci, program skončí s~chybou.
+
+  \item[\texttt{(extern <fun-name> <arg>...))}] je volání externí funkce
+    (definované v~jazyku C) s~danými argumenty. Normálně se tato volání objevují
+    pouze ve standardní knihovně. Počet argumentů ani existenci funkce není
+    možno zkontrolovat, korektnost je tedy na programátorovi.
+
+  \item[\texttt{(begin <body-stmt>...))}] vyhodnotí všechny příkazy a vrátí
+    hodnotu posledního.
+
+  \item[\texttt{(do ((<var> <init> <next>)...) (<exit-condition> <exit-stmt>...)
+    <body-stmt>...)}] je příkaz cyklu. Do všech proměnných je neprve přiřazena
+    počáteční hodnota (\texttt{<init>}). Poté je vyhodnocena podmínka
+    (\texttt{<edit-condition>}) a pokud je pravdivá, vyhodnotí se následující
+    příkazy (\texttt{<exit-stmt>...}) a cyklus se ukončí. V~opačném případě jsou
+    vyhodnoceny příkazy v~těle cyklu (\texttt{<body-stmt>...}), poté jsou do
+    proměnných přiřazeny hodnoty \texttt{<next>} a cyklus se opakuje novou
+    kontrolou podmínky.
+
+    Například následující program spočte sto čísel Fibonacciho posloupnosti,
+    přičemž každé vypíše, a na konci vypíše \texttt{done}:
+
+\begin{spiral}
+(program
+  (import std)
+  (do ((f1 0 f1)
+       (f2 1 (+ f1 f2))
+       (i  1 (+ i 1)))
+    ((>= i 100)
+      (println "done"))
+    (println f1)))
+\end{spiral}
+\end{description}
+
+\section{Standardní knihovna a základní typy}
+
+Standardní knihovna je implementována v~modulu \texttt{std} a definuje základní
+funkce. Jelikož program ve Spiral nemá implicitně definovaná žádná jména, je
+použití standardní knihovny prakticky nutností.
+
+\section{Ovládání překladače z~příkazové řádky}
+
+Překladač je možno ovládat pomocí argumentů na příkazové řádce.
+
+\section{Příklady}
+
+Na závěr uvádíme několik drobných programů napsaných v~jazyce Spiral.

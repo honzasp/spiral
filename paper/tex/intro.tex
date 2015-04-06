@@ -1,0 +1,60 @@
+\chapter{Úvod}
+
+Procesory počítačů pracují se sadou jednoduchých instrukcí, které lze rychle a
+efektivně vykonat. Programování v~těchto základních stavebních jednotkách je
+ovšem natolik pomalé a náchylné k~chybám, že se rychle po sestrojení prvních
+počítačů vyvinuly rovněž programovací jazyky, které umožňují programy vytvářet
+v~podobě, která je člověku bližší. Vývoj v~takovém programovacím jazyku je
+nesrovnatelně rychlejší než v~kódu počítače a programy v~něm napsané je často
+jednodušší použít i na jiných počítačích, než na které byly původně určeny.
+
+Aby program, který je napsaný ve vyšším programovacím jazyku, mohl být spuštěn,
+musí pro tento jazyk existovat interpret nebo kompilátor (překladač). Interpret
+je program, který při spuštění načte zdrojový kód interpretovaného jazyka a sám
+vykonává operace v~něm obsažené. Překladač naopak přeloží program
+v~programovacím jazyku do strojového kódu, takže je poté tento program možno
+spouštět přímo na procesoru počítače, k~čemuž již není potřeba původní zdrojový
+kód. Vytvořit interpret je většinou poměrně jednoduché, ovšem interpretovaný
+program zpravidla dosahuje horšího výkonu než program přeložený do strojového
+kódu, který vykonává přímo procesor počítače.
+
+Programovací jazyky se většinou soustředily na organizaci kódu a průběhu
+výpočtu, ovšem menší pozornost byla věnována problému organizace paměti. Dnes
+proto existují v~zásadě dva typy jazyků: nízkoúrovňové jazyky jako C a
+\Cplusplus, kde je správa paměti plně v~režii programátora, a všechny ostatní
+jazyky, které paměť spravují pomocí garbage collectoru, který paměť uvolňuje
+automaticky a pro programátora průhledně. Oba tyto přístupy však mají problémy.
+Ruční správa paměti je extrémně náchylná k~chybám, které je obtížné odhalit, a
+navíc často představuje bezpečnostní riziko (asi nejznámější bezpečnostní chybou
+tohoto typu byl Heartbleed \cite{heartbleed}). Na druhou stranu garbage
+collectory zbavují programátora možnosti nakládat volně s~paměti a ubírají
+programům na výkonu.
+
+\section{Struktura překladače}
+
+Struktura běžného překladače vypadá přibližně takto:
+\cite{grune2012modern,appel1998modern}:
+
+\begin{itemize} 
+  \item Lexikální a syntaktická analýza zdrojového jazyka, jejímž výsledkem je
+    syntaktický strom (tato fáze překladu se označuje jako front-end).
+  \item Sémantická analýza zdrojového jazyka (spojení jmen a definic, kontrola
+    typů).
+  \item Generování přechodného jazyka (\emph{intermediate language}), který je
+    pro další zpracování vhodnější než zdrojový jazyk.
+  \item Analýza a optimalizace přechodného jazyka.
+  \item Překlad přechodného jazyka do assembleru nebo objektového souboru
+    (back-end).
+\end{itemize}
+
+Jako příklad lze uvést překladač GHC jazyka Haskell
+\cite{jones1993glasgow,haskellreport2010}, který nejprve zdrojový Haskell
+přeloží do jazyka Core \cite{jones1996compiling}, nad kterým probíhají
+optimalizace \cite{jones1997optimiser,santos1995compilation}, poté je přeložen
+do jazyka STG \cite{jones1992implementing}, ze kterého je následně generován
+kód.
+
+Často je možné několik zdrojových jazyků přeložit do jednoho přechodného jazyka
+a sdílet tak společný back-end. Jedním z~takových projektů je LLVM \cite{llvm},
+na kterém je založen například překladač Clang \cite{clang} jazyků C a \Cplusplus
+nebo překladač jazyka Rust \cite{rust}.

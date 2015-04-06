@@ -1,0 +1,170 @@
+\chapter{Postup překladu}
+
+Vstupní zdrojový kód je nejprve přečten parserem S-výrazů do obecné struktury,
+ze které je poté dekódován syntaktický strom pro Spiral. Poté jsou všechny
+moduly a hlavní program přeloženy do \emph{continuation-passing style} v~jazyku
+Spine, který slouží jako první přechodný jazyk. Z~jazyka Spine je pak celý
+program přeložen do imperativního jazyka Grit, na kterém proběhne optimalizace.
+Z~jazyka Grit je pak již vygenerován assembler, čímž postup překladu končí. 
+
+\section{S-výrazy}
+
+Parsování S-výrazů provádí jednoduchý ručně psaný parser. Výsledná datová
+struktura je poté dále zpracovávána. Rovněž je možné tuto datovou strukturu
+zpětně zapsat do textové formy (\emph{pretty-print}). Kromě jazyka Spiral je
+v~s-výrazech možno zapsat i přechodné jazyky Spine a Grit, čehož je možno využít
+během testování, a to pro čtení i výpis programů.
+
+\section{Spiral}
+
+Syntaktický strom jazyka Spiral je dekódován z~načteného s-výrazu, což je
+jednoduchý, leč nezáživný proces. Zde jsou odhaleny a oznámeny syntaktické
+chyby, které se v~programu nacházejí. Po přečtení následuje průchod stromem
+s~cílem odhalit všechny importované moduly, které jsou posléze rovněž načteny a
+zpracovány. Moduly se posléze topologicky seřadí podle vzájemné závislosti, aby
+mohly být zpracovány. Pokud žádné takové seřazení neexistuje, tedy pokud graf
+závislosti není acyklický, překlad skončí s~chybou.
+
+\section{Spine}
+
+Prvním přechodným jazykem je Spine. Tento jazyk je silně inspirován jazykem
+$\lambda^U_\text{CPS}$ \cite{kennedy2007compiling} a je založen na
+$\lambda$-kalkulu a \emph{continuation-passing style}.
+
+\emph{Continuation} je speciální $\lambda$-funkce, která je lokální pro danou
+funkci a nikdy nevrátí hodnotu, volání \emph{continuation} tedy modeluje skok na
+\emph{basic block}, se kterým bychom se mohli setkat v~imperativním jazyce nebo
+SSA formě (\emph{single static assignment}). Při volání funkce je kromě funkce
+samotné a jejích argumentů třeba specifikovat i \emph{continuation}, které bude
+výsledek volání funkce předán. Návrat výsledné hodnoty funkce je pak
+implementován jako skok do její návratové \emph{continuation}.
+
+\subsection{Gramatika}
+
+\begin{ttcode}
+<program>   = (program <cont-name> <term>)
+<term>      = (letcont <cont-def>... <term>)
+            | (letfun <fun-def>... <term>)
+            | (letobj <obj-def> <term>)
+            | (call <val> <cont-name> <val>...)
+            | (extern-call <extern-name> <cont-name> <val>...)
+            | (cont <cont-name> <val>...)
+            | (branch <boolval> <cont-name> <cont-name>)
+<fun-def>   = (<var> <cont-name> (<var>...) (<var>...) <term>)
+<cont-def>  = (<cont-name> (<var>...) <term>)
+<obj-def>   = (string <var> <string-literal>)
+            | (double <var> <double-literal>)
+<val>       = <var> | <int-literal> | (true) | (false)
+<boolval>   = (is-true <val>) | (is-false <val>)
+\end{ttcode}
+
+
+Program je definován jako jeden velký výraz (\emph{term}) a ukončovací
+\emph{continuation}, po jejímž zavolání program skončí.
+
+\begin{description}
+\item[\texttt{(cont <cont-name> <arg>...)}] skočí do zadané \emph{continuation}
+  a předá jí určené argumenty (počet argumentů musí odpovídat definici).
+
+\item[\texttt{(branch <boolval> <then-name> <else-name>)}] vyhodnotí
+  pravdivostní výrok \texttt{<boolval>} a podle toho skočí na jednu z~uvedených
+  \emph{continuations} (které nesmí očekávat argumenty).
+
+\item[\texttt{(call <fun-val> <return-cont> <arg>...)}] zavolá danou funkci se
+  zadanými argumenty a poté skočí do \texttt{<return-cont>}, které předá svou
+  návratovou hodnotu. Pokud je \texttt{<return-cont>} návratovou
+  \emph{continuation} volající funkce, je toto volání koncové
+  (\emph{tail-call}).
+
+\item[\texttt{(extern-call <extern-name> <return-cont> <arg>...)}] zavolá
+  externí funkci danou svým jménem a s~jejím výsledkem skočí do
+  \texttt{<return-cont>}.
+
+\item[\texttt{(letcont (<cont-name> (<arg>...))... <term>)}] definuje
+  \emph{continuations}, které budou viditelné ve vnořeném výrazu. Každá může
+  přijímat libovolný počet argumentů (\texttt{(<arg>...)}). Tyto
+  \emph{continuations} mohou být vzájemně rekurzivní, takže je možno
+  implementovat cykly.
+
+\item[\texttt{(letfun (<fun> <ret-cont> (<capture>...) (<arg>...) <body>)...
+  <term>)}] definuje funkce, které je možno použít ve vnořeném výrazu. Uvnitř těla
+  funkci (\texttt{<body>}) není možné použít \emph{continuation} z~aktuálního
+  kontextu a veškeré zachycené (\emph{captured}) proměnné musí být zahrnuty
+  v~definici funkce (\texttt{(<captured>..)}). Návrat z~funkce bude proveden jako
+  skok do \emph{continuation} \texttt{<ret-cont>}.
+
+\item[\texttt{(letobj <obj-def> <term>)}] definuje objekt (řetězec nebo
+  reálné číslo).
+\end{description}
+
+Všechny hodnoty (\texttt{<val>}) jsou atomické (jednoduché proměnné nebo
+konstanty), takže jejich vyhodnocení nestojí žádné výpočetní úsilí a je možno je
+libovolně kopírovat.
+
+\subsection{Překlad z~jazyka Spiral}
+
+Při překladu výrazu z~jazyka Spiral do Spine je třeba převést program
+z~\emph{direct style} do \emph{continuation-passing style}. Základem překladu
+jsou dvě funkce, \texttt{translate_expr(Spiral expr) -> (onion, Spine val)} a
+\texttt{translate_expr_tail(Spiral expr, Spine cont name) -> Spine term}.
+
+Funkce \texttt{translate_expr} přeloží předaný výraz ve Spiral tak, že vrátí
+\uv{cibuli}\footnote{Na obranu komunity počítačových vědců je třeba dodat, že
+tento název vymyslel autor sám.} (\emph{onion}) a hodnotu. \uv{Slupka cibule} je
+tvořena výrazy \texttt{letcont}, \texttt{letfun} a \texttt{letobj}. Uvnitř této
+slupky je pak výsledek výrazu reprezentován danou hodnotou.
+
+Druhá funkce \texttt{translate_expr_tail} pak přeloží výraz do podoby výrazu ve
+Spine, který s~výslednou hodnotou skočí do předané \emph{continuation}. Tímto
+způsobem jsou přeložena například koncová volání (\emph{tail-calls}).
+
+Pro ilustraci si ukážeme příklad, jak je přeložena tato funkce ve Spiral:
+
+\begin{spiral}
+(fun big-enough? (x)
+  (if (< x 0)
+    (println "small")
+    (println "ok")))
+\end{spiral}
+
+Nejprve vygenerujeme jméno návratové \emph{continuation} pro funkci
+\texttt{big-enough?}, například \texttt{r}. Tělo funkce musí být přeloženo tak,
+aby volání v~koncových pozicích byla koncová, tedy aby vracela do \texttt{r}.
+Proto na výraz \texttt{(if (< x 0) (println "small") (println "ok"))} použijeme
+\texttt{translate_expr_tail} s~\texttt{r}.
+
+Při vyhodnocení výrazu \texttt{if} musíme nejprve vyhodnotit podmínku \texttt{(<
+x 0)}. Tu přeložíme pomocí \texttt{translate_expr}, čímž dostaneme \uv{cibuli}
+\texttt{(letcont (lt-ret (lt-result) ?) (call < lt-ret x 0))}. Otazník označuje
+místo, kde obdržíme výsledek v~proměnné \texttt{lt-result}.
+
+Obě alternativy v~příkazu \texttt{if} přeložíme opět pomocí
+\texttt{translate_expr_tail} s~\emph{continuation} \texttt{r}, abychom zachovali
+koncová volání. Obdržíme Spine výrazy \texttt{(letobj (string s1 "small") (call
+println r s1))} a \texttt{(letobj (string s2 "ok") (call println r s2))}.
+
+Samotné větvení provedeme výrazem \texttt{branch}, na to ale potřebujeme
+\emph{continuation}, do které můžeme skočit. Ty si proto vytvoříme (nazveme je 
+\texttt{on-true} a \texttt{on-false}) a vložíme do nich přeložené výrazy z~obou
+větví zdrojového výrazu \texttt{if}. Výsledek pak vypadá takto:
+
+\begin{spine}
+(letcont (lt-ret (lt-result)
+            (letcont (on-true ()
+                        (letobj (string s1 "small") (call println r s1)))
+                     (on-false ()
+                        (letobj (string s2 "ok") (call println r s2)))
+              (branch (is-true lt-result) on-true on-false)))
+  (call < lt-ret x 0))
+\end{spine}
+
+Je vidět, že pořadí vyhodnocování a přenos informací z~původního programu je
+nyní explicitně vyjádřeno. Nejprve se zavolá funkce \texttt{<} s~argumenty
+\texttt{x} a \texttt{0}. Ta svůj výsledek předá v~proměnné \texttt{lt-result} do
+\texttt{lt-ret}. Ta následně tuto proměnnou prozkoumá, a pokud je její hodnota
+pravdivá, skočí do \texttt{on-true}, jinak do \texttt{on-false}.
+V~\texttt{on-true} a \texttt{on-false} pak definujeme patřičný řetězec a
+následně zavoláme funkci \texttt{println}, které tento řetězec předáme. Funkce
+\texttt{println} vrátí svůj výsledek do \texttt{r}, což je ale návratová
+\emph{continuation} volající funkce \texttt{big-enough?}, takže toto volání bude
+přeloženo jako koncové.

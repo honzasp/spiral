@@ -1,0 +1,31 @@
+\begin{adjustwidth}{1.5cm}{1.5cm}
+
+\section*{Abstract}
+
+We present a~simple programming language Spiral and its implementation. Spiral
+is an impure untyped functional language inspired by Scheme, featuring
+first-class functions, tail-calls, module system and mutable and immutable data
+structures. We first translate the source language to Spine, a
+continuation-passing style functional language. Spine is then transformed into
+low-level imperative language Grit. Several optimization passes operate on this
+intermediate language, including global liveness analysis and inlining. As the
+last step of the compilation pipeline, we generate input to an external
+assembler and link the resulting object file with the runtime library. The
+runtime, written in \Cplusplus, defines core functions and objects and manages
+the heap with a~moving garbage collector.
+
+\section*{Abstrakt}
+
+V~práci je představen jednoduchý programovací jazyk Spiral a jeho implementace.
+Spiral je funkcionální jazyk inspirovaný Scheme, který zahrnuje funkce první
+kategorie, koncová volání, modulární systém a měnitelné i konstantní datové
+struktury. Zdrojový jazyk je nejprve přeložen do Spine, funkcionálního jazyka
+založeného na CPS (continuation-passing style). Spine je poté transformován do
+nízkoúrovňového imperativního jazyka Grit, na kterém operuje několik
+optimalizačních fází, včetně globální analýzy využití proměnných a inliningu.
+Jako poslední krok překladu je vygenerován soubor pro externí assembler.
+Výsledný objektový soubor je slinkován s~podpůrnou knihovnou. Podpůrná běhová
+knihovna je napsaná v~\Cplusplus, definuje základní funkce a objekty a spravuje
+paměť pomocí přemisťovacího garbage collectoru.
+
+\end{adjustwidth}

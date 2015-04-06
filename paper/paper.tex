@@ -1,0 +1,90 @@
+\documentclass[a4paper,twoside,11pt]{report}
+\usepackage{geometry}
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage{listings}
+\usepackage{lmodern}
+\usepackage{syntax}
+\usepackage{makeidx}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[fixlanguage]{babelbib}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{changepage}
+\usepackage[htt]{hyphenat}
+
+\geometry{
+  marginparsep=0cm,marginparwidth=0cm,
+  inner=3.0cm,outer=2.0cm,
+  top=2cm,bottom=2cm,
+}
+
+\selectbiblanguage{czech}
+
+\lstdefinelanguage{Spiral}{
+  keywords={program,module,export,fun,var,import,
+  if,cond,when,unless,do,and,or,begin,let,lambda,extend},
+}
+\lstdefinelanguage{Spine}{
+  keywords={program,string,double,letcont,letfun,letobj,
+  call,extern-call,cont,branch,true,false,is-true,is-false},
+}
+\lstdefinelanguage{Grit}{
+  keywords={program,fun,string,double,call,extern-call,alloc-clos,assign,
+  goto,return,tail-call,branch,is-true,is-false,
+  var,arg,capture,combinator,obj,int,true,false,
+  known-closure,unknown},
+}
+
+\lstdefinestyle{ttcode}{
+  basicstyle=\small\ttfamily,
+  keywordstyle=\bfseries,
+  flexiblecolumns=false,
+  basewidth=0.5em,
+  texcl=true,
+  showstringspaces=false,
+}
+
+\lstdefinestyle{spiral}{style=ttcode,language=Spiral}
+\lstdefinestyle{spine}{style=ttcode,language=Spine}
+\lstdefinestyle{grit}{style=ttcode,language=Grit}
+
+\lstnewenvironment{spiral}[1][]{\lstset{style=spiral,#1}}{}
+\lstnewenvironment{spine}[1][]{\lstset{style=spine,#1}}{}
+\lstnewenvironment{grit}[1][]{\lstset{style=grit,#1}}{}
+\lstnewenvironment{assembler}[1][]{\lstset{style=assembler,#1}}{}
+\lstnewenvironment{ttcode}[1][]{\lstset{style=ttcode,#1}}{}
+
+\DisableLigatures[>,<]{encoding = T1,family=tt*} %
+
+\def\Cplusplus{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bf ++}}}
+\def\Csh{C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\scriptsize\bf \#}}
+
+\hypersetup{
+  unicode=true,
+  pdftitle={Překladač jednoduchého programovacího jazyka},
+  pdfauthor={Jan Špaček},
+  hidelinks,
+  linktoc=all,
+}
+
+\newcounter{dummy}
+
+\begin{document}
+\input{tex/title.tex}
+\input{tex/abstract.tex}
+\tableofcontents
+\input{tex/intro.tex}
+\input{tex/spiral.tex}
+\input{tex/translation.tex}
+\printindex
+
+\bibliographystyle{babplain}
+\bibliography{references}
+\end{document}
