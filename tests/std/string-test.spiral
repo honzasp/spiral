@@ -1,5 +1,43 @@
 (program
   (import std)
+  (import std.string)
+  (import std.test)
+
   (println "Spiral")
-  (println (str-len "spine"))
-  (println (str-get "grit" 1)))
+
+  (test "str-len" (lambda (t)
+    (assert-eq t (str-len "foo") 3)
+    (assert-eq t (str-len "") 0)
+    (assert-eq t (str-len "123456") 6)))
+
+  (test "str-get" (lambda (t)
+    (assert-eq t (str-get "\n" 0) 10)
+    (assert-eq t (str-get "Spiral" 2) 105)
+    (assert-eq t (str-get "quick brown fox" 12) 102)))
+
+  (test "str-cat-..." (lambda (t)
+    (assert-eqv t (str-cat-0) "")
+    (assert-eqv t (str-cat-1 "quick") "quick")
+    (assert-eqv t (str-cat-2 "quick" "brown") "quickbrown")
+    (assert-eqv t (str-cat-3 "quick" "brown" "fox") "quickbrownfox")
+    (assert-eqv t (str-cat-8 "qui" "c" "" "kbr" "" "" "own" "fox") "quickbrownfox")))
+
+  (test "stringify number" (lambda (t)
+    (assert-eqv t (stringify 10) "10")
+    (assert-eqv t (stringify 3.0) "3")
+    (assert-eqv t (stringify 3.14) "3.14")
+    (assert-eqv t (stringify 1_000_000_000.0) "1e9")))
+
+  (test "stringify string" (lambda (t)
+    (assert-eqv t (stringify "a string") "a string")))
+
+  (test "stringify array" (lambda (t)
+    (import std.array)
+    (var a (array-new))
+    (array-push! a 10)
+    (array-push! a "two")
+    (array-push! a 3.14)
+    (assert-eqv t (stringify a) "[10 two 3.14]")))
+
+  (test "stringify other objects" (lambda (t)
+    (assert-not t "not implemented"))))

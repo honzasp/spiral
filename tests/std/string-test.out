@@ -1,3 +1,7 @@
 Spiral
-5
-114
+test str-len ok
+test str-get ok
+test str-cat-... ok
+test stringify number ok
+test stringify string ok
+test stringify array ok

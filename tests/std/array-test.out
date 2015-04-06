@@ -1,9 +1,8 @@
-[]
-true
-false
-[10 20]
-2
-10
-30
-20
-1
+test array? ok
+test array-len ok
+test array-get ok
+test array-set! ok
+test array-first ok
+test array-last ok
+test array-each ok
+test array-empty? ok

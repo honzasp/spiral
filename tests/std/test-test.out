@@ -1,0 +1,7 @@
+test success ok
+test failure failed:
+  expected true
+  expected false, got 42
+  expected == 10 20
+  expected eqv a b
+  expected equiv (a . b) (a . b)

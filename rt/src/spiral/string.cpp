@@ -1,3 +1,4 @@
+#include <cstdarg>
 #include "spiral/gc.hpp"
 #include "spiral/print.hpp"
 #include "spiral/string.hpp"
@@ -110,6 +111,45 @@ namespace spiral {
       } else {
         bg_panic(bg, "string index out of bounds");
       }
+    }
+
+    auto spiral_std_str_cat(Bg* bg, void* sp, uint32_t count_, ...) -> uint32_t {
+      auto count_val = Val(count_);
+      if(!count_val.is_int()) {
+        bg_panic(bg, "str cat count must be an int");
+      }
+      if(count_val.unwrap_int() < 0) {
+        bg_panic(bg, "str cat count must be non-negative");
+      }
+
+      auto count = static_cast<uint32_t>(count_val.unwrap_int());
+      uint32_t result_length = 0;
+      std::va_list args;
+
+      va_start(args, count_);
+      for(uint32_t i = 0; i < count; ++i) {
+        auto str_obj = str_from_val(bg, Val(va_arg(args, uint32_t)));
+        result_length += str_obj->length;
+      }
+      va_end(args);
+
+      auto data = static_cast<uint8_t*>(bg_alloc_mem(bg, result_length + 1));
+      uint32_t data_idx = 0;
+      va_start(args, count_);
+      for(uint32_t i = 0; i < count; ++i) {
+        auto str_obj = str_from_val(bg, Val(va_arg(args, uint32_t)));
+        for(uint32_t j = 0; j < str_obj->length; ++j) {
+          data[data_idx++] = str_obj->data[j];
+        }
+      }
+      assert(data_idx == result_length);
+      data[data_idx++] = 0;
+
+      auto new_obj = static_cast<StrObj*>(bg_get_obj_space(bg, sp, sizeof(StrObj)));
+      new_obj->otable = &dyn_str_otable;
+      new_obj->length = result_length;
+      new_obj->data = data;
+      return str_to_val(new_obj).u32;
     }
   }
 }

@@ -28,8 +28,7 @@ namespace spiral {
   extern "C" {
     auto spiral_std_str_len(Bg* bg, void* sp, uint32_t str) -> uint32_t;
     auto spiral_std_str_get(Bg* bg, void* sp, uint32_t str, uint32_t idx) -> uint32_t;
-    auto spiral_std_str_substr(Bg* bg, void* sp, uint32_t str, uint32_t idx,
-        uint32_t len) -> uint32_t;
+    auto spiral_std_str_cat(Bg* bg, void* sp, uint32_t count, ...) -> uint32_t;
   }
 }
 #endif

@@ -1,0 +1,30 @@
+(program
+  (import std)
+  (import std.tuple)
+  (import std.test)
+
+  (test "tuple?" (lambda (t)
+    (assert t (tuple? (tuple-0)))
+    (assert t (tuple? (tuple-1 1)))
+    (assert t (tuple? (tuple-3 1 2 3)))
+    (assert t (tuple? (tuple-8 1 2 3 4 5 6 7 8)))
+    (assert-not t (tuple? 10))
+    (assert-not t (tuple? "foo"))))
+
+  (test "tuple-len" (lambda (t)
+    (assert-eq t (tuple-len (tuple-0)) 0)
+    (assert-eq t (tuple-len (tuple-1 40)) 1)
+    (assert-eq t (tuple-len (tuple-3 1 2 3)) 3)
+    (assert-eq t (tuple-len (tuple-4 "a" "b" "c" "d")) 4)))
+
+  (test "tuple-n?" (lambda (t)
+    (assert t (tuple-n? 2 (tuple-2 100 200)))
+    (assert t (tuple-n? 0 (tuple-0)))
+    (assert-not t (tuple-n? 3 (tuple-2 100 200)))
+    (assert-not t (tuple-n? 2 "not a pair"))))
+
+  (test "get-..." (lambda (t)
+    (assert-eq t (get-0 (tuple-1 100)) 100)
+    (assert-eq t (get-2 (tuple-4 10 20 30 40)) 30)
+    (assert-eq t (get-1 (tuple-3 20 40 60)) 40)
+    (assert-eq t (get-7 (tuple-8 1 2 3 5 8 13 21 34)) 34))))

@@ -1,0 +1,4 @@
+test true ok
+test false ok
+test not ok
+test xor ok
