@@ -16,7 +16,7 @@ namespace spiral {
 
   auto array_from_val(Bg* bg, Val val) -> ArrayObj* {
     if(val.is_obj() && val.get_otable() == &array_otable) {
-      return reinterpret_cast<ArrayObj*>(val.unwrap_obj());
+      return val.unwrap_obj<ArrayObj>();
     } else {
       bg_panic(bg, "expected array");
     }

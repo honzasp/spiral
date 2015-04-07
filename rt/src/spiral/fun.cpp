@@ -4,27 +4,18 @@
 #include "spiral/print.hpp"
 
 namespace spiral {
-  const ObjTable closure_otable = {
+  const ObjTable fun_otable = {
     "closure",
     fun_print,
     fun_length,
-    closure_evacuate,
-    closure_scavenge,
-    fun_drop,
-  };
-
-  const ObjTable combinator_otable = {
-    "combinator",
-    fun_print,
-    fun_length,
-    combinator_evacuate,
-    combinator_scavenge,
+    fun_evacuate,
+    fun_scavenge,
     fun_drop,
   };
 
   auto fun_from_val(Bg* bg, Val val) -> FunObj* {
     if(val.is_fun()) {
-      return reinterpret_cast<FunObj*>(val.unwrap_obj());
+      return val.unwrap_obj<FunObj>();
     } else {
       bg_panic(bg, "expected fun");
     }
@@ -33,7 +24,7 @@ namespace spiral {
   auto fun_from_obj_ptr(void* obj_ptr) -> FunObj* {
     assert(reinterpret_cast<uint32_t>(obj_ptr) % 4 == 0);
     auto otable = *reinterpret_cast<const ObjTable**>(obj_ptr);
-    assert(otable == &closure_otable || otable == &combinator_otable);
+    assert(otable == &fun_otable);
     return reinterpret_cast<FunObj*>(obj_ptr);
   }
 
@@ -57,42 +48,41 @@ namespace spiral {
     return sizeof(FunObj) + 4 * ftable->capture_count;
   }
 
-  void fun_drop(Bg*, void*) {
+  void fun_drop(Bg*, void* obj_ptr) {
+    assert(!ptr_is_static(obj_ptr));
   }
 
-  auto closure_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val {
-    auto old_fun_obj = fun_from_obj_ptr(obj_ptr);
-    auto ftable = fun_table_from_addr(old_fun_obj->fun_addr);
-    auto new_fun_obj = static_cast<FunObj*>(gc_get_copy_space(gc_ctx,
-          sizeof(FunObj) + 4 * ftable->capture_count));
-    new_fun_obj->otable = &closure_otable;
-    new_fun_obj->fun_addr = old_fun_obj->fun_addr;
-    for(uint32_t i = 0; i < ftable->capture_count; ++i) {
-      new_fun_obj->captures[i] = old_fun_obj->captures[i];
-    }
+  auto fun_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val {
+    if(!ptr_is_static(obj_ptr)) {
+      auto old_fun_obj = fun_from_obj_ptr(obj_ptr);
+      auto ftable = fun_table_from_addr(old_fun_obj->fun_addr);
+      auto new_fun_obj = static_cast<FunObj*>(gc_get_copy_space(gc_ctx,
+            sizeof(FunObj) + 4 * ftable->capture_count));
+      new_fun_obj->otable = &fun_otable;
+      new_fun_obj->fun_addr = old_fun_obj->fun_addr;
+      for(uint32_t i = 0; i < ftable->capture_count; ++i) {
+        new_fun_obj->captures[i] = old_fun_obj->captures[i];
+      }
 
-    auto new_val = fun_to_val(new_fun_obj);
-    gc_write_fwd_ptr(gc_ctx, obj_ptr, new_val);
-    return new_val;
-  }
-
-  void closure_scavenge(GcCtx* gc_ctx, void* obj_ptr) {
-    auto fun_obj = fun_from_obj_ptr(obj_ptr);
-    auto ftable = fun_table_from_addr(fun_obj->fun_addr);
-    for(uint32_t i = 0; i < ftable->capture_count; ++i) {
-      fun_obj->captures[i] = gc_evacuate(gc_ctx, fun_obj->captures[i]);
+      auto new_val = fun_to_val(new_fun_obj);
+      gc_write_fwd_ptr(gc_ctx, obj_ptr, new_val);
+      return new_val;
+    } else {
+      return Val::wrap_fun(obj_ptr);
     }
   }
 
-  auto combinator_evacuate(GcCtx*, void* obj_ptr) -> Val {
-    auto fun_obj = fun_from_obj_ptr(obj_ptr);
-    return fun_to_val(fun_obj);
+  void fun_scavenge(GcCtx* gc_ctx, void* obj_ptr) {
+    if(!ptr_is_static(obj_ptr)) {
+      auto fun_obj = fun_from_obj_ptr(obj_ptr);
+      auto ftable = fun_table_from_addr(fun_obj->fun_addr);
+      for(uint32_t i = 0; i < ftable->capture_count; ++i) {
+        fun_obj->captures[i] = gc_evacuate(gc_ctx, fun_obj->captures[i]);
+      }
+    }
   }
 
-  void combinator_scavenge(GcCtx*, void*) {
-  }
-
-  auto fun_addr_call(Bg* bg, void* fun_addr, void* last_sp) -> Val {
+  auto fun_addr_call(Bg* bg, const void* fun_addr, void* last_sp) -> Val {
     return Val(spiral_rt_call_fun(bg, fun_addr, last_sp));
   }
 
@@ -120,7 +110,7 @@ namespace spiral {
       assert(capture_count != 0);
       auto mem = bg_get_obj_space(bg, sp, sizeof(FunObj) + 4 * capture_count);
       auto fun_obj = static_cast<FunObj*>(mem);
-      fun_obj->otable = &closure_otable;
+      fun_obj->otable = &fun_otable;
       fun_obj->fun_addr = fun_addr;
       for(uint32_t i = 0; i < capture_count; ++i) {
         fun_obj->captures[i] = Val(0);

@@ -57,7 +57,7 @@ namespace spiral {
     if(val.is_int()) {
       return val;
     } else {
-      return val.get_otable()->evacuate_fun(gc_ctx, val.unwrap_obj());
+      return val.get_otable()->evacuate_fun(gc_ctx, val.unwrap_obj<void>());
     }
   }
 

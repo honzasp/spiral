@@ -16,7 +16,7 @@ namespace spiral {
 
   auto cons_from_val(Bg* bg, Val val) -> ConsObj* {
     if(val.is_obj() && val.get_otable() == &cons_otable) {
-      return reinterpret_cast<ConsObj*>(val.unwrap_obj());
+      return val.unwrap_obj<ConsObj>();
     } else {
       bg_panic(bg, "expected cons");
     }
@@ -38,7 +38,7 @@ namespace spiral {
     auto head_val = val;
     auto first = true;
     while(head_val.is_obj() && head_val.get_otable() == &cons_otable) {
-      auto cons_obj = reinterpret_cast<ConsObj*>(head_val.unwrap_obj());
+      auto cons_obj = head_val.unwrap_obj<ConsObj>();
       if(!first) {
         std::fprintf(stream, " ");
       }

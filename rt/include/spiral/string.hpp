@@ -15,15 +15,11 @@ namespace spiral {
 
   void str_print(Bg* bg, FILE* stream, Val val);
   auto str_length(void* obj_ptr) -> uint32_t;
-  auto dyn_str_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
-  void dyn_str_scavenge(GcCtx* gc_ctx, void* obj_ptr);
-  void dyn_str_drop(Bg* bg, void* obj_ptr);
-  auto static_str_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
-  void static_str_scavenge(GcCtx* gc_ctx, void* obj_ptr);
-  void static_str_drop(Bg* bg, void* obj_ptr);
+  auto str_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
+  void str_scavenge(GcCtx* gc_ctx, void* obj_ptr);
+  void str_drop(Bg* bg, void* obj_ptr);
 
-  extern const ObjTable dyn_str_otable;
-  extern const ObjTable static_str_otable;
+  extern const ObjTable str_otable;
 
   extern "C" {
     auto spiral_std_str_len(Bg* bg, void* sp, uint32_t str) -> uint32_t;

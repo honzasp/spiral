@@ -17,7 +17,7 @@ namespace spiral {
 
   auto tuple_from_val(Bg* bg, Val val) -> TupleObj* {
     if(val.is_obj() && val.get_otable() == &tuple_otable) {
-      return reinterpret_cast<TupleObj*>(val.unwrap_obj());
+      return val.unwrap_obj<TupleObj>();
     } else {
       bg_panic(bg, "expected tuple");
     }

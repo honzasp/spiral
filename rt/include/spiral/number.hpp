@@ -6,7 +6,6 @@ namespace spiral {
   struct DoubleObj {
     const ObjTable* otable;
     double num;
-    uint8_t is_static;
   };
 
   auto double_from_val(Bg* bg, Val val) -> DoubleObj*;

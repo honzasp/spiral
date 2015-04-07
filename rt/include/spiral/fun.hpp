@@ -24,20 +24,16 @@ namespace spiral {
 
   void fun_print(Bg* bg, FILE* stream, Val val);
   auto fun_length(void* obj_ptr) -> uint32_t;
+  auto fun_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
+  void fun_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   void fun_drop(Bg* bg, void* obj_ptr);
-
-  auto closure_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
-  void closure_scavenge(GcCtx* gc_ctx, void* obj_ptr);
-  auto combinator_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
-  void combinator_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   
-  auto fun_addr_call(Bg* bg, void* fun_addr, void* last_sp) -> Val;
+  auto fun_addr_call(Bg* bg, const void* fun_addr, void* last_sp) -> Val;
   void panic_invalid_fun(Bg* bg, uint32_t val);
   void panic_argc_mismatch(Bg* bg, void* fun_addr,
       uint32_t expected_argc_, uint32_t received_argc_);
 
-  extern const ObjTable closure_otable;
-  extern const ObjTable combinator_otable;
+  extern const ObjTable fun_otable;
 
   extern "C" {
     auto spiral_rt_alloc_closure(Bg* bg, void* sp, void* fun_addr,

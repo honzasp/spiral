@@ -1,11 +1,17 @@
 #ifndef HAVE_spiral_asm_interface_hpp
 #define HAVE_spiral_asm_interface_hpp
-#include "spiral/core.hpp"
+#include <cstdint>
 
 namespace spiral {
+  struct Bg;
+  using std::uint32_t;
+
   extern "C" {
-    extern void* spiral_start_addr;
-    extern auto spiral_rt_call_fun(Bg* bg, void* fun_addr, void* last_sp) -> uint32_t;
+    extern const void* spiral_start_addr;
+    extern const uint32_t spiral_static_begin;
+    extern const uint32_t spiral_static_end;
+    extern auto spiral_rt_call_fun(Bg* bg, const void* fun_addr,
+        void* last_sp) -> uint32_t;
   }
 }
 

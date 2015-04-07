@@ -2,31 +2,47 @@ use asm;
 
 pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
   let mut lines = Vec::new();
-  lines.push(format!("  .text"));
-  lines.push(format!(""));
 
+  lines.push(format!("  .section .rodata,\"a\",@progbits"));
   lines.push(format!("  .globl spiral_start_addr"));
   lines.push(format!("  .type spiral_start_addr,@object"));
   lines.push(format!("spiral_start_addr:"));
   lines.push(format!("  .long {}", fun_name_symbol(&prog.main_fun)));
-  lines.push(format!("  .size spiral_start_addr, 4"));
+  lines.push(format!("  .size spiral_start_addr,4"));
+  lines.push(format!(""));
+  lines.push(format!("  .globl spiral_static_begin"));
+  lines.push(format!("  .type spiral_static_begin,@object"));
+  lines.push(format!("spiral_static_begin:"));
+  lines.push(format!("  .long .Lstatic_data_begin"));
+  lines.push(format!("  .size spiral_static_begin,4"));
+  lines.push(format!(""));
+  lines.push(format!("  .globl spiral_static_end"));
+  lines.push(format!("  .type spiral_static_end,@object"));
+  lines.push(format!("spiral_static_end:"));
+  lines.push(format!("  .long .Lstatic_data_end"));
+  lines.push(format!("  .size spiral_static_end,4"));
   lines.push(format!(""));
 
+  lines.push(format!("  .text"));
+  lines.push(format!(""));
   for fun_def in prog.fun_defs.iter() {
     emit_fun_def(&mut lines, fun_def);
   }
 
   lines.push(format!(""));
   lines.push(format!("  .section .rodata,\"a\",@progbits"));
+  lines.push(format!(".Lstatic_data_begin:"));
   for obj_def in prog.obj_defs.iter() {
     emit_obj_def(&mut lines, obj_def);
   }
 
   lines.push(format!(""));
-  lines.push(format!("  .section .rodata,\"aMS\",@progbits"));
+  lines.push(format!("  .section .rodata.str,\"aMS\",@progbits"));
   for str_def in prog.string_defs.iter() {
     emit_str_def(&mut lines, str_def);
   }
+
+  lines.push(format!(".Lstatic_data_end:"));
 
   lines.connect("\n")
 }
@@ -67,12 +83,12 @@ fn emit_obj_def(lines: &mut Vec<String>, obj_def: &asm::ObjDef) {
 
   match obj_def.obj {
     asm::Obj::Combinator(ref fun_name) => {
-      lines.push(format!("  .long _ZN6spiral17combinator_otableE"));
+      lines.push(format!("  .long _ZN6spiral10fun_otableE"));
       lines.push(format!("  .long {}", fun_name_symbol(fun_name)));
       lines.push(format!("  .size {},8", symbol));
     },
     asm::Obj::String(length, ref str_name) => {
-      lines.push(format!("  .long _ZN6spiral17static_str_otableE"));
+      lines.push(format!("  .long _ZN6spiral10str_otableE"));
       lines.push(format!("  .long {}", length));
       lines.push(format!("  .long {}", str_symbol(str_name)));
       lines.push(format!("  .size {},12", symbol));
@@ -80,9 +96,7 @@ fn emit_obj_def(lines: &mut Vec<String>, obj_def: &asm::ObjDef) {
     asm::Obj::Double(number) => {
       lines.push(format!("  .long _ZN6spiral13double_otableE"));
       lines.push(format!("  .double {}", number));
-      lines.push(format!("  .byte 1"));
-      lines.push(format!("  .skip 3"));
-      lines.push(format!("  .size {},16", symbol));
+      lines.push(format!("  .size {},12", symbol));
     },
   }
 }

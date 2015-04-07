@@ -4,30 +4,18 @@
 #include "spiral/string.hpp"
 
 namespace spiral {
-  const ObjTable dyn_str_otable = {
+  const ObjTable str_otable = {
     "string",
     &str_print,
     &str_length,
-    &dyn_str_evacuate,
-    &dyn_str_scavenge,
-    &dyn_str_drop,
+    &str_evacuate,
+    &str_scavenge,
+    &str_drop,
   };
-
-  const ObjTable static_str_otable = {
-    "string",
-    &str_print,
-    &str_length,
-    &static_str_evacuate,
-    &static_str_scavenge,
-    &static_str_drop,
-  };
-
 
   auto str_from_val(Bg* bg, Val val) -> StrObj* {
-    if(val.is_obj() && (val.get_otable() == &dyn_str_otable 
-          || val.get_otable() == &static_str_otable))
-    {
-      return reinterpret_cast<StrObj*>(val.unwrap_obj());
+    if(val.is_obj() && val.get_otable() == &str_otable) {
+      return val.unwrap_obj<StrObj>();
     } else {
       bg_panic(bg, "expected string");
     }
@@ -40,13 +28,7 @@ namespace spiral {
   auto str_from_obj_ptr(void* obj_ptr) -> StrObj* {
     assert(reinterpret_cast<uint32_t>(obj_ptr) % 4 == 0);
     auto otable = *reinterpret_cast<const ObjTable**>(obj_ptr);
-    assert(otable == &dyn_str_otable || otable == &static_str_otable);
-    return reinterpret_cast<StrObj*>(obj_ptr);
-  }
-
-  auto dyn_str_from_obj_ptr(void* obj_ptr) -> StrObj* {
-    assert(reinterpret_cast<uint32_t>(obj_ptr) % 4 == 0);
-    assert(*reinterpret_cast<const ObjTable**>(obj_ptr) == &dyn_str_otable);
+    assert(otable == &str_otable);
     return reinterpret_cast<StrObj*>(obj_ptr);
   }
 
@@ -59,37 +41,29 @@ namespace spiral {
     return sizeof(StrObj);
   }
 
-  auto dyn_str_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val {
-    auto old_obj = dyn_str_from_obj_ptr(obj_ptr);
-    auto new_obj = static_cast<StrObj*>(gc_get_copy_space(gc_ctx, sizeof(StrObj)));
-    new_obj->otable = &dyn_str_otable;
-    new_obj->length = old_obj->length;
-    new_obj->data = old_obj->data;
-    auto new_val = str_to_val(new_obj);
-    gc_write_fwd_ptr(gc_ctx, obj_ptr, new_val);
-    return new_val;
+  auto str_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val {
+    if(!ptr_is_static(obj_ptr)) {
+      auto old_obj = str_from_obj_ptr(obj_ptr);
+      auto new_obj = static_cast<StrObj*>(gc_get_copy_space(gc_ctx, sizeof(StrObj)));
+      new_obj->otable = &str_otable;
+      new_obj->length = old_obj->length;
+      new_obj->data = old_obj->data;
+      auto new_val = str_to_val(new_obj);
+      gc_write_fwd_ptr(gc_ctx, obj_ptr, new_val);
+      return new_val;
+    } else {
+      return Val::wrap_data_obj(obj_ptr);
+    }
   }
 
-  void dyn_str_scavenge(GcCtx*, void*) {
+  void str_scavenge(GcCtx*, void* obj_ptr) {
+    assert(!ptr_is_static(obj_ptr));
   }
 
-  void dyn_str_drop(Bg* bg, void* obj_ptr) {
-    auto obj = dyn_str_from_obj_ptr(obj_ptr);
-    bg_free_mem(bg, obj->data);
-  }
-
-  auto static_str_evacuate(GcCtx*, void* obj_ptr) -> Val {
+  void str_drop(Bg* bg, void* obj_ptr) {
+    assert(!ptr_is_static(obj_ptr));
     auto obj = str_from_obj_ptr(obj_ptr);
-    assert(obj->otable == &static_str_otable);
-    return str_to_val(obj);
-  }
-
-  void static_str_scavenge(GcCtx*, void*) {
-    assert("static str scavenged");
-  }
-
-  void static_str_drop(Bg*, void*) {
-    assert("static str dropped");
+    bg_free_mem(bg, obj->data);
   }
 
   extern "C" {
@@ -146,7 +120,7 @@ namespace spiral {
       data[data_idx++] = 0;
 
       auto new_obj = static_cast<StrObj*>(bg_get_obj_space(bg, sp, sizeof(StrObj)));
-      new_obj->otable = &dyn_str_otable;
+      new_obj->otable = &str_otable;
       new_obj->length = result_length;
       new_obj->data = data;
       return str_to_val(new_obj).u32;

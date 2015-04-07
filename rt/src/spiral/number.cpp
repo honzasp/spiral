@@ -16,7 +16,7 @@ namespace spiral {
 
   auto double_from_val(Bg* bg, Val val) -> DoubleObj* {
     if(val.is_obj() && val.get_otable() == &double_otable) {
-      return reinterpret_cast<DoubleObj*>(val.unwrap_obj());
+      return val.unwrap_obj<DoubleObj>();
     } else {
       bg_panic(bg, "expected double");
     }
@@ -36,7 +36,6 @@ namespace spiral {
     auto obj = static_cast<DoubleObj*>(bg_get_obj_space(bg, sp, sizeof(DoubleObj)));
     obj->otable = &double_otable;
     obj->num = number;
-    obj->is_static = false;
     return double_to_val(obj);
   }
 
@@ -51,7 +50,7 @@ namespace spiral {
 
   auto double_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val {
     auto old_obj = double_from_obj_ptr(obj_ptr);
-    if(old_obj->is_static == 0) {
+    if(!ptr_is_static(old_obj)) {
       auto new_obj = static_cast<DoubleObj*>(gc_get_copy_space(gc_ctx, sizeof(DoubleObj)));
       new_obj->otable = &double_otable;
       new_obj->num = old_obj->num;
@@ -65,12 +64,11 @@ namespace spiral {
 
   void double_scavenge(GcCtx*, void* obj_ptr) {
     auto obj = double_from_obj_ptr(obj_ptr);
-    assert(obj->is_static == 0);
+    assert(!ptr_is_static(obj));
   }
 
   void double_drop(Bg*, void* obj_ptr) {
-    auto obj = double_from_obj_ptr(obj_ptr);
-    assert(obj->is_static == 0);
+    assert(!ptr_is_static(obj_ptr));
   }
 
   template<typename I, typename D>
@@ -86,15 +84,15 @@ namespace spiral {
     if(a_is_int && b_is_int) {
       return Val::wrap_int(int_op(a_val.unwrap_int(), b_val.unwrap_int())).u32;
     } else if(a_is_dbl && b_is_dbl) {
-      auto a_dbl_obj = reinterpret_cast<DoubleObj*>(a_val.unwrap_obj());
-      auto b_dbl_obj = reinterpret_cast<DoubleObj*>(b_val.unwrap_obj());
+      auto a_dbl_obj = a_val.unwrap_obj<DoubleObj>();
+      auto b_dbl_obj = b_val.unwrap_obj<DoubleObj>();
       return double_new(bg, sp, dbl_op(a_dbl_obj->num, b_dbl_obj->num)).u32;
     } else if(a_is_dbl && b_is_int) {
-      auto a_dbl_obj = reinterpret_cast<DoubleObj*>(a_val.unwrap_obj());
+      auto a_dbl_obj = a_val.unwrap_obj<DoubleObj>();
       return double_new(bg, sp,
           dbl_op(a_dbl_obj->num, static_cast<double>(b_val.unwrap_int()))).u32;
     } else if(a_is_int && b_is_dbl) {
-      auto b_dbl_obj = reinterpret_cast<DoubleObj*>(b_val.unwrap_obj());
+      auto b_dbl_obj = b_val.unwrap_obj<DoubleObj>();
       return double_new(bg, sp,
           dbl_op(static_cast<double>(a_val.unwrap_int()), b_dbl_obj->num)).u32;
     } else {
@@ -110,7 +108,7 @@ namespace spiral {
     if(a_val.is_int()) {
       a_dbl = static_cast<double>(a_val.unwrap_int());
     } else if(a_val.is_obj() && a_val.get_otable() == &double_otable) {
-      auto a_dbl_obj = reinterpret_cast<DoubleObj*>(a_val.unwrap_obj());
+      auto a_dbl_obj = a_val.unwrap_obj<DoubleObj>();
       a_dbl = a_dbl_obj->num;
     } else {
       bg_panic(bg, "binary operation did not get a number");
@@ -119,7 +117,7 @@ namespace spiral {
     if(b_val.is_int()) {
       b_dbl = static_cast<double>(b_val.unwrap_int());
     } else if(b_val.is_obj() && b_val.get_otable() == &double_otable) {
-      auto b_dbl_obj = reinterpret_cast<DoubleObj*>(b_val.unwrap_obj());
+      auto b_dbl_obj = b_val.unwrap_obj<DoubleObj>();
       b_dbl = b_dbl_obj->num;
     } else {
       bg_panic(bg, "binary operation did not get a number");
@@ -134,7 +132,7 @@ namespace spiral {
     if(a_val.is_int()) {
       return Val::wrap_int(int_op(a_val.unwrap_int())).u32;
     } else if(a_val.is_obj() && a_val.get_otable() == &double_otable) {
-      auto a_dbl_obj = reinterpret_cast<DoubleObj*>(a_val.unwrap_obj());
+      auto a_dbl_obj = a_val.unwrap_obj<DoubleObj>();
       return double_new(bg, sp, dbl_op(a_dbl_obj->num)).u32;
     } else {
       bg_panic(bg, "unary operation did not get a number");
@@ -164,15 +162,15 @@ namespace spiral {
     if(a_is_int && b_is_int) {
       return Val::wrap_bool(int_cmp(a_val.unwrap_int(), b_val.unwrap_int())).u32;
     } else if(a_is_dbl && b_is_dbl) {
-      auto a_dbl_obj = reinterpret_cast<DoubleObj*>(a_val.unwrap_obj());
-      auto b_dbl_obj = reinterpret_cast<DoubleObj*>(b_val.unwrap_obj());
+      auto a_dbl_obj = a_val.unwrap_obj<DoubleObj>();
+      auto b_dbl_obj = b_val.unwrap_obj<DoubleObj>();
       return Val::wrap_bool(dbl_cmp(a_dbl_obj->num, b_dbl_obj->num)).u32;
     } else if(a_is_dbl && b_is_int) {
-      auto a_dbl_obj = reinterpret_cast<DoubleObj*>(a_val.unwrap_obj());
+      auto a_dbl_obj = a_val.unwrap_obj<DoubleObj>();
       return Val::wrap_bool(
           dbl_cmp(a_dbl_obj->num, static_cast<double>(b_val.unwrap_int()))).u32;
     } else if(a_is_int && b_is_dbl) {
-      auto b_dbl_obj = reinterpret_cast<DoubleObj*>(b_val.unwrap_obj());
+      auto b_dbl_obj = b_val.unwrap_obj<DoubleObj>();
       return Val::wrap_bool(
           dbl_cmp(static_cast<double>(a_val.unwrap_int()), b_dbl_obj->num)).u32;
     } else {
