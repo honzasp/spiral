@@ -1,3 +1,6 @@
 test equivalent numbers ok
 test equivalent strings ok
 test equivalent arrays ok
+test equivalent tuples ok
+test equivalent cons ok
+test equivalent fun ok

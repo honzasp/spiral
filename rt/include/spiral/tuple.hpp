@@ -18,6 +18,8 @@ namespace spiral {
   auto tuple_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void tuple_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   void tuple_drop(Bg* bg, void* obj_ptr);
+  auto tuple_eqv(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
+  auto tuple_equal(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
 
   extern const ObjTable tuple_otable;
 

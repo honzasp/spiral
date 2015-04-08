@@ -1,6 +1,7 @@
 #include <cstdio>
 #include "spiral/bool.hpp"
 #include "spiral/cons.hpp"
+#include "spiral/equiv.hpp"
 #include "spiral/gc.hpp"
 #include "spiral/print.hpp"
 
@@ -12,6 +13,8 @@ namespace spiral {
     &cons_evacuate,
     &cons_scavenge,
     &cons_drop,
+    &cons_eqv,
+    &cons_equal,
   };
 
   auto cons_from_val(Bg* bg, Val val) -> ConsObj* {
@@ -76,6 +79,16 @@ namespace spiral {
   }
 
   void cons_drop(Bg*, void*) {
+  }
+
+  auto cons_eqv(Bg*, void* l_ptr, void* r_ptr) -> bool {
+    return l_ptr == r_ptr;
+  }
+
+  auto cons_equal(Bg* bg, void* l_ptr, void* r_ptr) -> bool {
+    auto l_cons = static_cast<ConsObj*>(l_ptr);
+    auto r_cons = static_cast<ConsObj*>(r_ptr);
+    return equal(bg, l_cons->car, r_cons->car) && equal(bg, l_cons->cdr, r_cons->cdr);
   }
 
   extern "C" {

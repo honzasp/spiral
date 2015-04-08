@@ -18,6 +18,8 @@ namespace spiral {
   auto cons_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void cons_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   void cons_drop(Bg* bg, void* obj_ptr);
+  auto cons_eqv(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
+  auto cons_equal(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
 
   extern const ObjTable cons_otable;
 

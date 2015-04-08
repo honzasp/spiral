@@ -27,6 +27,7 @@ namespace spiral {
   auto fun_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void fun_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   void fun_drop(Bg* bg, void* obj_ptr);
+  auto fun_eqv(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
   
   auto fun_addr_call(Bg* bg, const void* fun_addr, void* last_sp) -> Val;
   void panic_invalid_fun(Bg* bg, uint32_t val);

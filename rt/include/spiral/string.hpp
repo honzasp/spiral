@@ -18,6 +18,7 @@ namespace spiral {
   auto str_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void str_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   void str_drop(Bg* bg, void* obj_ptr);
+  auto str_eqv(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
 
   extern const ObjTable str_otable;
 

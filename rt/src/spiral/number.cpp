@@ -12,6 +12,8 @@ namespace spiral {
     &double_evacuate,
     &double_scavenge,
     &double_drop,
+    &double_eqv,
+    &double_eqv,
   };
 
   auto double_from_val(Bg* bg, Val val) -> DoubleObj* {
@@ -69,6 +71,12 @@ namespace spiral {
 
   void double_drop(Bg*, void* obj_ptr) {
     assert(!ptr_is_static(obj_ptr));
+  }
+
+  auto double_eqv(Bg*, void* l_ptr, void* r_ptr) -> bool {
+    auto l_num = double_from_obj_ptr(l_ptr)->num;
+    auto r_num = double_from_obj_ptr(r_ptr)->num;
+    return l_num == r_num;
   }
 
   template<typename I, typename D>

@@ -9,6 +9,8 @@ namespace spiral {
     &fwd_ptr_evacuate,
     &fwd_ptr_scavenge,
     &fwd_ptr_drop,
+    &fwd_ptr_eqv,
+    &fwd_ptr_eqv,
   };
 
   static auto fwd_ptr_from_obj_ptr(void* obj_ptr) -> FwdPtrObj* {
@@ -17,8 +19,8 @@ namespace spiral {
     return static_cast<FwdPtrObj*>(obj_ptr);
   }
 
-  void fwd_ptr_print(Bg* bg, FILE*, Val) {
-    bg_panic(bg, "printing forward pointer");
+  void fwd_ptr_print(Bg*, FILE*, Val) {
+    assert("printing forward pointer");
   }
 
   auto fwd_ptr_length(void*) -> uint32_t {
@@ -31,8 +33,14 @@ namespace spiral {
   }
 
   void fwd_ptr_scavenge(GcCtx*, void*) {
+    assert("scavenging forward pointer");
   }
 
   void fwd_ptr_drop(Bg*, void*) {
+  }
+
+  auto fwd_ptr_eqv(Bg*, void*, void*) -> bool {
+    assert("comparing forward pointers");
+    return false;
   }
 }

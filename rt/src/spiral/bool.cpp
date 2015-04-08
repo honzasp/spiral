@@ -9,6 +9,8 @@ namespace spiral {
     &bool_evacuate,
     &bool_scavenge,
     &bool_drop,
+    &bool_eqv,
+    &bool_eqv,
   };
 
   const BoolObj true_obj = { &bool_otable };
@@ -41,5 +43,9 @@ namespace spiral {
 
   void bool_drop(Bg*, void*) {
     assert("bool dropped");
+  }
+
+  auto bool_eqv(Bg*, void* l_ptr, void* r_ptr) -> bool {
+    return l_ptr == r_ptr;
   }
 }

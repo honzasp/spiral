@@ -26,6 +26,8 @@ namespace spiral {
     auto (*evacuate_fun)(GcCtx* gc_ctx, void* obj_ptr) -> Val;
     void (*scavenge_fun)(GcCtx* gc_ctx, void* obj_ptr);
     void (*drop_fun)(Bg* bg, void* obj_ptr);
+    auto (*eqv_fun)(Bg* bg, void* l, void* r) -> bool;
+    auto (*equal_fun)(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
   };
 
   auto bg_alloc_mem(Bg* bg, uint32_t len) -> void*;

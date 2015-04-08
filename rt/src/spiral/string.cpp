@@ -11,6 +11,8 @@ namespace spiral {
     &str_evacuate,
     &str_scavenge,
     &str_drop,
+    &str_eqv,
+    &str_eqv,
   };
 
   auto str_from_val(Bg* bg, Val val) -> StrObj* {
@@ -64,6 +66,20 @@ namespace spiral {
     assert(!ptr_is_static(obj_ptr));
     auto obj = str_from_obj_ptr(obj_ptr);
     bg_free_mem(bg, obj->data);
+  }
+
+  auto str_eqv(Bg*, void* l_ptr, void* r_ptr) -> bool {
+    auto l_obj = str_from_obj_ptr(l_ptr);
+    auto r_obj = str_from_obj_ptr(r_ptr);
+    if(l_obj->length != r_obj->length) {
+      return false;
+    }
+    for(uint32_t i = 0; i < l_obj->length; ++i) {
+      if(l_obj->data[i] != r_obj->data[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   extern "C" {

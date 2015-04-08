@@ -1,6 +1,7 @@
 #include <cstdarg>
 #include <cstdlib>
 #include "spiral/core.hpp"
+#include "spiral/equiv.hpp"
 #include "spiral/gc.hpp"
 #include "spiral/print.hpp"
 #include "spiral/tuple.hpp"
@@ -13,6 +14,8 @@ namespace spiral {
     &tuple_evacuate,
     &tuple_scavenge,
     &tuple_drop,
+    &tuple_eqv,
+    &tuple_equal,
   };
 
   auto tuple_from_val(Bg* bg, Val val) -> TupleObj* {
@@ -72,6 +75,24 @@ namespace spiral {
   }
 
   void tuple_drop(Bg*, void*) {
+  }
+
+  auto tuple_eqv(Bg*, void* l_ptr, void* r_ptr) -> bool {
+    return l_ptr == r_ptr;
+  }
+
+  auto tuple_equal(Bg* bg, void* l_ptr, void* r_ptr) -> bool {
+    auto l_obj = static_cast<TupleObj*>(l_ptr);
+    auto r_obj = static_cast<TupleObj*>(r_ptr);
+    if(l_obj->length != r_obj->length) {
+      return false;
+    }
+    for(uint32_t i = 0; i < l_obj->length; ++i) {
+      if(!equal(bg, l_obj->data[i], r_obj->data[i])) {
+        return false;
+      }
+    }
+    return true;
   }
 
   extern "C" {

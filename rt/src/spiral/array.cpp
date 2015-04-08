@@ -1,8 +1,9 @@
 #include <cstdlib>
+#include "spiral/array.hpp"
 #include "spiral/core.hpp"
+#include "spiral/equiv.hpp"
 #include "spiral/gc.hpp"
 #include "spiral/print.hpp"
-#include "spiral/array.hpp"
 
 namespace spiral {
   const ObjTable array_otable = {
@@ -12,6 +13,8 @@ namespace spiral {
     &array_evacuate,
     &array_scavenge,
     &array_drop,
+    &array_eqv,
+    &array_equal,
   };
 
   auto array_from_val(Bg* bg, Val val) -> ArrayObj* {
@@ -73,6 +76,24 @@ namespace spiral {
     if(ary_obj->data != 0) {
       bg_free_mem(bg, ary_obj->data);
     }
+  }
+
+  auto array_eqv(Bg*, void* l_ptr, void* r_ptr) -> bool {
+    return l_ptr == r_ptr;
+  }
+
+  auto array_equal(Bg* bg, void* l_ptr, void* r_ptr) -> bool {
+    auto l_ary = static_cast<ArrayObj*>(l_ptr);
+    auto r_ary = static_cast<ArrayObj*>(r_ptr);
+    if(l_ary->length != r_ary->length) {
+      return false;
+    }
+    for(uint32_t i = 0; i < l_ary->length; ++i) {
+      if(!equal(bg, l_ary->data[i], r_ary->data[i])) {
+        return false;
+      }
+    }
+    return true;
   }
 
   extern "C" {

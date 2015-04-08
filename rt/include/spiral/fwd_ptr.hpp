@@ -13,6 +13,7 @@ namespace spiral {
   auto fwd_ptr_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void fwd_ptr_scavenge(GcCtx* gc_ctx, void* obj_ptr);
   void fwd_ptr_drop(Bg* bg, void* obj_ptr);
+  auto fwd_ptr_eqv(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
 
   extern const ObjTable fwd_ptr_otable;
 }

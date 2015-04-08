@@ -5,12 +5,14 @@
 
 namespace spiral {
   const ObjTable fun_otable = {
-    "closure",
-    fun_print,
-    fun_length,
-    fun_evacuate,
-    fun_scavenge,
-    fun_drop,
+    "fun",
+    &fun_print,
+    &fun_length,
+    &fun_evacuate,
+    &fun_scavenge,
+    &fun_drop,
+    &fun_eqv,
+    &fun_eqv,
   };
 
   auto fun_from_val(Bg* bg, Val val) -> FunObj* {
@@ -50,6 +52,10 @@ namespace spiral {
 
   void fun_drop(Bg*, void* obj_ptr) {
     assert(!ptr_is_static(obj_ptr));
+  }
+
+  auto fun_eqv(Bg*, void* l_ptr, void* r_ptr) -> bool {
+    return l_ptr == r_ptr;
   }
 
   auto fun_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val {
