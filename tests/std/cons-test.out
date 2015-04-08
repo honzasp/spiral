@@ -1,2 +1,11 @@
 test c..r ok
 test cons? ok
+test list? ok
+test list-len ok
+test list-tail ok
+test list-get ok
+test list-repeated ok
+test list-append ok
+test list-reverse ok
+test member-... ok
+test assoc-... ok
