@@ -201,6 +201,7 @@ obsahují sekvenci operací a jsou ukončeny skokem.
             | (int <int>)
             | (true)
             | (false)
+            | (undefined)
 <boolval>   = (is-true <val>) | (is-false <val>)
 \end{gram}
 
@@ -268,4 +269,8 @@ konstanta nebo ji lze snadno načíst z~paměti:
     objektu.
   \item[\texttt{(int <int>)}] je celočíselná konstanta.
   \item[\texttt{(true)}, \texttt{(false)}] jsou pravdivostní konstanty.
+  \item[\texttt{(undefined)}] je nedefinovaná hodnota. Tuto hodnotu mohou
+    vytvořit optimalizace, například při čtení z~proměnné, do které nebylo
+    zapsáno. Při zápis nedefinované hodnoty do proměnné či registru v~assembleru
+    není vygenerována žádná instrukce.
 \end{description}
