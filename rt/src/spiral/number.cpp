@@ -3,11 +3,12 @@
 #include "spiral/core.hpp"
 #include "spiral/gc.hpp"
 #include "spiral/number.hpp"
+#include "spiral/print.hpp"
 
 namespace spiral {
   const ObjTable double_otable = {
     "double",
-    &double_print,
+    &double_stringify,
     &double_length,
     &double_evacuate,
     &double_scavenge,
@@ -41,9 +42,9 @@ namespace spiral {
     return double_to_val(obj);
   }
 
-  void double_print(Bg* bg, FILE* stream, Val val) {
-    auto double_obj = double_from_val(bg, val);
-    std::fprintf(stream, "%lg", double_obj->num);
+  void double_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
+    auto double_obj = static_cast<DoubleObj*>(obj_ptr);
+    buffer_printf(bg, buf, "%lg", double_obj->num);
   }
 
   auto double_length(void*) -> uint32_t {

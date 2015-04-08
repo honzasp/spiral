@@ -4,7 +4,7 @@
 namespace spiral {
   const ObjTable fwd_ptr_otable = {
     "forward pointer (!!!)",
-    &fwd_ptr_print,
+    &fwd_ptr_stringify,
     &fwd_ptr_length,
     &fwd_ptr_evacuate,
     &fwd_ptr_scavenge,
@@ -19,7 +19,7 @@ namespace spiral {
     return static_cast<FwdPtrObj*>(obj_ptr);
   }
 
-  void fwd_ptr_print(Bg*, FILE*, Val) {
+  void fwd_ptr_stringify(Bg*, Buffer*, void*) {
     assert("printing forward pointer");
   }
 

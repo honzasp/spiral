@@ -6,7 +6,7 @@
 namespace spiral {
   const ObjTable str_otable = {
     "string",
-    &str_print,
+    &str_stringify,
     &str_length,
     &str_evacuate,
     &str_scavenge,
@@ -34,9 +34,17 @@ namespace spiral {
     return reinterpret_cast<StrObj*>(obj_ptr);
   }
 
-  void str_print(Bg* bg, FILE* stream, Val val) {
-    auto obj = str_from_val(bg, val);
-    std::fwrite(obj->data, obj->length, 1, stream);
+  auto str_from_buffer(Bg* bg, void* sp, Buffer buf) -> StrObj* {
+    auto str_obj = static_cast<StrObj*>(bg_get_obj_space(bg, sp, sizeof(StrObj)));
+    str_obj->otable = &str_otable;
+    str_obj->length = buf.length;
+    str_obj->data = buf.data;
+    return str_obj;
+  }
+
+  void str_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
+    auto str_obj = static_cast<StrObj*>(obj_ptr);
+    buffer_push_bytes(bg, buf, str_obj->data, str_obj->length);
   }
 
   auto str_length(void*) -> uint32_t {
@@ -123,7 +131,7 @@ namespace spiral {
       }
       va_end(args);
 
-      auto data = static_cast<uint8_t*>(bg_alloc_mem(bg, result_length + 1));
+      auto data = static_cast<uint8_t*>(bg_alloc_mem(bg, result_length));
       uint32_t data_idx = 0;
       va_start(args, count_);
       for(uint32_t i = 0; i < count; ++i) {
@@ -133,13 +141,18 @@ namespace spiral {
         }
       }
       assert(data_idx == result_length);
-      data[data_idx++] = 0;
 
       auto new_obj = static_cast<StrObj*>(bg_get_obj_space(bg, sp, sizeof(StrObj)));
       new_obj->otable = &str_otable;
       new_obj->length = result_length;
       new_obj->data = data;
       return str_to_val(new_obj).u32;
+    }
+
+    auto spiral_std_stringify(Bg* bg, void* sp, uint32_t x) -> uint32_t {
+      Buffer buf = buffer_new(bg);
+      stringify(bg, &buf, Val(x));
+      return Val::wrap_data_obj(str_from_buffer(bg, sp, buf)).u32;
     }
   }
 }

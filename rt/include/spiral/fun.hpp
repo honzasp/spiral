@@ -22,7 +22,7 @@ namespace spiral {
   auto fun_to_val(FunObj* fun) -> Val;
   auto fun_table_from_addr(void* fun_addr) -> const FunTable*;
 
-  void fun_print(Bg* bg, FILE* stream, Val val);
+  void fun_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto fun_length(void* obj_ptr) -> uint32_t;
   auto fun_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void fun_scavenge(GcCtx* gc_ctx, void* obj_ptr);

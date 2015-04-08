@@ -26,7 +26,7 @@
     (assert-eqv t (stringify 10) "10")
     (assert-eqv t (stringify 3.0) "3")
     (assert-eqv t (stringify 3.14) "3.14")
-    (assert-eqv t (stringify 1_000_000_000.0) "1e9")))
+    (assert-eqv t (stringify 1_000_000_000.0) "1e+09")))
 
   (test "stringify string" (lambda (t)
     (assert-eqv t (stringify "a string") "a string")))
@@ -39,5 +39,22 @@
     (array-push! a 3.14)
     (assert-eqv t (stringify a) "[10 two 3.14]")))
 
-  (test "stringify other objects" (lambda (t)
-    (assert-not t "not implemented"))))
+  (test "stringify tuple" (lambda (t)
+    (import std.tuple)
+    (assert-eqv t (stringify (tuple-0)) "(tuple-0)")
+    (assert-eqv t (stringify (tuple-1 10)) "(tuple-1 10)")
+    (assert-eqv t (stringify (tuple-2 "pi" 3.14)) "(tuple-2 pi 3.14)")
+    (assert-eqv t (stringify (tuple-4 1 2 3 4)) "(tuple-4 1 2 3 4)")))
+
+  (test "stringify cons" (lambda (t)
+    (assert-eqv t (stringify (cons 10 20)) "(10 . 20)")
+    (assert-eqv t (stringify (cons 1 (cons 2 (cons 3 false)))) "(1 2 3)")
+    (assert-eqv t (stringify (cons (cons 1 2) (cons 3 4))) "((1 . 2) 3 . 4)")))
+
+  (test "stringify fun" (lambda (t)
+    (assert-eqv t (stringify +) "<fun>")
+    (assert-eqv t (stringify (lambda (x) (+ x x))) "<fun>")))
+
+  (test "stringify bool" (lambda (t)
+    (assert-eqv t (stringify true) "true")
+    (assert-eqv t (stringify false) "false"))))

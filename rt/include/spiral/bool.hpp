@@ -8,7 +8,7 @@ namespace spiral {
     const ObjTable* otable;
   };
 
-  void bool_print(Bg* bg, FILE* stream, Val val);
+  void bool_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto bool_length(void* obj_ptr) -> uint32_t;
   auto bool_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void bool_scavenge(GcCtx* gc_ctx, void* obj_ptr);

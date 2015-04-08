@@ -8,7 +8,7 @@
 namespace spiral {
   const ObjTable cons_otable = {
     "cons",
-    &cons_print,
+    &cons_stringify,
     &cons_length,
     &cons_evacuate,
     &cons_scavenge,
@@ -35,26 +35,26 @@ namespace spiral {
     return Val::wrap_data_obj(reinterpret_cast<uint32_t*>(obj));
   }
 
-  void cons_print(Bg* bg, FILE* stream, Val val) {
-    std::fprintf(stream, "(");
+  void cons_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
+    buffer_push_byte(bg, buf, '(');
 
-    auto head_val = val;
+    auto head_val = Val::wrap_data_obj(obj_ptr);
     auto first = true;
     while(head_val.is_obj() && head_val.get_otable() == &cons_otable) {
       auto cons_obj = head_val.unwrap_obj<ConsObj>();
       if(!first) {
-        std::fprintf(stream, " ");
+        buffer_push_byte(bg, buf, ' ');
       }
-      print(bg, stream, cons_obj->car);
+      stringify(bg, buf, cons_obj->car);
       head_val = cons_obj->cdr;
       first = false;
     }
 
     if(head_val != false_val) {
-      std::fprintf(stream, " . ");
-      print(bg, stream, head_val);
+      buffer_push_cstr(bg, buf, " . ");
+      stringify(bg, buf, head_val);
     }
-    std::fprintf(stream, ")");
+    buffer_push_byte(bg, buf, ')');
   }
 
   auto cons_length(void*) -> uint32_t {

@@ -13,7 +13,7 @@ namespace spiral {
   auto double_from_obj_ptr(void* obj_ptr) -> DoubleObj*;
   auto double_new(Bg* bg, double num) -> Val;
 
-  void double_print(Bg* bg, FILE* stream, Val val);
+  void double_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto double_length(void* obj_ptr) -> uint32_t;
   auto double_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void double_scavenge(GcCtx* gc_ctx, void* obj_ptr);

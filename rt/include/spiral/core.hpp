@@ -5,6 +5,7 @@
 
 namespace spiral {
   struct GcCtx;
+  struct Buffer;
 
   struct Chunk {
     Chunk* next_chunk;
@@ -21,7 +22,7 @@ namespace spiral {
 
   struct ObjTable {
     const char* type_name;
-    void (*print_fun)(Bg* bg, FILE* stream, Val val);
+    void (*stringify_fun)(Bg* bg, Buffer* buf, void* obj_ptr);
     auto (*length_fun)(void* obj_ptr) -> uint32_t;
     auto (*evacuate_fun)(GcCtx* gc_ctx, void* obj_ptr) -> Val;
     void (*scavenge_fun)(GcCtx* gc_ctx, void* obj_ptr);

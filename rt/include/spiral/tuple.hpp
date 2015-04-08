@@ -13,7 +13,7 @@ namespace spiral {
   auto tuple_to_val(TupleObj* obj) -> Val;
   auto tuple_from_obj_ptr(void* obj_ptr) -> TupleObj*;
 
-  void tuple_print(Bg* bg, FILE* stream, Val val);
+  void tuple_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto tuple_length(void* obj_ptr) -> uint32_t;
   auto tuple_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void tuple_scavenge(GcCtx* gc_ctx, void* obj_ptr);

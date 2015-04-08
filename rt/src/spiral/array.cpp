@@ -8,7 +8,7 @@
 namespace spiral {
   const ObjTable array_otable = {
     "array",
-    &array_print,
+    &array_stringify,
     &array_length,
     &array_evacuate,
     &array_scavenge,
@@ -35,17 +35,17 @@ namespace spiral {
     return Val::wrap_data_obj(reinterpret_cast<uint32_t*>(obj));
   }
 
-  void array_print(Bg* bg, FILE* stream, Val val) {
-    auto ary_obj = array_from_val(bg, val);
+  void array_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
+    auto ary_obj = static_cast<ArrayObj*>(obj_ptr);
 
-    std::fprintf(stream, "[");
+    buffer_push_byte(bg, buf, '[');
     for(uint32_t i = 0; i < ary_obj->length; ++i) {
       if(i != 0) {
-        std::fprintf(stream, " ");
+        buffer_push_byte(bg, buf, ' ');
       }
-      print(bg, stream, ary_obj->data[i]);
+      stringify(bg, buf, ary_obj->data[i]);
     }
-    std::fprintf(stream, "]");
+    buffer_push_byte(bg, buf, ']');
   }
 
   auto array_length(void*) -> uint32_t {

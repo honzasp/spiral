@@ -5,3 +5,7 @@ test str-cat-... ok
 test stringify number ok
 test stringify string ok
 test stringify array ok
+test stringify tuple ok
+test stringify cons ok
+test stringify fun ok
+test stringify bool ok

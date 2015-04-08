@@ -9,7 +9,7 @@
 namespace spiral {
   const ObjTable tuple_otable = {
     "tuple",
-    &tuple_print,
+    &tuple_stringify,
     &tuple_length,
     &tuple_evacuate,
     &tuple_scavenge,
@@ -36,15 +36,15 @@ namespace spiral {
     return Val::wrap_data_obj(reinterpret_cast<uint32_t*>(obj));
   }
 
-  void tuple_print(Bg* bg, FILE* stream, Val val) {
-    auto tuple_obj = tuple_from_val(bg, val);
+  void tuple_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
+    auto tuple_obj = static_cast<TupleObj*>(obj_ptr);
 
-    std::fprintf(stream, "(tuple-%u", tuple_obj->length);
+    buffer_printf(bg, buf, "(tuple-%u", tuple_obj->length);
     for(uint32_t i = 0; i < tuple_obj->length; ++i) {
-      std::fprintf(stream, " ");
-      print(bg, stream, tuple_obj->data[i]);
+      buffer_push_byte(bg, buf, ' ');
+      stringify(bg, buf, tuple_obj->data[i]);
     }
-    std::fprintf(stream, ")");
+    buffer_push_byte(bg, buf, ')');
   }
 
   auto tuple_length(void* obj_ptr) -> uint32_t {

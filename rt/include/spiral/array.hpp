@@ -14,7 +14,7 @@ namespace spiral {
   auto array_to_val(ArrayObj* obj) -> Val;
   auto array_from_obj_ptr(void* obj_ptr) -> ArrayObj*;
 
-  void array_print(Bg* bg, FILE* stream, Val val);
+  void array_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto array_length(void* obj_ptr) -> uint32_t;
   auto array_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void array_scavenge(GcCtx* gc_ctx, void* obj_ptr);

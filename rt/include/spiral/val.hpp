@@ -7,6 +7,8 @@
 namespace spiral {
   using std::uint32_t;
   using std::int32_t;
+  using std::uint8_t;
+  using std::int8_t;
 
   struct Val;
   struct ObjTable;

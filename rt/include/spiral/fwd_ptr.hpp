@@ -8,7 +8,7 @@ namespace spiral {
     Val fwd;
   };
 
-  void fwd_ptr_print(Bg* bg, FILE* stream, Val val);
+  void fwd_ptr_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto fwd_ptr_length(void* obj_ptr) -> uint32_t;
   auto fwd_ptr_evacuate(GcCtx* gc_ctx, void* obj_ptr) -> Val;
   void fwd_ptr_scavenge(GcCtx* gc_ctx, void* obj_ptr);

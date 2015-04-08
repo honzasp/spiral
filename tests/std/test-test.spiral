@@ -16,4 +16,4 @@
     (assert-eq t 10 10)
     (assert-eq t 10 20)
     (assert-eqv t "a" "b")
-    (assert-equal t (cons "a" "b") (cons "a" "b")))))
+    (assert-equal t (cons "a" "b") (cons "b" "a")))))

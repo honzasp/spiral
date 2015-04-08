@@ -4,7 +4,7 @@
 namespace spiral {
   const ObjTable bool_otable = {
     "bool",
-    &bool_print,
+    &bool_stringify,
     &bool_length,
     &bool_evacuate,
     &bool_scavenge,
@@ -18,12 +18,14 @@ namespace spiral {
   const Val true_val = Val(reinterpret_cast<uint32_t>(&true_obj) + 0b11);
   const Val false_val = Val(reinterpret_cast<uint32_t>(&false_obj) + 0b11);
 
-  void bool_print(Bg*, FILE* stream, Val val) {
-    assert(val == true_val || val == false_val);
-    if(val == false_val) {
-      std::fprintf(stream, "false");
+  void bool_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
+    assert(obj_ptr == true_val.unwrap_obj<void>() 
+        || obj_ptr == false_val.unwrap_obj<void>());
+
+    if(obj_ptr == false_val.unwrap_obj<void>()) {
+      buffer_push_cstr(bg, buf, "false");
     } else {
-      std::fprintf(stream, "true");
+      buffer_push_cstr(bg, buf, "true");
     }
   }
 

@@ -6,7 +6,7 @@
 namespace spiral {
   const ObjTable fun_otable = {
     "fun",
-    &fun_print,
+    &fun_stringify,
     &fun_length,
     &fun_evacuate,
     &fun_scavenge,
@@ -40,8 +40,8 @@ namespace spiral {
     return reinterpret_cast<const FunTable*>(table_addr);
   }
 
-  void fun_print(Bg*, FILE* stream, Val) {
-    std::fprintf(stream, "<fun>");
+  void fun_stringify(Bg* bg, Buffer* buf, void*) {
+    buffer_push_cstr(bg, buf, "<fun>");
   }
 
   auto fun_length(void* obj_ptr) -> uint32_t {
@@ -93,9 +93,11 @@ namespace spiral {
   }
 
   void panic_invalid_fun(Bg* bg, uint32_t val) {
-    std::fprintf(stderr, "Expected fun, got ");
-    print(bg, stderr, Val(val));
-    bg_panic(bg, "invalid fun");
+    Buffer buf = buffer_new(bg);
+    buffer_push_cstr(bg, &buf, "Expected fun, got ");
+    stringify_short(bg, &buf, Val(val));
+    buffer_push_byte(bg, &buf, '\0');
+    bg_panic(bg, reinterpret_cast<const char*>(buf.data));
   }
 
   void panic_argc_mismatch(Bg* bg, void* fun_addr,
