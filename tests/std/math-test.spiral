@@ -1,0 +1,24 @@
+(program
+  (import std)
+  (import std.math)
+  (import std.test)
+
+  (test "neg" (lambda (t)
+    (assert-eq t (neg (neg 20)) 20)
+    (assert-eq t (- 0 3) (neg 3))))
+
+  (test "floor" (lambda (t)
+    (assert-eq t (floor 2.34) 2)
+    (assert-eq t (floor (neg 4.3)) (neg 5))))
+
+  (test "ceil" (lambda (t)
+    (assert-eq t (ceil 4.6) 5)
+    (assert-eq t (ceil (neg 10.3)) (neg 10))))
+
+  (test "abs" (lambda (t)
+    (assert-eq t (abs 10) 10)
+    (assert-eq t (abs (neg 3.45)) 3.45)))
+
+  (test "square" (lambda (t)
+    (assert-eq t (square 8) 64)
+    (assert-eq t (square 0.5) 0.25))))

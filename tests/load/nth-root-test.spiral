@@ -1,5 +1,7 @@
 (program
   (import std)
+  (import std.math)
+
   (fun root (n a)
     (fun iter (x)
       (var b (/ a (power (- n 1) x)))

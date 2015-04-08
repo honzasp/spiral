@@ -1,0 +1,5 @@
+test neg ok
+test floor ok
+test ceil ok
+test abs ok
+test square ok
