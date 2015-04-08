@@ -134,6 +134,8 @@ fn optimize_val(_prog_info: &ProgInfo, fun_info: &FunInfo,
       grit::Val::True,
     grit::Val::False =>
       grit::Val::False,
+    grit::Val::Undefined =>
+      grit::Val::Undefined,
   }
 }
 
@@ -239,7 +241,8 @@ fn mark_val_used(prog_info: &mut ProgInfo, fun_name: &grit::FunName, val: &grit:
     grit::Val::Obj(_) |
     grit::Val::Int(_) |
     grit::Val::True |
-    grit::Val::False => (),
+    grit::Val::False |
+    grit::Val::Undefined => (),
   }
 }
 

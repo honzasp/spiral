@@ -123,6 +123,8 @@ pub fn val_to_sexpr(val: &grit::Val) -> sexpr::Elem {
       vec![ident("true")],
     grit::Val::False =>
       vec![ident("false")],
+    grit::Val::Undefined =>
+      vec![ident("undefined")],
   })
 }
 
@@ -247,6 +249,7 @@ mod test {
           (obj y)
           (int 100)
           (true)
-          (false)))))");
+          (false)
+          (undefined)))))");
   }
 }

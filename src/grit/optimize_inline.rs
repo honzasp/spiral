@@ -173,6 +173,7 @@ fn injected_val(inject_env: &InjectEnv, val: grit::Val) -> grit::Val {
     grit::Val::Int(i) => grit::Val::Int(i),
     grit::Val::True => grit::Val::True,
     grit::Val::False => grit::Val::False,
+    grit::Val::Undefined => grit::Val::Undefined,
   }
 }
 

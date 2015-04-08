@@ -342,6 +342,7 @@ fn val_from_sexpr(elem: &sexpr::Elem) -> Result<grit::Val, String> {
           Ok(grit::Val::Int(try!(int_from_sexpr(&elems[1])))),
         "true" if elems.len() == 1 => Ok(grit::Val::True),
         "false" if elems.len() == 1 => Ok(grit::Val::False),
+        "undefined" if elems.len() == 1 => Ok(grit::Val::Undefined),
         _ => Err(format!("invalid val")),
       },
       _ => Err(format!("invalid val head")),
@@ -624,8 +625,7 @@ mod test {
         (combinator ff)
         (obj his-object)
         (int 100)
-        (true)
-        (false)))"),
+        (true) (false) (undefined)))"),
       Block { label: label("bb"), ops: vec![], 
         jump: Jump::TailCall(Callee::Combinator(fun("ff")), vec![
           Val::Var(var(1)),
@@ -634,8 +634,7 @@ mod test {
           Val::Combinator(fun("ff")),
           Val::Obj(obj_name("his-object")),
           Val::Int(100),
-          Val::True,
-          Val::False,
+          Val::True, Val::False, Val::Undefined,
         ])});
   }
 }

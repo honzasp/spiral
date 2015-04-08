@@ -104,7 +104,7 @@ fn main_body() -> Result<(), SpiralError> {
   }
 
   let grit = spine::to_grit::grit_from_spine(&spine);
-  let grit = grit::optimize_callees::optimize(grit);
+  let grit = grit::optimize_values::optimize(grit);
   let grit = grit::optimize_dead_vals::optimize(grit);
   let grit = grit::optimize_inline::optimize(grit);
   let grit = grit::optimize_dead_defs::optimize(grit);

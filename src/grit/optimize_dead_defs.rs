@@ -103,7 +103,8 @@ fn collect_val(info: &mut ProgInfo, val: &grit::Val) {
     grit::Val::Capture(_) |
     grit::Val::Int(_) |
     grit::Val::True |
-    grit::Val::False => (),
+    grit::Val::False |
+    grit::Val::Undefined => (),
   }
 }
 

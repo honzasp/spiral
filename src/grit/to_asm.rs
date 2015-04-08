@@ -493,6 +493,7 @@ fn move_mem_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
       instrs.push(asm::Instr::MoveMemImm(mem, asm::Imm::True)),
     grit::Val::False =>
       instrs.push(asm::Instr::MoveMemImm(mem, asm::Imm::False)),
+    grit::Val::Undefined => {},
   }
 }
 
@@ -518,6 +519,7 @@ fn move_reg_val(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
       instrs.push(asm::Instr::MoveRegImm(reg, asm::Imm::True)),
     grit::Val::False =>
       instrs.push(asm::Instr::MoveRegImm(reg, asm::Imm::False)),
+    grit::Val::Undefined => (),
   }
 }
 
@@ -545,10 +547,9 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
         },
         grit::Val::Arg(slot) => Some(grit::Slot(slot)),
         grit::Val::Capture(_) => None,
-        grit::Val::Combinator(_) => None,
-        grit::Val::Obj(_) => None,
-        grit::Val::Int(_) | grit::Val::True | grit::Val::False =>
-          None,
+        grit::Val::Combinator(_) | grit::Val::Obj(_) => None,
+        grit::Val::Int(_) | grit::Val::True |
+        grit::Val::False | grit::Val::Undefined => None,
       }).collect();
 
     let mut satisfied = Vec::new();
@@ -591,6 +592,7 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
             instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), asm::Imm::True)),
           grit::Val::False =>
             instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), asm::Imm::False)),
+          grit::Val::Undefined => (),
         }
         satisfied.push(i);
       }
@@ -644,6 +646,7 @@ fn cmp_val_imm(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
       instrs.push(asm::Instr::MoveRegImm(asm::Reg::EAX, asm::Imm::False));
       instrs.push(asm::Instr::CmpRegImm(asm::Reg::EAX, imm));
     },
+    grit::Val::Undefined => {},
   }
 }
 

@@ -83,6 +83,7 @@ pub enum Val {
   Int(i32),
   True,
   False,
+  Undefined,
 }
 
 #[derive(PartialEq, Debug, Clone)]
