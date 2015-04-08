@@ -184,9 +184,51 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
 
 \section{Standardní knihovna a základní typy}
 
-Standardní knihovna je implementována v~modulu \texttt{std} a definuje základní
-funkce. Jelikož program ve Spiral nemá implicitně definovaná žádná jména, je
-použití standardní knihovny prakticky nutností.
+Standardní knihovna definuje základní funkce. Jelikož program ve Spiral nemá
+implicitně definovaná žádná jména, je import standardní knihovny prakticky
+všudypřítomný.
+
+\begin{description}
+  \item[\texttt{std.core}] definuje základní operace s~čísly (\texttt{+},
+    \texttt{mod}, \texttt{<}, \texttt{==}, ...), predikáty ekvivalence
+    (\texttt{eqv?}, \texttt{equal?}) a funkce pro výstup (\texttt{println}).
+    Rovněž definuje logické proměnné \texttt{true} a \texttt{false}.
+
+  \item[\texttt{std.array}] poskytuje funkce pro práci s~poli
+    (\texttt{array-new}, \texttt{array-push!}, \texttt{array-get},
+    \texttt{array-empty?}, ...). Pole jsou indexovány celými čísly od nuly a
+    jejich délka i obsah jsou měnitelné.
+
+  \item[\texttt{std.tuple}] umožňuje používat n-tice (\emph{tuples}), a to
+    v~délce od 0 do 8 prvků. Modul definuje konstruktory (\texttt{tuple-2},
+    ...), funkce pro přístup k~jednotlivým prvkům (\texttt{get-0},
+    \texttt{get-2}) a predikáty (\texttt{tuple?}, \texttt{tuple-2?},
+    \texttt{tuple-n?}, ...). Prvky n-tic jsou neměnitelné.
+
+  \item[\texttt{std.cons}] definuje funkce pro práci s~páry (\emph{cons}), které
+    se převážně používají ve formě spojových seznamů, kdy první prvek páru
+    (\emph{car}) ukládá hodnotu prvního prvku seznamu a druhý prek prvek
+    (\emph{cdr}) odkazuje na zbytek seznamu. Konec seznamu reprezentuje
+    speciální hodnota (\emph{null} či \emph{nil}), pro kterou je ve Spiral
+    použito \texttt{false}. Tento modul definuje základní funkce pro práci
+    s~páry (\texttt{cons}, \texttt{car}, \texttt{cdr}, \texttt{cons?}, ...) i
+    pro manipulaci se seznamy (\texttt{list?}, \texttt{list-len},
+    \texttt{list-append}, \texttt{list-reverse}, ...). Páry jsou neměnné, což
+    znamená, že není možno vytvořit kruhový seznam.
+
+  \item[\texttt{std.math}] implementuje základní matematické funkce jako
+    \texttt{abs}, \texttt{neg}, \texttt{sin} nebo \texttt{atan-2}.
+
+  \item[\texttt{std.string}] exportuje funkce pracující s~řetězci
+    (\texttt{str-len}, \texttt{str-get}, \texttt{stringify}, \texttt{str-cat-2},
+    \texttt{str-cat-3}, ...). Řetězce jsou neměnitelné a jsou složené z~bytů.
+
+  \item[\texttt{std.test}] je minimalisticka knihovna pro tvorbu jednotkových
+    testů.
+\end{description}
+
+Modul \texttt{std} je poskytován pro pohodlný import základních funkcí
+(například \texttt{+} nebo \texttt{car}).
 
 \section{Ovládání překladače z~příkazové řádky}
 
