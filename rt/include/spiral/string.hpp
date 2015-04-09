@@ -28,6 +28,8 @@ namespace spiral {
     auto spiral_std_str_get(Bg* bg, void* sp, uint32_t str, uint32_t idx) -> uint32_t;
     auto spiral_std_str_cat(Bg* bg, void* sp, uint32_t count, ...) -> uint32_t;
     auto spiral_std_stringify(Bg* bg, void* sp, uint32_t x) -> uint32_t;
+    auto spiral_std_str_to_int(Bg* bg, void* sp, uint32_t str) -> uint32_t;
+    auto spiral_std_str_to_number(Bg* bg, void* sp, uint32_t str) -> uint32_t;
   }
 }
 #endif

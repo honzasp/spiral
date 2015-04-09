@@ -11,7 +11,7 @@ namespace spiral {
   auto double_from_val(Bg* bg, Val val) -> DoubleObj*;
   auto double_to_val(DoubleObj* obj) -> Val;
   auto double_from_obj_ptr(void* obj_ptr) -> DoubleObj*;
-  auto double_new(Bg* bg, double num) -> Val;
+  auto double_new(Bg* bg, void* sp, double num) -> Val;
 
   void double_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto double_length(void* obj_ptr) -> uint32_t;

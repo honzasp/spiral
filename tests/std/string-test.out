@@ -9,3 +9,5 @@ test stringify tuple ok
 test stringify cons ok
 test stringify fun ok
 test stringify bool ok
+test str->int ok
+test str->number ok
