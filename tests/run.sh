@@ -26,7 +26,8 @@ do
     ok=""
     if "$SPIRAL" $SPIRAL_FLAGS "$test_file" --output "$exec_file" --runtime "$RUNTIME"
     then
-      ./"$exec_file" >"$real_output_file" 2>&1
+      export SPIRAL_TEST_ENV="haskell curry"
+      "$exec_file" "alan turing" "alonzo church" >"$real_output_file" 2>&1
       if diff "$output_file" "$real_output_file" >/dev/null 
       then
         ok="yes"

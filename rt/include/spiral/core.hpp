@@ -6,6 +6,7 @@
 namespace spiral {
   struct GcCtx;
   struct Buffer;
+  struct StackRoot;
 
   struct Chunk {
     Chunk* next_chunk;
@@ -18,6 +19,9 @@ namespace spiral {
     Chunk* heap_chunk;
     uint32_t allocated_bytes;
     uint32_t last_alive_bytes;
+    StackRoot* top_stack_root;
+    int argc;
+    char** argv;
   };
 
   struct ObjTable {

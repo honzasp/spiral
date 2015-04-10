@@ -12,6 +12,7 @@ namespace spiral {
   auto cons_from_val(Bg* bg, Val val) -> ConsObj*;
   auto cons_to_val(ConsObj* obj) -> Val;
   auto cons_from_obj_ptr(void* obj_ptr) -> ConsObj*;
+  auto cons_new(Bg* bg, void* sp, Val car, Val cdr) -> ConsObj*;
 
   void cons_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto cons_length(void* obj_ptr) -> uint32_t;

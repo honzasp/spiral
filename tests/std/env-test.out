@@ -1,0 +1,2 @@
+test env-get-argv ok
+test env-get-var ok

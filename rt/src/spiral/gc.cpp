@@ -1,6 +1,7 @@
 #include "spiral/fun.hpp"
 #include "spiral/fwd_ptr.hpp"
 #include "spiral/gc.hpp"
+#include "spiral/stack_root.hpp"
 
 namespace spiral {
   void gc_collect(Bg* bg, void* sp) {
@@ -11,6 +12,7 @@ namespace spiral {
     gc_ctx.copied_bytes = 0;
 
     gc_evacuate_stack(&gc_ctx, sp);
+    gc_evacuate_roots(&gc_ctx, sp);
     for(Chunk* chunk = gc_ctx.to_heap_chunk; chunk != 0; chunk = chunk->next_chunk) {
       gc_scavenge_chunk(&gc_ctx, chunk);
     }
@@ -50,6 +52,14 @@ namespace spiral {
         }
         stack_ptr = stack_ptr + 8 + 4 * slot_count;
       }
+    }
+  }
+
+  void gc_evacuate_roots(GcCtx* gc_ctx, void*) {
+    auto root = gc_ctx->bg->top_stack_root;
+    while(root != 0) {
+      root->value = gc_evacuate(gc_ctx, root->value);
+      root = root->next;
     }
   }
 

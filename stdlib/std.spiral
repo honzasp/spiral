@@ -13,7 +13,7 @@
   (export not)
 
   (import std.cons)
-  (export cons cons? car cdr)
+  (export cons cons? car cdr null)
 
   (import std.tuple)
   (export tuple?)

@@ -1,0 +1,14 @@
+(program
+  (import std)
+  (import std.env)
+  (import std.test)
+
+  (test "env-get-argv" (lambda (t)
+    (assert-equal t (env-get-argv)
+      (cons "./std/env-test.exec"
+      (cons "alan turing"
+      (cons "alonzo church" null))))))
+
+  (test "env-get-var" (lambda (t)
+    (assert-eqv t (env-get-var "SPIRAL_TEST_ENV") "haskell curry")
+    (assert-eqv t (env-get-var "MISSING_ENV_VAR") false))))

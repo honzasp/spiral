@@ -4,6 +4,7 @@
 #include "spiral/equiv.hpp"
 #include "spiral/gc.hpp"
 #include "spiral/print.hpp"
+#include "spiral/stack_root.hpp"
 
 namespace spiral {
   const ObjTable cons_otable = {
@@ -25,14 +26,24 @@ namespace spiral {
     }
   }
 
+  auto cons_to_val(ConsObj* obj) -> Val {
+    return Val::wrap_data_obj(obj);
+  }
+
   auto cons_from_obj_ptr(void* obj_ptr) -> ConsObj* {
     assert(reinterpret_cast<uint32_t>(obj_ptr) % 4 == 0);
     assert(*reinterpret_cast<const ObjTable**>(obj_ptr) == &cons_otable);
     return reinterpret_cast<ConsObj*>(obj_ptr);
   }
 
-  auto cons_to_val(ConsObj* obj) -> Val {
-    return Val::wrap_data_obj(reinterpret_cast<uint32_t*>(obj));
+  auto cons_new(Bg* bg, void* sp, Val car, Val cdr) -> ConsObj* {
+    StackRoot car_root(bg, car);
+    StackRoot cdr_root(bg, cdr);
+    auto cons_obj = static_cast<ConsObj*>(bg_get_obj_space(bg, sp, sizeof(ConsObj)));
+    cons_obj->otable = &cons_otable;
+    cons_obj->cdr = cdr_root.unroot(bg);
+    cons_obj->car = car_root.unroot(bg);;
+    return cons_obj;
   }
 
   void cons_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
@@ -92,12 +103,10 @@ namespace spiral {
   }
 
   extern "C" {
-    auto spiral_std_cons_new(Bg* bg, void* sp, uint32_t car, uint32_t cdr) -> uint32_t {
-      auto cons_obj = static_cast<ConsObj*>(bg_get_obj_space(bg, sp, sizeof(ConsObj)));
-      cons_obj->otable = &cons_otable;
-      cons_obj->car.u32 = car;
-      cons_obj->cdr.u32 = cdr;
-      return cons_to_val(cons_obj).u32;
+    auto spiral_std_cons_new(Bg* bg, void* sp,
+        uint32_t car, uint32_t cdr) -> uint32_t 
+    {
+      return cons_to_val(cons_new(bg, sp, Val(car), Val(cdr))).u32;
     }
 
     auto spiral_std_is_cons(Bg*, void*, uint32_t val_) -> uint32_t {
@@ -107,12 +116,12 @@ namespace spiral {
       
     auto spiral_std_car(Bg* bg, void*, uint32_t cons) -> uint32_t {
       auto cons_obj = cons_from_val(bg, Val(cons));
-      return Val(cons_obj->car).u32;
+      return cons_obj->car.u32;
     }
 
     auto spiral_std_cdr(Bg* bg, void*, uint32_t cons) -> uint32_t {
       auto cons_obj = cons_from_val(bg, Val(cons));
-      return Val(cons_obj->cdr).u32;
+      return cons_obj->cdr.u32;
     }
   }
 }

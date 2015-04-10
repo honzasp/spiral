@@ -13,6 +13,7 @@ namespace spiral {
   auto str_to_val(StrObj* obj) -> Val;
   auto str_from_obj_ptr(void* obj_ptr) -> StrObj*;
   auto str_from_buffer(Bg* bg, void* sp, Buffer buf) -> StrObj*;
+  auto str_new_from_cstr(Bg* bg, void* sp, const char* cstr) -> StrObj*;
 
   void str_stringify(Bg* bg, Buffer* buf, void* obj_ptr);
   auto str_length(void* obj_ptr) -> uint32_t;

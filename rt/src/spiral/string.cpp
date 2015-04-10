@@ -28,7 +28,7 @@ namespace spiral {
   }
 
   auto str_to_val(StrObj* obj) -> Val {
-    return Val::wrap_data_obj(reinterpret_cast<uint32_t*>(obj));
+    return Val::wrap_data_obj(obj);
   }
 
   auto str_from_obj_ptr(void* obj_ptr) -> StrObj* {
@@ -43,6 +43,24 @@ namespace spiral {
     str_obj->otable = &str_otable;
     str_obj->length = buf.length;
     str_obj->data = buf.data;
+    return str_obj;
+  }
+
+  auto str_new_from_cstr(Bg* bg, void* sp, const char* cstr) -> StrObj* {
+    uint32_t length = 0;
+    while(cstr[length] != '\0') {
+      ++length;
+    }
+
+    auto data = static_cast<uint8_t*>(bg_alloc_mem(bg, length));
+    for(uint32_t i = 0; i < length; ++i) {
+      data[i] = static_cast<uint8_t>(cstr[i]);
+    }
+
+    auto str_obj = static_cast<StrObj*>(bg_get_obj_space(bg, sp, sizeof(StrObj)));
+    str_obj->otable = &str_otable;
+    str_obj->length = length;
+    str_obj->data = data;
     return str_obj;
   }
 
