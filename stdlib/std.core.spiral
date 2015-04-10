@@ -1,0 +1,27 @@
+(module std.core
+  (var true (and))
+  (var false (or))
+  (export true false)
+
+  (fun +  (a b) (extern spiral_std_add a b))
+  (fun -  (a b) (extern spiral_std_sub a b))
+  (fun *  (a b) (extern spiral_std_mul a b))
+  (fun /  (a b) (extern spiral_std_div a b))
+  (fun div (a b) (extern spiral_std_idiv a b))
+  (fun mod (a b) (extern spiral_std_imod a b))
+  (export + - * / div mod)
+
+  (fun <  (a b) (extern spiral_std_lt a b))
+  (fun <= (a b) (extern spiral_std_le a b))
+  (fun == (a b) (extern spiral_std_eq a b))
+  (fun /= (a b) (extern spiral_std_ne a b))
+  (fun >= (a b) (extern spiral_std_ge a b))
+  (fun >  (a b) (extern spiral_std_gt a b))
+  (export < <= == /= >= >)
+
+  (fun eqv? (a b) (extern spiral_std_eqv a b))
+  (fun equal? (a b) (extern spiral_std_equal a b))
+  (export eqv? equal?)
+
+  (fun println (x) (extern spiral_std_println x))
+  (export println))

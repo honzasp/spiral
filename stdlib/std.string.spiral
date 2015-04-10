@@ -1,0 +1,21 @@
+(module std.string
+  (fun str-len (str) (extern spiral_std_str_len str))
+  (fun str-get (str idx) (extern spiral_std_str_get str idx))
+  (fun stringify (x) (extern spiral_std_stringify x))
+  (export str-len str-get stringify)
+
+  (fun str-cat-0 () (extern spiral_std_str_cat 0))
+  (fun str-cat-1 (a) (extern spiral_std_str_cat 1 a))
+  (fun str-cat-2 (a b) (extern spiral_std_str_cat 2 a b))
+  (fun str-cat-3 (a b c) (extern spiral_std_str_cat 3 a b c))
+  (fun str-cat-4 (a b c d) (extern spiral_std_str_cat 4 a b c d))
+  (fun str-cat-5 (a b c d e) (extern spiral_std_str_cat 5 a b c d e))
+  (fun str-cat-6 (a b c d e f) (extern spiral_std_str_cat 6 a b c d e f))
+  (fun str-cat-7 (a b c d e f g) (extern spiral_std_str_cat 7 a b c d e f g))
+  (fun str-cat-8 (a b c d e f g h) (extern spiral_std_str_cat 8 a b c d e f g h))
+  (export str-cat-0 str-cat-1 str-cat-2 str-cat-3 str-cat-4)
+  (export str-cat-5 str-cat-6 str-cat-7 str-cat-8)
+  
+  (fun str->int (str) (extern spiral_std_str_to_int str))
+  (fun str->number (str) (extern spiral_std_str_to_number str))
+  (export str->int str->number))

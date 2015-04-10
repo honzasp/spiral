@@ -1,0 +1,48 @@
+(module std.cons
+  (import std.core)
+
+  (fun cons (a d) (extern spiral_std_cons_new a d))
+  (fun cons? (c) (extern spiral_std_is_cons c))
+  (fun car (c) (extern spiral_std_car c))
+  (fun cdr (c) (extern spiral_std_cdr c))
+  (fun caar (c) (car (car c)))
+  (fun cadr (c) (car (cdr c)))
+  (fun cdar (c) (cdr (car c)))
+  (fun cddr (c) (cdr (cdr c)))
+  (export cons cons? car cdr caar cadr cdar cddr)
+  
+  (var null false)
+  (fun null? (x) (if x false true))
+  (fun list? (xs)
+    (or (null? xs) (and (cons? xs) (list? (cdr xs)))))
+  (fun list-len (xs)
+    (if (null? xs) 0 (+ 1 (list-len (cdr xs)))))
+  (fun list-tail (xs k)
+    (if (<= k 0) xs (list-tail (cdr xs) (- k 1))))
+  (fun list-get (xs k)
+    (if (<= k 0) (car xs) (list-get (cdr xs) (- k 1))))
+  (export null null? list? list-len list-tail list-get)
+
+  (fun list-repeated (x len)
+    (if (<= len 0) null (cons x (list-repeated x (- len 1)))))
+  (fun list-append (xs ys)
+    (if (null? xs) ys (cons (car xs) (list-append (cdr xs) ys))))
+  (fun list-reverse (xs)
+    (fun iter (acc xs)
+      (if (null? xs) acc (iter (cons (car xs) acc) (cdr xs))))
+    (iter null xs))
+  (export list-repeated list-append list-reverse)
+
+  (fun member-cmp (pred xs)
+    (if (null? xs) null
+      (if (pred (car xs)) xs (member-cmp pred (cdr xs)))))
+  (fun member-eqv (x xs) (member-cmp (lambda (a) (eqv? x a)) xs))
+  (fun member-equal (x xs) (member-cmp (lambda (a) (equal? x a)) xs))
+  (export member-cmp member-eqv member-equal)
+
+  (fun assoc-cmp (pred pairs)
+    (if (null? pairs) null
+      (if (pred (caar pairs)) (cdar pairs) (assoc-cmp pred (cdr pairs)))))
+  (fun assoc-eqv (key pairs) (assoc-cmp (lambda (x) (eqv? x key)) pairs))
+  (fun assoc-equal (key pairs) (assoc-cmp (lambda (x) (equal? x key)) pairs))
+  (export assoc-cmp assoc-eqv assoc-equal))

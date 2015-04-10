@@ -1,0 +1,25 @@
+(module std
+  (import std.core)
+  (export true false)
+  (export + - * / div mod)
+  (export < <= == /= >= >)
+  (export eqv? equal?)
+  (export println)
+
+  (import std.math)
+  (export neg)
+
+  (import std.bool)
+  (export not)
+
+  (import std.cons)
+  (export cons cons? car cdr)
+
+  (import std.tuple)
+  (export tuple?)
+  (export tuple-0 tuple-1 tuple-2 tuple-3 tuple-4)
+  (export tuple-0? tuple-1? tuple-2? tuple-3? tuple-4?)
+  (export get-0 get-1 get-2 get-3)
+  
+  (import std.string)
+  (export str-cat-0 str-cat-1 str-cat-2 str-cat-3 str-cat-4))

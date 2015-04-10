@@ -1,0 +1,22 @@
+(module std.array
+  (import std.core)
+
+  (fun array-new () (extern spiral_std_array_new))
+  (fun array? (val) (extern spiral_std_is_array val))
+  (fun array-push! (ary x) (extern spiral_std_array_push ary x))
+  (fun array-pop! (ary) (extern spiral_std_array_pop ary))
+  (fun array-len (ary) (extern spiral_std_array_len ary))
+  (fun array-get (ary idx) (extern spiral_std_array_get ary idx))
+  (fun array-set! (ary idx val) (extern spiral_std_array_set ary idx val))
+  (export array-new array? array-push! array-pop! array-len array-get array-set!)
+
+  (fun array-empty? (ary) (== (array-len ary) 0))
+  (fun array-first (ary) (array-get ary 0))
+  (fun array-last (ary) (array-get ary (- (array-len ary) 1)))
+  (fun array-each (ary callback)
+    (fun iterate (i)
+      (if (and (< i (array-len ary)) (callback (array-get ary i)))
+        (iterate (+ 1 i))
+        false))
+    (iterate 0))
+  (export array-empty? array-first array-last array-each))

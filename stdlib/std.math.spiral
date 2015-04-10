@@ -1,0 +1,8 @@
+(module std.math
+  (import std.core)
+  (fun neg (a) (- 0 a))
+  (fun floor (a) (extern spiral_std_floor a))
+  (fun ceil (a) (extern spiral_std_ceil a))
+  (fun abs (a) (if (< a 0) (neg a) a))
+  (fun square (a) (* a a))
+  (export neg floor ceil abs square))

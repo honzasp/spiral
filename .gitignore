@@ -6,4 +6,5 @@ target/
 *.o
 !rt/*.s
 !examples/*.spiral
+!stdlib/*.spiral
 Session.vim

@@ -1,0 +1,5 @@
+(module std.bool
+  (import std.core)
+  (fun not (x) (if x false true))
+  (fun xor (a b) (if a (not b) b))
+  (export true false not xor))
