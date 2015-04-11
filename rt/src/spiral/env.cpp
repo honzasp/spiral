@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include "spiral/buffer.hpp"
 #include "spiral/cons.hpp"
 #include "spiral/env.hpp"
 #include "spiral/stack_root.hpp"
@@ -18,14 +19,12 @@ namespace spiral {
 
     auto spiral_std_env_get_var(Bg* bg, void* sp, uint32_t var) -> uint32_t {
       auto var_str = str_from_val(bg, Val(var));
-      auto var_cstr = static_cast<char*>(bg_alloc_mem(bg, var_str->length + 1));
-      for(uint32_t i = 0; i < var_str->length; ++i) {
-        var_cstr[i] = static_cast<char>(var_str->data[i]);
-      }
-      var_cstr[var_str->length] = '\0';
+      auto var_buf = buffer_new(bg);
+      buffer_push_bytes(bg, &var_buf, var_str->data, var_str->length);
+      buffer_push_byte(bg, &var_buf, '\0');
 
-      auto value_cstr = std::getenv(var_cstr);
-      bg_free_mem(bg, var_cstr);
+      auto value_cstr = std::getenv(reinterpret_cast<const char*>(var_buf.data));
+      buffer_drop(bg, var_buf);
 
       if(value_cstr != 0) {
         auto value_str = str_new_from_cstr(bg, sp, value_cstr);

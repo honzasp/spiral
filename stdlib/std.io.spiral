@@ -1,0 +1,45 @@
+(module std.io
+  (import std.core)
+  (import std.string)
+
+  (fun io-file-open (path) (extern spiral_std_io_file_open path))
+  (fun io-file-create (path) (extern spiral_std_io_file_create path))
+  (fun io-file-append (path) (extern spiral_std_io_file_append path))
+  (fun io-close (io) (extern spiral_std_io_close io))
+  (fun io-flush (io) (extern spiral_std_io_flush io))
+  (export io-file-open io-file-create io-file-append io-close io-flush)
+
+  (fun io? (io) (extern spiral_std_is_io io))
+  (fun io-eof? (io) (extern spiral_std_io_is_eof io))
+  (fun io-error? (io) (extern spiral_std_io_is_error io))
+  (export io? io-eof? io-error?)
+
+  (fun io-stdin () (extern spiral_std_io_stdin))
+  (fun io-stdout () (extern spiral_std_io_stdout))
+  (fun io-stderr () (extern spiral_std_io_stderr))
+  (export io-stdin io-stdout io-stderr)
+
+  (fun io-write-byte (io byte) (extern spiral_std_io_write_byte io byte))
+  (fun io-write (io x) (extern spiral_std_io_write io (stringify x)))
+  (fun io-write-line (io x) (extern spiral_std_io_write_line io (stringify x)))
+  (export io-write-byte io-write io-write-line)
+
+  (fun io-read-byte (io) (extern spiral_std_io_read_byte io))
+  (fun io-read-str (io len) (extern spiral_std_io_read_str io len))
+  (fun io-read-all-str (io) (extern spiral_std_io_read_all_str io))
+  (fun io-read-line (io) (extern spiral_std_io_read_line io))
+  (export io-read-byte io-read-str io-read-all-str io-read-line)
+
+  (fun io-read-word (io) (extern spiral_std_io_read_word io))
+  (fun io-read-int (io) (extern spiral_std_io_read_int io))
+  (fun io-read-number (io) (extern spiral_std_io_read_number io))
+  (export io-read-word io-read-int io-read-number)
+  
+  (fun io-file-read (path) 
+    (var file (io-file-open path))
+    (if (io? file)
+      (let ((content (io-read-all-str file)))
+        (io-close file)
+        content)
+      false))
+  (export io-file-read))

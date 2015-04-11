@@ -17,6 +17,14 @@ namespace spiral {
     &double_eqv,
   };
 
+  auto int_from_val(Bg* bg, Val val) -> int32_t {
+    if(val.is_int()) {
+      return val.unwrap_int();
+    } else {
+      bg_panic(bg, "expected int");
+    }
+  }
+
   auto double_from_val(Bg* bg, Val val) -> DoubleObj* {
     if(val.is_obj() && val.get_otable() == &double_otable) {
       return val.unwrap_obj<DoubleObj>();

@@ -32,7 +32,7 @@ namespace spiral {
   }
 
   auto array_to_val(ArrayObj* obj) -> Val {
-    return Val::wrap_data_obj(reinterpret_cast<uint32_t*>(obj));
+    return Val::wrap_data_obj(obj);
   }
 
   void array_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {

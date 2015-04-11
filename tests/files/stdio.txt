@@ -1,0 +1,3 @@
+The <stdio.h> header provides generic file operation support
+and supplies functions with narrow character input/output
+capabilities.

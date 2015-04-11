@@ -1,0 +1,19 @@
+test io-file-read ok
+test io-file-open ok
+test io-file-create ok
+test io-file-append ok
+test io? ok
+test io-eof? ok
+test io-error? ok
+test io-write-byte ok
+test io-write strings ok
+test io-write ok
+test io-write-line strings ok
+test io-write-line ok
+test io-read-byte ok
+test io-read-str ok
+test io-read-all-str ok
+test io-read-line ok
+test io-read-word ok
+test io-read-int ok
+test io-read-number ok

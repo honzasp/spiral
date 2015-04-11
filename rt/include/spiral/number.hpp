@@ -8,6 +8,7 @@ namespace spiral {
     double num;
   };
 
+  auto int_from_val(Bg* bg, Val val) -> int32_t;
   auto double_from_val(Bg* bg, Val val) -> DoubleObj*;
   auto double_to_val(DoubleObj* obj) -> Val;
   auto double_from_obj_ptr(void* obj_ptr) -> DoubleObj*;

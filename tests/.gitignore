@@ -5,3 +5,5 @@
 *.txt
 *.out~
 !*.spiral
+!files/*.txt
+files/_*

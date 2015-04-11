@@ -172,9 +172,14 @@ namespace spiral {
     }
 
     auto spiral_std_stringify(Bg* bg, void* sp, uint32_t x) -> uint32_t {
-      Buffer buf = buffer_new(bg);
-      stringify(bg, &buf, Val(x));
-      return Val::wrap_data_obj(str_from_buffer(bg, sp, buf)).u32;
+      auto x_val = Val(x);
+      if(x_val.is_obj() && x_val.get_otable() == &str_otable) {
+        return x_val.u32;
+      } else {
+        Buffer buf = buffer_new(bg);
+        stringify(bg, &buf, x_val);
+        return Val::wrap_data_obj(str_from_buffer(bg, sp, buf)).u32;
+      }
     }
 
     auto spiral_std_str_to_int(Bg* bg, void*, uint32_t str) -> uint32_t {
