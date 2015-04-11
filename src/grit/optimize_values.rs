@@ -118,7 +118,7 @@ fn update_callee(prog_info: &ProgInfo, fun_info: &FunInfo,
 
 fn update_val(prog_info: &ProgInfo, fun_info: &FunInfo, val: grit::Val) -> grit::Val {
   match val_info(fun_info, &val) {
-    Info::Any => grit::Val::Int(666),
+    Info::Any => grit::Val::Undefined,
     Info::Fun(fun_name) => 
       if prog_info.get(&fun_name).unwrap().capture_infos.len() == 0 {
         grit::Val::Combinator(fun_name)
@@ -297,8 +297,8 @@ fn join_info(info_1: &Info, info_2: &Info) -> Info {
       },
     (&Info::False, &Info::False) => Info::False,
     (&Info::True, &Info::True) => Info::True,
-    (&Info::False, _) => Info::Any,
-    (_, &Info::False) => Info::Any,
+    (&Info::False, _) => Info::No,
+    (_, &Info::False) => Info::No,
     (_, _) => Info::AnyTrue,
   }
 }
