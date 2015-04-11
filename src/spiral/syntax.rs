@@ -63,4 +63,5 @@ pub enum Expr {
   Int(i32),
   Double(f64),
   String(String),
+  Char(char),
 }

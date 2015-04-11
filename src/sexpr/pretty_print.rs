@@ -48,6 +48,7 @@ fn pp_inline_elem(buffer: &mut String, elem: &sexpr::Elem) {
     sexpr::Elem::Int(num) => buffer.push_str(format!("{}", num).as_slice()),
     sexpr::Elem::Double(num) => buffer.push_str(format!("{}", num).as_slice()),
     sexpr::Elem::String(ref txt) => buffer.push_str(format!("{:?}", txt).as_slice()),
+    sexpr::Elem::Char(chr) => buffer.push_str(format!("{:?}", chr).as_slice()),
   }
 }
 
@@ -56,7 +57,7 @@ fn count_words(elem: &sexpr::Elem) -> usize {
   match *elem {
     sexpr::Elem::List(ref list) => list.iter().map(count_words).sum() + 1,
     sexpr::Elem::Identifier(_) => 1,
-    sexpr::Elem::Int(_) | sexpr::Elem::Double(_) => 1,
+    sexpr::Elem::Int(_) | sexpr::Elem::Double(_) | sexpr::Elem::Char(_) => 1,
     sexpr::Elem::String(ref txt) => txt.len() / 8,
   }
 }

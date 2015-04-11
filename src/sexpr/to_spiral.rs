@@ -175,6 +175,8 @@ pub fn expr_from_sexpr(expr: &sexpr::Elem) -> Result<Expr, String> {
       Ok(Expr::Double(number)),
     sexpr::Elem::String(ref txt) =>
       Ok(Expr::String(txt.clone())),
+    sexpr::Elem::Char(chr) =>
+      Ok(Expr::Char(chr)),
     sexpr::Elem::List(ref list) => match list.get(0) {
       Some(&sexpr::Elem::Identifier(ref id)) => match id.as_slice() {
         "if" => if_from_sexpr(&list[1..]),
@@ -668,5 +670,10 @@ mod test {
   #[test]
   fn test_double() {
     assert_eq!(parse_expr("1.25"), s::Expr::Double(1.25));
+  }
+
+  #[test]
+  fn test_char() {
+    assert_eq!(parse_expr("'a'"), s::Expr::Char('a'));
   }
 }

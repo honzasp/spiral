@@ -16,6 +16,8 @@ pub fn translate_expr(st: &mut ProgSt, env: &Env, expr: &spiral::Expr)
       translate_string_expr(st, &txt[..]),
     spiral::Expr::Double(number) => 
       translate_double_expr(st, number),
+    spiral::Expr::Char(chr) =>
+      Ok((Onion::Hole, spine::Val::Int(chr as i32))),
     spiral::Expr::Var(ref var) => match env.lookup_var(var) {
       Some(spine_val) =>
         return Ok((Onion::Hole, spine_val.clone())),
@@ -87,6 +89,8 @@ pub fn translate_expr_tail(st: &mut ProgSt, env: &Env,
     },
     spiral::Expr::Int(number) => 
       Ok(spine::Term::Cont(result_cont, vec![spine::Val::Int(number)])),
+    spiral::Expr::Char(chr) => 
+      Ok(spine::Term::Cont(result_cont, vec![spine::Val::Int(chr as i32)])),
     spiral::Expr::Double(number) => {
       let (onion, val) = try!(translate_double_expr(st, number));
       Ok(onion.subst_term(spine::Term::Cont(result_cont, vec![val])))

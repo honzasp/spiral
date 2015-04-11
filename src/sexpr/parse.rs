@@ -18,6 +18,7 @@ fn read_element<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
     Some((ch, _)) => match ch {
       '(' => read_list(input),
       '"' => read_string(input),
+      '\'' => read_char(input),
       ch if ch.is_digit(10) => read_number(input),
       _ => read_identifier(input),
     },
@@ -88,15 +89,7 @@ fn read_string<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
       '\\' => match rest.slice_shift_char() {
           None => return Err(format!("unterminated escape sequence")),
           Some((esc, rest)) => {
-            buf.push(match esc {
-              '"' => '"',
-              '\\' => '\\',
-              'r' => '\r',
-              'n' => '\n',
-              't' => '\t',
-              'e' => '\u{1b}',
-              _ => return Err(format!("undefined escape {:?}", esc)),
-            });
+            buf.push(try!(escape_char(esc)));
             input = rest;
           },
       },
@@ -108,6 +101,36 @@ fn read_string<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
   }
 
   Err(format!("unterminated string"))
+}
+
+fn read_char<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
+  let mut input = match input.slice_shift_char() {
+    Some(('\'', rest)) => rest,
+    _ => return Err(format!("Char must start with '''")),
+  };
+
+  let mut character;
+  if let Some((ch, rest)) = input.slice_shift_char() {
+    if ch == '\\' {
+      if let Some((esc, rest)) = rest.slice_shift_char() {
+        character = try!(escape_char(esc));
+        input = rest;
+      } else {
+        return Err(format!("unterminated escape sequence"));
+      }
+    } else {
+      character = ch;
+      input = rest;
+    }
+  } else {
+    return Err(format!("unterminated character"));
+  }
+
+  if let Some(('\'', rest)) = input.slice_shift_char() {
+    Ok((Elem::Char(character), rest))
+  } else {
+    Err(format!("unterminated character"))
+  }
 }
 
 fn read_list<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
@@ -131,6 +154,18 @@ fn read_list<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
       None => return Err(format!("unterminated list")),
     }
   }
+}
+
+fn escape_char(esc: char) -> Result<char, String> {
+  Ok(match esc {
+    '"' => '"',
+    '\\' => '\\',
+    'r' => '\r',
+    'n' => '\n',
+    't' => '\t',
+    'e' => '\u{1b}',
+    _ => return Err(format!("undefined escape {:?}", esc)),
+  })
 }
 
 #[cfg(test)]
@@ -180,5 +215,13 @@ mod test {
       Ok(Elem::String("C:\\Windows".to_string())));
     assert_eq!(parse_sexpr("\"\\r\\n\\t\\e\""), 
       Ok(Elem::String("\r\n\t\u{1b}".to_string())));
+  }
+
+  #[test]
+  fn test_char() {
+    assert_eq!(parse_sexpr("'a'"), Ok(Elem::Char('a')));
+    assert_eq!(parse_sexpr("'\n'"), Ok(Elem::Char('\n')));
+    assert_eq!(parse_sexpr("'\''"), Ok(Elem::Char('\'')));
+    assert_eq!(parse_sexpr("'\"'"), Ok(Elem::Char('"')));
   }
 }

@@ -12,9 +12,9 @@
 
   (test "str-get" (lambda (t)
     (assert-eq t (str-get "\n" 0) 10)
-    (assert-eq t (str-get "\t" 0) 9)
-    (assert-eq t (str-get "Spiral" 2) 105)
-    (assert-eq t (str-get "quick brown fox" 12) 102)))
+    (assert-eq t (str-get "\t" 0) '\t')
+    (assert-eq t (str-get "Spiral" 2) 'i')
+    (assert-eq t (str-get "quick brown fox" 12) 'f')))
 
   (test "str-cat-..." (lambda (t)
     (assert-eqv t (str-cat-0) "")
