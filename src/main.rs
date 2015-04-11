@@ -31,6 +31,7 @@ fn main_body() -> Result<(), SpiralError> {
   let os_args: Vec<_> = env::args().collect();
   let args = parse_args(os_args.iter().map(|arg| &arg[..]).collect())
     .unwrap_or_else(|e| e.exit());
+  let opt_level = args.flag_opt_level.unwrap_or(2);
 
   let output_path = match args.flag_output {
     Some(ref path) => path::PathBuf::from(path),
@@ -104,16 +105,13 @@ fn main_body() -> Result<(), SpiralError> {
   }
 
   let grit = spine::to_grit::grit_from_spine(&spine);
-  let grit = grit::optimize_values::optimize(grit);
-  let grit = grit::optimize_dead_vals::optimize(grit);
-  let grit = grit::optimize_inline::optimize(grit);
-  let grit = grit::optimize_dead_defs::optimize(grit);
+  let grit = optimize_grit(grit, opt_level);
   if args.flag_emit == Some(Emit::Grit) {
     return dump_sexpr(&grit::to_sexpr::prog_to_sexpr(&grit));
   }
 
   let asm = grit::to_asm::asm_from_grit(&grit);
-  let asm = asm::simplify::simplify_prog(asm);
+  let asm = optimize_asm(asm, opt_level);
   if args.flag_emit == Some(Emit::Asm) {
     return dump(format!("{:?}", asm))
   }
@@ -158,6 +156,35 @@ fn main_body() -> Result<(), SpiralError> {
   }
 
   Ok(())
+}
+
+fn optimize_grit(mut grit: grit::ProgDef, level: u8) -> grit::ProgDef {
+  if level >= 1 {
+    grit = grit::optimize_values::optimize(grit);
+    grit = grit::optimize_dead_vals::optimize(grit);
+  } 
+
+  if level >= 2 {
+    grit = grit::optimize_inline::optimize(grit);
+    if level >= 3 {
+      grit = grit::optimize_values::optimize(grit);
+      grit = grit::optimize_dead_vals::optimize(grit);
+    }
+  }
+
+  if level >= 1 {
+    grit = grit::optimize_dead_defs::optimize(grit);
+  }
+
+  grit
+}
+
+fn optimize_asm(mut asm: asm::ProgDef, level: u8) -> asm::ProgDef {
+  if level >= 1 {
+    asm = asm::simplify::simplify_prog(asm);
+  }
+
+  asm
 }
 
 pub fn main() {

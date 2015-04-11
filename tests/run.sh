@@ -1,7 +1,7 @@
 #!/bin/bash
 cd $(dirname $0)
 SPIRAL="../target/debug/spiral"
-SPIRAL_FLAGS="--include mods --include ../stdlib"
+SPIRAL_FLAGS="--include mods --include ../stdlib --opt-level 3"
 FAST_RUNTIME="../rt/build/runtime_fast.a"
 DEBUG_RUNTIME="../rt/build/runtime_debug.a"
 GREEN="\e[32m"

@@ -5,15 +5,17 @@ Usage: spiral [--include <path>]... [options] [--] <input>
        spiral (--help | --version)
 
 Options:
-    -h, --help            Show this message
-    -v, --version         Show the version
-    -o, --output <file>   Set the output file
-    -I, --include <path>  Add the path for module lookup
-    -e, --emit <type>     Emit the specified output.
-                          Valid values are sexpr, spiral, spine, grit, asm, gas and exec
-    -t, --runtime <file>  Set the path to C runtime library
-    --link-cmd <cmd>      Set the linker command
-    --gas-cmd <cmd>       Set the assembler command
+    -h, --help                Show this message
+    -v, --version             Show the version
+    -o, --output <file>       Set the output file
+    -I, --include <path>      Add the path for module lookup
+    -e, --emit <type>         Emit the specified output.
+                              Valid values are sexpr, spiral, spine, grit, asm,
+                              gas and exec
+    -t, --runtime <file>      Set the path to C runtime library
+    --link-cmd <cmd>          Set the linker command
+    --gas-cmd <cmd>           Set the assembler command
+    -O, --opt-level <level>   Set the optimization level (0 to 3, default 2)
 ";
 
 #[derive(RustcDecodable, Debug, PartialEq)]
@@ -25,6 +27,7 @@ pub struct Args {
   pub flag_runtime: Option<String>,
   pub flag_link_cmd: Option<String>,
   pub flag_gas_cmd: Option<String>,
+  pub flag_opt_level: Option<u8>,
 }
 
 #[derive(RustcDecodable, Debug, Copy, PartialEq)]
@@ -60,6 +63,7 @@ mod test {
     flag_runtime: None,
     flag_link_cmd: None,
     flag_gas_cmd: None,
+    flag_opt_level: None,
   } }
 
   #[test]
@@ -84,5 +88,17 @@ mod test {
         flag_emit: Some(Emit::Grit),
         .. default_args()
       });
+  }
+
+  #[test]
+  fn test_opt_level() {
+    assert_eq!(parse_args(vec![
+        "spiral", "-O2", "input"
+      ]).unwrap(),
+    Args {
+      arg_input: "input".to_string(),
+      flag_opt_level: Some(2),
+      .. default_args()
+    });
   }
 }
