@@ -41,9 +41,9 @@
     - překlad ze spiral (tails, onions)
   - grit 
     - gramatika
-    - překlad ze spine (klasifikace volání, continuations)
+    - překlad ze spine
     - optimalizace
-      - optimalizace volání známých funkcí
+      - optimalizace známých hodnot (zvláště funkcí)
       - odstranění nepotřebných hodnot
       - inlining funkcí
       - odstranění nepotřebných definic

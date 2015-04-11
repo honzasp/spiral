@@ -274,3 +274,62 @@ konstanta nebo ji lze snadno načíst z~paměti:
     zapsáno. Při zápis nedefinované hodnoty do proměnné či registru v~assembleru
     není vygenerována žádná instrukce.
 \end{description}
+
+\subsection{Překlad z~jazyka Spine}
+
+Překlad ze Spine do Gritu je poměrně přímočarý. Volání \emph{continuation} je
+přeloženo jako přiřazení do proměnných vygenerovaných jako argumenty a skok do
+bloku, kterým tělo \emph{continuation} začíná. Ostatní konstrukce ve Spine mají
+v~jazyku Grit přímý ekvivalent.
+
+\subsection{Optimalizace}
+
+Jelikož je jazyk Spiral poměrně chudý, nabízí se relativně málo možností
+optimalizace. Proto se první optimalizační fáze aplikují až na nízkoúrovňový
+Grit a jedná se převážně o zjednodušující a zeštíhlující proces.
+
+\subsubsection{Optimalizace známých hodnot}
+
+V~této fázi, která operuje nad celým programem, je určen odhad hodnot, kterých
+může nabýt každá proměnná, zachycená proměnná a návratová hodnota. Tyto
+informace jsou poté využity několikerým způsobem:
+
+\begin{itemize}
+  \item Optimalizace známých volání nahrazením \texttt{(call (unknown ...) ...)}
+    za \texttt{(call (known-closure ...) ...)} nebo \texttt{(call (combinator
+    ...) ...)}.
+  \item Nahrazení větvení nepodmíněným skokem, pokud je možné staticky dokázat,
+    že testovací hodnota je vždy pravdivá nebo vždy nepravdivá.
+  \item Propagace konstant odstraní proměnné, jejichž hodnota je konstantní
+    (číslo, pravdivostní hodnota nebo staticky alokovaný objekt).
+\end{itemize}
+
+\subsubsection{Odstranění nepotřebných hodnot}
+
+Tato fáze je opět globální a jejím účelem je převážně zrušit nepotřebné
+zachycené hodnoty, ovšem zároveň je možno odstranit i zápisy do nevyužitých
+proměnných a alokaci zbytečných funkcí.
+
+\subsubsection{Inlining funkcí}
+
+Během fáze inliningu jsou volání vybraných funkcí nahrazena přímým vložením
+volané funkce do funkce volající. Tato optimalizace je pro funkcionální programy
+zcela klíčová, protože se většinou skládají z~velkého počtu malých funkcí.
+Jejich expanzí na místo volání se ušetří instrukce pro manipulaci se zásobníkem
+a pro samotné volání a návrat z~funkce. Zároveň je pak možné provést další
+optimalizace, převážně proto, že jsou nyní zpravidla k~dispozici lepší informace
+o argumentech volané funkce. Na druhou stranu takto dochází k~duplikaci kódu a
+většinou tak i k~nárůstu délky výsledného programu.
+
+Pro inlining jsou nyní vybírány funkce, které jsou dostatečně malé, jsou
+kombinátory a nevolají jiné funkce kromě externích. Do této kategorie spadá
+většina funkcí standardní knihovny, které obvykle pouze obalují externí volání
+do podpůrné běhové knihovny.
+
+\subsubsection{Odstranění nepotřebných definic}
+
+Tato optimalizace je známá rovněž jako odstranění mrtvého kódu (\emph{dead code
+elimination}) a spočívá ve vynechání funkcí a staticky alokovaných objektů,
+které nejsou referencovány z~hlavní funkce a jsou tedy zbytečné. Kromě
+nepoužitých definic z~importovaných modulů jsou obvykle odstraněny i funkce,
+jejichž volání byla všude inlinována.
