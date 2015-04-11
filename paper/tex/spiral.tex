@@ -106,6 +106,7 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
               | <integer-literal>
               | <float-literal>
               | <string-literal>
+              | <character-literal>
 \end{gram}
 
 \begin{description}
@@ -113,6 +114,9 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
     konstanty, které se vyhodnotí na číslo, které reprezentují. Číslice je
     množno oddělovat podtržitky a v~zápisu desetinného čísla je možno použít
     exponent.
+
+  \item[\texttt{<character-literal>}] je znaková konstanta, která se vyhodnotí
+    na číselnou hodnotu znaku.
 
   \item[\texttt{<string-literal>}] je řetězcový literál uzavřený v~uvozovkách,
     ve kterém je možné použít escape sekvence z~jazyka C a podobných
@@ -216,12 +220,21 @@ všudypřítomný.
     \texttt{list-append}, \texttt{list-reverse}, ...). Páry jsou neměnné, což
     znamená, že není možno vytvořit kruhový seznam.
 
-  \item[\texttt{std.math}] implementuje základní matematické funkce jako
-    \texttt{abs}, \texttt{neg}, \texttt{sin} nebo \texttt{atan-2}.
-
   \item[\texttt{std.string}] exportuje funkce pracující s~řetězci
     (\texttt{str-len}, \texttt{str-get}, \texttt{stringify}, \texttt{str-cat-2},
     \texttt{str-cat-3}, ...). Řetězce jsou neměnitelné a jsou složené z~bytů.
+
+  \item[\texttt{std.io}] slouží pro vstupní a výstupní operace
+    (\emph{input/output}) se soubory a standardním vstupem, výstupem a chybovým
+    výstupem (\texttt{io-file-open}, \texttt{io-close}, \texttt{io-stdin},
+    \texttt{io-write-line}, \texttt{io-read-line}, \texttt{io-read-number},
+    ...).
+
+  \item[\texttt{std.env}] poskytuje programu přístup k~argumentům z~příkazové
+    řádky (\textt{env-get-argv}) a k~proměnným prostředí (\texttt{env-get-var}).
+
+  \item[\texttt{std.math}] implementuje základní matematické funkce jako
+    \texttt{abs}, \texttt{neg}, \texttt{sin} nebo \texttt{atan-2}.
 
   \item[\texttt{std.test}] je minimalisticka knihovna pro tvorbu jednotkových
     testů.
