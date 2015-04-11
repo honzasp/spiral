@@ -308,7 +308,9 @@ informace jsou poté využity několikerým způsobem:
 
 Tato fáze je opět globální a jejím účelem je převážně zrušit nepotřebné
 zachycené hodnoty, ovšem zároveň je možno odstranit i zápisy do nevyužitých
-proměnných a alokaci zbytečných funkcí.
+proměnných a alokaci zbytečných funkcí. Často se stane, že funkce přijde o
+všechny zachycené hodnoty, čímž se stane kombinátorem. Její použití pak již není
+spojeno s~alokací paměti.
 
 \subsubsection{Inlining funkcí}
 
@@ -333,3 +335,83 @@ elimination}) a spočívá ve vynechání funkcí a staticky alokovaných objekt
 které nejsou referencovány z~hlavní funkce a jsou tedy zbytečné. Kromě
 nepoužitých definic z~importovaných modulů jsou obvykle odstraněny i funkce,
 jejichž volání byla všude inlinována.
+
+\subsubsection{Pořadí optimalizací}
+
+U optimalizačních fází je velmi důležité pořadí, v~jakém jsou na program
+aplikovány. Optimalizace známých hodnot zanechá část proměnných a zachycených
+hodnot bez využití. Tyto proměnné jsou následně odstraněny ve fázi odstranění
+nepotřebných hodnot. Zároveň se takto zvýší počet kombinátorů, které můžeme
+inlinovat. Po inliningu pak dostaneme řadu nepotřebných definic, které jsou
+kandidáty na odstranění.
+
+Úroveň optimalizací je možno ovlivnit z~argumentů příkazové řádky. Na úrovni 0
+neprobíhá žádná optimalizace. Úroveň 1 zapne všechny optimalizace ve výše
+uvedeném pořadí kromě inliningu, který je umožněn až od úrovně 2. Při úrovni 3
+pak po inliningu následuje ještě jednou optimalizace známých hodnot a odstranění
+nepotřebných hodnot.
+
+\section{Alokace slotů}
+
+Program v~Gritu typicky pracuje s~velkým množstvím proměnných. Bylo by ovšem
+značným plýtváním paměti, pokud bychom každé proměnné alokovali na zásobníku
+zvláští prostor (slot), jelikož doba života proměnné je obvykle krátká a její
+slot by byl většinu času nevyužit. Proto je potřeba několika proměnným přiřadit
+stejný slot, ovšem samozřejmě tak, aby nedošlo ke ztrátě informace, tedy aby
+zápis do proměnné nepřepsal hodnotu jiné proměnné, ze které se bude později
+číst.
+
+Této fázi v~běžných překladačích odpovídá alokace registrů, ovšem náš generátor
+kódu je zjednodušený, takže všechny proměnné rovnou umístíme do paměti. Podobně
+jako při alokaci registrů však můžeme použít přístup s~užitím barvení grafu
+interference
+\cite{chaitin1981register,chaitin1982register,briggs1994improvements}, ovšem
+postup je jednodušší díky tomu, že počet barev (registrů) nemáme omezen, pouze
+se jej snažíme minimalizovat. Proto stačí pouze sestavit graf interference a ten
+pak hladovým algoritmem obarvit. Nyní jsou vrcholy barveny v~pořadí podle počtu
+vycházejících hran sestupně.
+
+\section{Assembler}
+
+Posledním krokem při překladu je generování assembleru z~jazyka Grit. Výsledný
+soubor obsahuje kód všech funkcí, staticky alokované objekty a řetězce.  Kvůli
+podpoře koncových volání mají funkce jazyka Spiral jinou volací konvenci
+(\emph{calling convention}) než funkce v~jazyku C. Argumenty pro funkci v~C jsou
+totiž umístěny na zásobníku v~oblasti volající funkce, pro koncová volání je
+však potřeba, aby z~volající funkce na zásobníku nic nezbylo, argumenty proto
+musí volaná funkce dostat do své oblasti.
+
+Zásobník ve funkci s~\texttt{N} sloty vypadá takto (relativně vůči vrcholu
+zásobníku v~registru \texttt{\%esp}):
+
+\begin{ttcode}
+  4*N+4  :  return address
+    4*N  :  slot 0 (argument 0)
+  4*N-4  :  slot 1 (argument 1)
+            ...
+      8  :  slot (N-2)
+      4  :  slot (N-1)
+      0  :  closure value
+\end{ttcode}
+
+Volaná funkce dostane argumenty ve svých několika prvních slotech, které se
+nachází těsně pod návratovou adresou (zapsanou instrukcí \texttt{call}). Ostatní
+sloty jsou umístěny níž. Počet argumentů u neznámých volání je uložen v~registru
+\texttt{\%eax}, hodnota funkce v~\texttt{\%ecx}. Tuto hodnotu funkce zapíše na
+začátek svého zásobníku, aby bylo možno projít zásobník při úklidu paměti.
+Návratovou hodnotu pak funkce na místo volání předá v~registru \texttt{\%eax}.
+
+Volání funkce pak proběhne tak, že se argumenty umístí pod prostor obsazený
+volající funkcí a instrukcí \texttt{call} se na zásobník uloží návratová adresa.
+Při koncovém volání argumenty přepíšou sloty volající funkce, zásobník se posune
+zpátky nahoru a do funkce se provede skok (\texttt{jmp}). Návratová adresa tak
+zůstane nezměněna a při návratu z~koncové funkce dojde ke skoku do původní
+volající funkce.
+
+Jelikož všechny proměnné jsou uloženy v~paměti, je v~generátoru kódu možno
+použít pevně dané registry. Registry \texttt{\%eax} a \texttt{\%edx} se
+používají při přesunech hodnot v~paměti, v~registru \texttt{\%ecx} je uložena
+hodnota aktuální funkce, která se využívá při přístupu k~zachyceným hodnotám.
+V~jistých speciálních případech je rovněž využit i registr \texttt{\%ebx}. Dále
+funkce přistupuje k~registru \texttt{\%edi}, ve kterém je uložen ukazatel na
+aktuální pozadí (\texttt{Bg*}) běhové knihovny.
