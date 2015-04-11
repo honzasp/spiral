@@ -17,7 +17,7 @@ namespace spiral {
 
   struct Bg {
     Chunk* heap_chunk;
-    uint32_t allocated_bytes;
+    uint32_t fresh_allocated_bytes;
     uint32_t last_alive_bytes;
     StackRoot* top_stack_root;
     int argc;
@@ -35,6 +35,8 @@ namespace spiral {
     auto (*equal_fun)(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
   };
 
+  auto bg_init(int argc, char** argv) -> Bg;
+  void bg_deinit(Bg* bg);
   auto bg_alloc_mem(Bg* bg, uint32_t len) -> void*;
   void bg_free_mem(Bg* bg, void* mem);
   auto bg_alloc_chunk(Bg* bg, uint32_t min_len) -> Chunk*;

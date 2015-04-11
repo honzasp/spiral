@@ -10,6 +10,7 @@ namespace spiral {
     gc_ctx.to_heap_chunk = bg_alloc_chunk(bg, 0);
     gc_ctx.to_heap_chunk->next_chunk = 0;
     gc_ctx.copied_bytes = 0;
+    gc_ctx.non_heap_alive_bytes = 0;
 
     gc_evacuate_stack(&gc_ctx, sp);
     gc_evacuate_roots(&gc_ctx, sp);
@@ -20,13 +21,14 @@ namespace spiral {
     auto dealloc_chunk = bg->heap_chunk;
     while(dealloc_chunk != 0) {
       auto next_chunk = dealloc_chunk->next_chunk;
+      gc_drop_chunk(bg, dealloc_chunk);
       bg_free_chunk(bg, dealloc_chunk);
       dealloc_chunk = next_chunk;
     }
 
     bg->heap_chunk = gc_ctx.to_heap_chunk;
-    bg->allocated_bytes = gc_ctx.copied_bytes;
-    bg->last_alive_bytes = gc_ctx.copied_bytes;
+    bg->fresh_allocated_bytes = 0;
+    bg->last_alive_bytes = gc_ctx.copied_bytes + gc_ctx.non_heap_alive_bytes;
   }
 
   void gc_evacuate_stack(GcCtx* gc_ctx, void* sp) {
@@ -92,6 +94,16 @@ namespace spiral {
       auto obj_table = *reinterpret_cast<const ObjTable**>(obj_ptr);
       obj_table->scavenge_fun(gc_ctx, reinterpret_cast<void*>(obj_ptr));
       index += obj_table->length_fun(reinterpret_cast<void*>(obj_ptr));
+    }
+  }
+
+  void gc_drop_chunk(Bg* bg, Chunk* chunk) {
+    uint32_t index = 0;
+    while(index < chunk->length) {
+      auto obj_ptr = chunk->memory + index;
+      auto obj_table = *reinterpret_cast<const ObjTable**>(obj_ptr);
+      index += obj_table->length_fun(reinterpret_cast<void*>(obj_ptr));
+      obj_table->drop_fun(bg, reinterpret_cast<void*>(obj_ptr));
     }
   }
 

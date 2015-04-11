@@ -61,6 +61,7 @@ namespace spiral {
     new_obj->data = old_obj->data;
     auto new_val = array_to_val(new_obj);
     gc_write_fwd_ptr(gc_ctx, obj_ptr, new_val);
+    gc_ctx->non_heap_alive_bytes += new_obj->length * sizeof(Val);
     return new_val;
   }
 

@@ -1,0 +1,15 @@
+(program
+  (import std)
+
+  (fun alloc-512m-string ()
+    (do ((n 3 (+ n 1))
+         (str "12345678" (str-cat-2 str str)))
+        ((>= n 29) str)))
+
+  (fun alloc-2g-of-strings ()
+    (do ((n 0 (+ n 1)))
+        ((>= n 4) true)
+      (alloc-512m-string)))
+
+  (alloc-2g-of-strings)
+  (println "survived!"))

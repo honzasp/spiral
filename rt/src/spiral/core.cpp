@@ -5,9 +5,32 @@
 #include "spiral/gc.hpp"
 
 namespace spiral {
+  auto bg_init(int argc, char** argv) -> Bg {
+    Bg bg;
+    bg.heap_chunk = 0;
+    bg.fresh_allocated_bytes = 0;
+    bg.last_alive_bytes = 4 * 1024;
+    bg.top_stack_root = 0;
+    bg.argc = argc;
+    bg.argv = argv;
+
+    bg.heap_chunk = bg_alloc_chunk(&bg, 0);
+    bg.heap_chunk->next_chunk = 0;
+    return bg;
+  }
+
+  void bg_deinit(Bg* bg) {
+    while(bg->heap_chunk != 0) {
+      auto next_chunk = bg->heap_chunk->next_chunk;
+      gc_drop_chunk(bg, bg->heap_chunk);
+      bg_free_chunk(bg, bg->heap_chunk);
+      bg->heap_chunk = next_chunk;
+    }
+  }
 
   auto bg_alloc_mem(Bg* bg, uint32_t len) -> void* {
     if(auto mem = std::malloc(len)) {
+      bg->fresh_allocated_bytes += len;
       return mem;
     } else {
       bg_panic(bg, "out of memory");
@@ -36,21 +59,19 @@ namespace spiral {
   }
 
   auto bg_get_obj_space(Bg* bg, void* sp, uint32_t len) -> void* {
+    if(2 * bg->fresh_allocated_bytes > 3 * bg->last_alive_bytes) {
+      gc_collect(bg, sp);
+    }
+
     auto heap_chunk = bg->heap_chunk;
-    while(heap_chunk->length + len > heap_chunk->capacity) {
-      if(bg->allocated_bytes > 3 * bg->last_alive_bytes) {
-        gc_collect(bg, sp);
-        heap_chunk = bg->heap_chunk;
-      } else {
-        auto new_chunk = bg_alloc_chunk(bg, len);
-        new_chunk->next_chunk = bg->heap_chunk;
-        heap_chunk = bg->heap_chunk = new_chunk;
-      }
+    if(heap_chunk->length + len > heap_chunk->capacity) {
+      auto new_chunk = bg_alloc_chunk(bg, len);
+      new_chunk->next_chunk = bg->heap_chunk;
+      heap_chunk = bg->heap_chunk = new_chunk;
     }
 
     auto ptr = heap_chunk->memory + heap_chunk->length;
     heap_chunk->length += len;
-    bg->allocated_bytes += len;
     return reinterpret_cast<void*>(ptr);
   }
 

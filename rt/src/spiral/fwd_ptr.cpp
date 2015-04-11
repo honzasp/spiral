@@ -23,8 +23,10 @@ namespace spiral {
     assert("printing forward pointer");
   }
 
-  auto fwd_ptr_length(void*) -> uint32_t {
-    return sizeof(FwdPtrObj);
+  auto fwd_ptr_length(void* obj_ptr) -> uint32_t {
+    auto fwd_ptr = fwd_ptr_from_obj_ptr(obj_ptr);
+    assert(fwd_ptr->fwd.is_obj());
+    return (*fwd_ptr->fwd.get_otable()->length_fun)(fwd_ptr->fwd.unwrap_obj<void>());
   }
 
   auto fwd_ptr_evacuate(GcCtx*, void* obj_ptr) -> Val {

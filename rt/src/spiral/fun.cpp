@@ -115,8 +115,14 @@ namespace spiral {
     auto spiral_rt_alloc_closure(Bg* bg, void* sp, void* fun_addr,
         uint32_t capture_count) -> uint32_t 
     {
-      assert(capture_count != 0);
-      auto mem = bg_get_obj_space(bg, sp, sizeof(FunObj) + 4 * capture_count);
+      auto capture_count_val = Val(capture_count);
+      assert(capture_count_val.is_int());
+      assert(capture_count_val.unwrap_int() > 0);
+      assert(fun_table_from_addr(fun_addr)->capture_count ==
+          static_cast<uint32_t>(capture_count_val.unwrap_int()));
+
+      auto mem = bg_get_obj_space(bg, sp, sizeof(FunObj) 
+          + 4 * capture_count_val.unwrap_int());
       auto fun_obj = static_cast<FunObj*>(mem);
       fun_obj->otable = &fun_otable;
       fun_obj->fun_addr = fun_addr;

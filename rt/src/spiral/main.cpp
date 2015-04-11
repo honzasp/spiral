@@ -8,17 +8,9 @@
 namespace spiral {
   extern "C" {
     int main(int argc, char** argv) {
-      Bg bg;
-      bg.heap_chunk = 0;
-      bg.allocated_bytes = 0;
-      bg.last_alive_bytes = 4 * 1024;
-      bg.argc = argc;
-      bg.argv = argv;
-
-      bg.heap_chunk = bg_alloc_chunk(&bg, 0);
-      bg.heap_chunk->next_chunk = 0;
-
+      auto bg = bg_init(argc, argv);
       fun_addr_call(&bg, spiral_start_addr, 0);
+      bg_deinit(&bg);
       return 0;
     }
   }

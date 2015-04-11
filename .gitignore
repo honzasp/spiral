@@ -8,3 +8,4 @@ target/
 !examples/*.spiral
 !stdlib/*.spiral
 Session.vim
+bench/

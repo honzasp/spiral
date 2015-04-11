@@ -1,14 +1,24 @@
 CXX = clang++
-CXX_FLAGS = -Wall -Wextra -std=c++11 -Iinclude -g -O0 -fno-exceptions -fno-rtti
+CXX_FLAGS = -Wall -Wextra -std=c++11 -Iinclude -fno-exceptions -fno-rtti \
+  -mstackrealign
+CXX_DEBUG_FLAGS = $(CXX_FLAGS) -g -O0
+CXX_FAST_FLAGS = $(CXX_FLAGS) -O3
 AS = as
 AR = ar
 
-!cxx_c = |> ^ c++ -c %f^ $(CXX) $(CXX_FLAGS) -c %f -o %o |>
-!cxx_s = |> ^ c++ -S %f^ $(CXX) $(CXX_FLAGS) -S %f -o %o |>
+!cxx_debug_c = |> ^ c++ -c %f^ $(CXX) $(CXX_DEBUG_FLAGS) -c %f -o %o |>
+!cxx_debug_s = |> ^ c++ -S %f^ $(CXX) $(CXX_DEBUG_FLAGS) -S %f -o %o |>
+!cat_cxx_fast_c = |> ^ cat %f | c++ -c^ cat %f |\
+  $(CXX) $(CXX_FAST_FLAGS) -c -xc++ - -o %o |>
+!cat_cxx_fast_s = |> ^ cat %f | c++ -c^ cat %f |\
+  $(CXX) $(CXX_FAST_FLAGS) -S -xc++ - -o %o |>
 !as = |> ^ as %f^ $(AS) $(AS_FLAGS) %f -o %o |>
 !ar = |> ^ ar %f^ $(AR) rcs %o %f |>
 
-: foreach src/spiral/*.cpp |> !cxx_c |> build/%B.o {objs}
-: foreach src/spiral/*.s |> !as |> build/%B.o {objs}
-: foreach src/spiral/*.cpp |> !cxx_s |> build/%B.s
-: {objs} |> !ar |> build/runtime.a
+: foreach src/spiral/*.cpp |> !cxx_debug_c |> build/%B.o {debug_c_objs}
+: foreach src/spiral/*.s |> !as |> build/%B.o {asm_objs}
+: foreach src/spiral/*.cpp |> !cxx_debug_s |> build/%B.s
+: src/spiral/*.cpp |> !cat_cxx_fast_c |> build/_fast.o {fast_c_objs}
+: src/spiral/*.cpp |> !cat_cxx_fast_s |> build/_fast.s
+: {debug_c_objs} {asm_objs} |> !ar |> build/runtime_debug.a
+: {fast_c_objs} {asm_objs} |> !ar |> build/runtime_fast.a

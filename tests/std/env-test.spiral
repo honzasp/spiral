@@ -5,7 +5,7 @@
 
   (test "env-get-argv" (lambda (t)
     (assert-equal t (env-get-argv)
-      (cons "./std/env-test.exec"
+      (cons "./std/env-test.fexec"
       (cons "alan turing"
       (cons "alonzo church" null))))))
 
