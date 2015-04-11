@@ -43,21 +43,10 @@ pub fn alloc(fun_def: &grit::FunDef) -> SlotAlloc {
 
 fn build_order(fun_def: &grit::FunDef, graph: &grit::interf::Graph) -> Vec<grit::Var> {
   let mut order: Vec<_> = (0..fun_def.var_count).map(grit::Var).collect();
-  let is_ordered = |var_a: &grit::Var, var_b: &grit::Var| {
+  order.sort_by(|var_a: &grit::Var, var_b: &grit::Var| {
     let degree_a = graph.vars[var_a.0].len() + graph.slots[var_a.0].len();
     let degree_b = graph.vars[var_b.0].len() + graph.slots[var_b.0].len();
-    degree_a > degree_b
-  };
-
-  for i in (0..order.len()) {
-    for j in (i+1..order.len()) {
-      if !is_ordered(&order[i], &order[j]) {
-        let tmp = order[i].clone();
-        order[i] = order[j].clone();
-        order[j] = tmp;
-      }
-    }
-  }
-
+    degree_b.cmp(&degree_a)
+  });
   order
 }
