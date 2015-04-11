@@ -69,7 +69,6 @@ namespace spiral {
   }
 
   auto Val::wrap_int(int32_t num) -> Val {
-    assert(((num << 1) >> 1) == num);
     return Val(num << 1); 
   }
 

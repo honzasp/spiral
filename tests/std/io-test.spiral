@@ -191,7 +191,7 @@
     (assert-eqv t (io-read-number nums) (neg 9.2))
     (assert-eqv t (io-read-number nums) (neg 3.0))
     (assert-eqv t (io-read-number nums) 23.4)
-    (assert-eqv t (io-read-number nums) 0.124)
+    (assert-eqv t (io-read-number nums) 0.125)
     (assert-eqv t (io-read-number nums) 10)
     (assert-eqv t (io-read-number nums) false)
     (assert-eqv t (io-read-word nums) ",2")

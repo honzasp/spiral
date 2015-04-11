@@ -51,7 +51,7 @@ done
 
 if [ $err_count = 0 ]
 then
-  printf "${GREEN}%d tests passed${CLEAR}\n" $ok_count
+  printf "${GREEN}%d tests passed.${CLEAR} all bugs are hidden\n" $ok_count
 else
   printf "${RED}%d tests from %d failed${CLEAR}\n" $err_count \
     $((err_count+ok_count))

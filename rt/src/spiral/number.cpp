@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cfenv>
 #include <cstdio>
 #include "spiral/core.hpp"
 #include "spiral/gc.hpp"
@@ -44,10 +45,16 @@ namespace spiral {
   }
 
   auto double_new(Bg* bg, void* sp, double number) -> Val {
-    auto obj = static_cast<DoubleObj*>(bg_get_obj_space(bg, sp, sizeof(DoubleObj)));
-    obj->otable = &double_otable;
-    obj->num = number;
-    return double_to_val(obj);
+    std::feclearexcept(FE_ALL_EXCEPT);
+    int32_t as_int = std::lrint(number);
+    if(!std::fetestexcept(FE_ALL_EXCEPT) && ((as_int << 1) >> 1) == as_int) {
+      return Val::wrap_int(as_int);
+    } else {
+      auto obj = static_cast<DoubleObj*>(bg_get_obj_space(bg, sp, sizeof(DoubleObj)));
+      obj->otable = &double_otable;
+      obj->num = number;
+      return double_to_val(obj);
+    }
   }
 
   void double_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {

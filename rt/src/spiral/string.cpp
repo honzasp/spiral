@@ -1,9 +1,7 @@
-#include <cctype>
-#include <cfenv>
-#include <cmath>
 #include <cstdarg>
 #include "spiral/gc.hpp"
 #include "spiral/number.hpp"
+#include "spiral/number_parsers.hpp"
 #include "spiral/print.hpp"
 #include "spiral/string.hpp"
 
@@ -184,41 +182,16 @@ namespace spiral {
 
     auto spiral_std_str_to_int(Bg* bg, void*, uint32_t str) -> uint32_t {
       auto str_obj = str_from_val(bg, Val(str));
-
-      int32_t number = 0;
-      bool negative = false;
-      enum {
-        BEFORE_SIGN, BEFORE_DIGITS, DIGITS, AFTER_DIGITS, ERROR 
-      } state = BEFORE_SIGN;
-
-      uint32_t i = 0;
-      while(i < str_obj->length) {
-        auto ch = str_obj->data[i];
-        switch(state) {
-          case BEFORE_SIGN:
-            if(ch == '+') { ++i; state = BEFORE_DIGITS; break; }
-            if(ch == '-') { ++i; negative = true; state = BEFORE_DIGITS; break; }
-          case BEFORE_DIGITS:
-            if(ch >= '0' && ch <= '9') { state = DIGITS; break; } 
-            if(std::isspace(ch)) { ++i; break; }
-            state = ERROR; break;
-          case DIGITS:
-            if(ch >= '0' && ch <= '9') {
-              number = 10 * number + static_cast<int32_t>(ch - '0');
-              ++i; break;
-            }
-            state = AFTER_DIGITS; break;
-          case AFTER_DIGITS:
-            if(std::isspace(ch)) { ++i; break; } 
-            state = ERROR; break;
-          case ERROR:
-            return false_val.u32;
+      auto parser = IntParser();
+      for(uint32_t i = 0; i < str_obj->length; ++i) {
+        if(!parser.push(str_obj->data[i])) {
+          return false_val.u32;
         }
       }
 
-      if(state == DIGITS || state == AFTER_DIGITS) {
-        int32_t result = negative ? -number : number;
-        return Val::wrap_int(result).u32;
+      int32_t number;
+      if(parser.get(&number)) {
+        return Val::wrap_int(number).u32;
       } else {
         return false_val.u32;
       }
@@ -226,82 +199,16 @@ namespace spiral {
 
     auto spiral_std_str_to_number(Bg* bg, void* sp, uint32_t str) -> uint32_t {
       auto str_obj = str_from_val(bg, Val(str));
-
-      double whole_part = 0.0;
-      double frac_part = 0.0;
-      double fraction = 1.0;
-      bool negative = false;
-      int32_t exponent = 0;
-      bool exponent_negative = false;
-      enum {
-        BEFORE_SIGN, BEFORE_WHOLE, WHOLE_DIGITS,
-        FRAC_DIGITS, EXP_SIGN, EXP_DIGITS,
-        AFTER, ERROR,
-      } state = BEFORE_SIGN;
-
-      uint32_t i = 0;
-      while(i < str_obj->length) {
-        auto ch = str_obj->data[i];
-        switch(state) {
-          case BEFORE_SIGN:
-            if(ch == '+') { ++i; state = BEFORE_WHOLE; break; }
-            if(ch == '-') { ++i; negative = true; state = BEFORE_WHOLE; break; }
-          case BEFORE_WHOLE:
-            if(ch >= '0' && ch <= '9') { state = WHOLE_DIGITS; break; }
-            if(ch == '.') { ++i; state = FRAC_DIGITS; break; }
-            if(std::isspace(ch)) { ++i; break; }
-            state = ERROR; break;
-          case WHOLE_DIGITS:
-            if(ch >= '0' && ch <= '9') { 
-              whole_part = 10.0 * whole_part + static_cast<double>(ch - '0');
-              ++i; break;
-            } 
-            if(ch == '.') { ++i; state = FRAC_DIGITS; break; }
-            if(ch == 'e' || ch == 'E') { ++i; state = EXP_SIGN; break; }
-            state = AFTER; break;
-          case FRAC_DIGITS:
-            if(ch >= '0' && ch <= '9') {
-              fraction = fraction * 0.1;
-              frac_part = frac_part + fraction * static_cast<double>(ch - '0');
-              ++i; break;
-            }
-            if(ch == 'e' || ch == 'E') { ++i; state = EXP_SIGN; break; }
-            state = AFTER; break;
-          case EXP_SIGN:
-            if(ch == '+') { ++i; state = EXP_DIGITS; break; }
-            if(ch == '-') { ++i; exponent_negative = true; state = EXP_DIGITS; break; }
-            if(ch >= '0' && ch <= '9') { state = EXP_DIGITS; break; }
-            state = ERROR; break;
-          case EXP_DIGITS:
-            if(ch >= '0' && ch <= '9') {
-              exponent = 10 * exponent + static_cast<int32_t>(ch - '0');
-              ++i; break;
-            }
-            state = AFTER; break;
-          case AFTER:
-            if(std::isspace(ch)) { ++i; break; }
-            state = ERROR; break;
-          case ERROR:
-            return false_val.u32;
+      auto parser = FloatParser();
+      for(uint32_t i = 0; i < str_obj->length; ++i) {
+        if(!parser.push(str_obj->data[i])) {
+          return false_val.u32;
         }
       }
 
-      if(state == WHOLE_DIGITS) {
-        std::feclearexcept(FE_ALL_EXCEPT);
-        int32_t int_whole = std::lrint(negative ? -whole_part : whole_part);
-        if(!std::fetestexcept(FE_ALL_EXCEPT) && ((int_whole << 1) >> 1) == int_whole) {
-          return Val::wrap_int(int_whole).u32;
-        } else {
-          return double_new(bg, sp, whole_part).u32;
-        }
-      } else if(state == FRAC_DIGITS) {
-        double base = whole_part + frac_part;
-        return double_new(bg, sp, negative ? -base : base).u32;
-      } else if(state == EXP_DIGITS || state == AFTER) {
-        double base = whole_part + frac_part;
-        double mult = std::pow(10.0, static_cast<double>(
-              exponent_negative ? -exponent : exponent));
-        return double_new(bg, sp, (negative ? -base : base) * mult).u32;
+      double number;
+      if(parser.get(&number)) {
+        return double_new(bg, sp, number).u32;
       } else {
         return false_val.u32;
       }

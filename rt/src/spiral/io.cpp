@@ -3,6 +3,7 @@
 #include "spiral/gc.hpp"
 #include "spiral/io.hpp"
 #include "spiral/number.hpp"
+#include "spiral/number_parsers.hpp"
 #include "spiral/string.hpp"
 
 namespace spiral {
@@ -269,12 +270,50 @@ namespace spiral {
       return Val::wrap_data_obj(str_from_buffer(bg, sp, buf)).u32;
     }
 
-    auto spiral_std_io_read_int(Bg*, void*, uint32_t) -> uint32_t {
-      return false_val.u32;
+    auto spiral_std_io_read_int(Bg* bg, void*, uint32_t io) -> uint32_t {
+      auto io_obj = io_from_val(bg, Val(io));
+
+      auto parser = IntParser();
+      for(;;) {
+        auto ch = std::fgetc(io_obj->stdio);
+        if(ch == EOF) {
+          break;
+        }
+        if(!parser.push(static_cast<uint8_t>(ch))) {
+          std::ungetc(ch, io_obj->stdio);
+          break;
+        }
+      }
+
+      int32_t number;
+      if(parser.get(&number)) {
+        return Val::wrap_int(number).u32;
+      } else {
+        return false_val.u32;
+      }
     }
 
-    auto spiral_std_io_read_number(Bg*, void*, uint32_t) -> uint32_t {
-      return false_val.u32;
+    auto spiral_std_io_read_number(Bg* bg, void* sp, uint32_t io) -> uint32_t {
+      auto io_obj = io_from_val(bg, Val(io));
+
+      auto parser = FloatParser();
+      for(;;) {
+        auto ch = std::fgetc(io_obj->stdio);
+        if(ch == EOF) {
+          break;
+        }
+        if(!parser.push(static_cast<uint8_t>(ch))) {
+          std::ungetc(ch, io_obj->stdio);
+          break;
+        }
+      }
+
+      double number;
+      if(parser.get(&number)) {
+        return double_new(bg, sp, number).u32;
+      } else {
+        return false_val.u32;
+      }
     }
   }
 }
