@@ -17,6 +17,12 @@ Volání funkcí v~koncových pozicích (\emph{tail-calls}) jsou implementována
 že umožňují neomezené množství rekurzivních volání bez hrozby přetečení
 zásobníku, což umožňuje vyjádřit všechny iterace pomocí rekurze.
 
+Funkce jsou hodnoty podobně jako čísla nebo řetězce, je s~nimi tedy možno bez
+omezení pracovat jako v~jiných funkcionálních jazycích. Ve funkci je možno
+použít proměnné definované vně těla funkce. Tyto proměnné se nazývají zachycené
+(\emph{captured}) a jejich hodnoty jsou spolu s~adresou funkce uloženy v~paměti
+v~objektu, který tuto funkci reprezentuje (\emph{closure}).
+
 \section{Gramatika}
 
 Syntaxe jazyka Spiral je založena na syntaxi jazyka Scheme \cite{scheme7}.
@@ -38,15 +44,19 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
 
 ~
 \subsection{Příkazy}
+
+Příkazy slouží k~definici importovaných jmen, pojmenovaných funkcí i obyčejných
+proměnných.
+
 \begin{ttcode}
-<import-def>  = <ident>
-              | (only <import-def> <ident>...)
-              | (except <import-def> <ident>...)
-              | (prefix <import-def> <ident>)
 <stmt>        = (import <import-def>...)
               | (fun <ident> (<ident>...) <stmt>...)
               | (var <ident> <expr>)
               | <expr>
+<import-def>  = <ident>
+              | (only <import-def> <ident>...)
+              | (except <import-def> <ident>...)
+              | (prefix <import-def> <ident>)
 \end{ttcode}
 
 \begin{description}
@@ -79,7 +89,7 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
   proměnné definované vně (taková funkce se nazývá \emph{closure}).
 
 \item[\texttt{(var <var-name> <value>)}] definuje proměnnou. Proměnná, narozdíl
-  of funkce,odkazovat na sebe samu nemůže, jelikož její hodnota může být použíta
+  od funkce, odkazovat na sebe samu nemůže, jelikož její hodnota může být použíta
   až po její definici.
 
 \item[\texttt{<expr>}] -- pokud je na místě příkazu nalezen výraz, je vyhodnocen.
@@ -89,6 +99,10 @@ exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
 \end{description}
 
 \subsection{Výrazy}
+
+Všechny zbývající konstrukce jazyka jsou výrazy, což znamená, že vrací hodnotu.
+Pokud není žádná rozumná hodnota, kterou by měl výraz vrátit (například prázdný
+výraz \texttt{(begin)}), vrací výraz hodnotu \texttt{false}.
 
 \begin{gram}
 <expr>        = (if <expr> <expr> <expr>)
@@ -196,7 +210,8 @@ všudypřítomný.
   \item[\texttt{std.core}] definuje základní operace s~čísly (\texttt{+},
     \texttt{mod}, \texttt{<}, \texttt{==}, ...), predikáty ekvivalence
     (\texttt{eqv?}, \texttt{equal?}) a funkce pro výstup (\texttt{println}).
-    Rovněž definuje logické proměnné \texttt{true} a \texttt{false}.
+    Rovněž definuje logické proměnné \texttt{true} a \texttt{false} (jako
+    hodnoty výrazů \texttt{(and)} a \texttt{(or)}).
 
   \item[\texttt{std.array}] poskytuje funkce pro práci s~poli
     (\texttt{array-new}, \texttt{array-push!}, \texttt{array-get},
@@ -247,6 +262,113 @@ Modul \texttt{std} je poskytován pro pohodlný import základních funkcí
 
 Překladač je možno ovládat pomocí argumentů na příkazové řádce.
 
+\begin{description}
+  \item[\texttt{-o}, \texttt{-{}-output}] umožňuje určit výstupní soubor, jinak je
+    výstup umístěn do stejného adresáře jako vstupní soubor se stejným jménem a
+    příponou určenou podle typu výstupu.
+  \item[\texttt{-I}, \texttt{-{}-include}] přidá adresář, ve kterém se hledají
+    \texttt{import}ované moduly.
+  \item[\texttt{-e}, \texttt{-{}-emit}] nastaví typ výstupu: \texttt{sexpr} přečte
+    vstupní S-výraz a vypíše jej ve formátované podobě, \texttt{spiral} vypíše
+    syntaktický strom Spiral v~interní debugovací podobě, \texttt{spine} a
+    \texttt{grit} vypíšou program v~odpovídajícím mezijazyku jako S-výraz,
+    \texttt{asm} vypíše vygenerovaný assembler v~interní podobě, \texttt{gas}
+    vypíše assembler jako vstup pro GNU Assembler a \texttt{exec} program
+    přeloží a slinkuje s~běhovou knihovnou (což je výchozí chování).
+  \item[\texttt{-t}, \texttt{-{}-runtime}] určí soubor s~běhovou knihovnou, se
+    kterou bude program slinkován.
+  \item[\texttt{-{}-link-cmd}] změní linkovací program. Výchozí je \texttt{clang},
+    který sám zavolá systémový linker tak, aby program správně slinkoval se
+    standardní knihovnou jazyka C (\texttt{libc}).
+  \item[\texttt{-{}-gas-cmd}] umožňuje změnit assembler místo výchozího
+    \texttt{as}.
+  \item[\texttt{-O}, \texttt{-{}-opt-level}] umožňuje nastavit úroveň optimalizace
+    jako číslo od 0 do 3.
+\end{description}
+
 \section{Příklady}
 
 Na závěr uvádíme několik drobných programů napsaných v~jazyce Spiral.
+
+\subsection{Počítání prvočísel}
+
+Následující program vypíše prvních tisíc prvočísel. Funkce
+\texttt{make-prime-gen} vytvoří generátor, tedy funkci, která při každém dalším
+zavolání vrátí další prvočíslo. Tato funkce má interně uloženo pole doposud
+nalezených prvočísel.
+
+\begin{spiral}
+(program
+  (import std)
+  (import std.array)
+  (import std.test)
+
+  (fun make-prime-gen ()
+    (var primes (array-new))
+    (lambda ()
+      (fun find-next-prime (x)
+        (fun check-prime (i)
+          (var p (array-get primes i))
+          (cond
+            ((> (* p p) x) true)
+            ((== (mod x p) 0) false)
+            (true (check-prime (+ 1 i)))))
+        (if (check-prime 1) x (find-next-prime (+ 2 x))))
+      (cond
+        ((== (array-len primes) 0)
+          (array-push! primes 2) 2)
+        ((== (array-len primes) 1)
+          (array-push! primes 3) 3)
+        (true 
+          (var next-prime (find-next-prime (+ 2 (array-last primes))))
+          (array-push! primes next-prime)
+          next-prime))))
+
+  (var gen (make-prime-gen))
+  (do ((i 0 (+ i 1)))
+    ((>= i 1000))
+    (println (gen))))
+\end{spiral}
+
+\subsection{Počítání celých mocnin a odmocnin}
+
+Tento program aproximuje $\sqrt[n]{x}$ Newtonovou metodou (funkce \texttt{root})
+a počítá $x^n$ pomocí binárního umocňování. Oba algoritmy jsou otestovány pomocí
+knihovny \texttt{std.test}.
+
+\begin{spiral}
+(program
+  (import std)
+  (import std.math)
+  (import std.test)
+
+  (var min-del 0.000001)
+  (fun root (n a)
+    (fun iter (x)
+      (var b (/ a (power (- n 1) x)))
+      (var x-del (/ (- b x) n))
+      (if (< (abs x-del) min-del) x (iter (+ x x-del))))
+    (iter (* a 1.0)))
+  (fun power (n a)
+    (cond
+      ((== n 0) 1)
+      ((== n 1) a)
+      ((== (mod n 2) 0) (square (power (div n 2) a)))
+      (true (* a (square (power (div n 2) a))))))
+  (fun square (a) (* a a))
+
+  (var eps 0.00001)
+  (test "powers" (lambda (t) 
+    (assert-near-eq t eps (power 2 10) 100)
+    (assert-near-eq t eps (power 3 2) 8)
+    (assert-near-eq t eps (power 1 33) 33)))
+  (test "roots" (lambda (t)
+    (assert-near-eq t eps (root 3 1000) 10)
+    (assert-near-eq t eps (root 2 49) 7)
+    (assert-near-eq t eps (root 4 256) 4)))
+  (test "powered roots" (lambda (t)
+    (assert-near-eq t eps (power 2 (root 2 2)) 2)
+    (assert-near-eq t eps (power 3 (root 3 100)) 100)
+    (assert-near-eq t eps (power 2 (root 2 13)) 13)
+    (assert-near-eq t 0.01 (power 5 (root 5 12345)) 12345))))
+\end{spiral}
