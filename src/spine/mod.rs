@@ -1,6 +1,5 @@
 pub use spine::syntax::*;
 
-pub mod census;
 pub mod check;
 pub mod env;
 pub mod eval;
