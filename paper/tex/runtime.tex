@@ -10,7 +10,7 @@ jsou veškerá \uv{globální} data uložena v~objektu nazývaném pozadí
 tento objekt skrz funkce ve Spiral přenášen v~registru \texttt{\%edi}, v~běhové
 knihovně pak explicitně jako první argument většiny funkcí.
 
-\subsection{Reprezentace hodnot}
+\section{Reprezentace hodnot}
 
 Všechny hodnoty jsou reprezentovány jako 32-bitové číslo. Hodnoty celých čísel
 jsou reprezentovány přímo, a to vynásobené dvěmi, tudíž jejich nejnižší bit je
@@ -42,7 +42,7 @@ kódem je umístěna tabulka funkce (\emph{fun table} či zkráceně \emph{ftabl
 která obsahuje informace o počtu argumentů, slotů a zachycených hodnot, které
 jsou potřeba pro korektní čtení zásobníku při úklidu paměti.
 
-\subsection{Správa paměti}
+\section{Správa paměti}
 
 Paměť objektů je strukturovaná do úseků (\emph{chunks}), které tvoří spojový
 seznam. Když program požádá o paměť na uložení objektu, běhová knihovna použije
@@ -66,3 +66,15 @@ původního objektu. Zbylé objekty ze starých úseků paměti jsou zahozeny
 Některé objekty (například pole nebo řetězce) využívají pro uložení svého obsahu
 další oblasti paměti mimo paměť objektů. Tyto objekty se o správu své paměti
 starají samy a když jsou zahozeny, svou paměť uvolní.
+
+\section{Rozhraní mezi programem a knihovnou}
+
+Při volání externí funkce v~programu v~jazyce Spiral se zavolá céčková funkce
+odpovídajícího jména. Jejími argumenty je odkaz na pozadí (tedy obsah registru
+\texttt{\%edi}), vrchol zásobníku (z~registru \texttt{\%esp}) a poté argumenty
+předané na místě volání. Jelikož runtime je napsaný v~\Cplusplus{}, jsou
+funkce určené pro volání ze standardní knihovny umístěny v~blocích
+\texttt{extern "C"~\{ ... \}}, jelikož překladač \Cplusplus{} jména funkcí mění
+(kvůli podpoře overloadingu). Některé proměnné, například objekty \texttt{true}
+a \texttt{false}, by bylo nepraktické takto definovat, proto se na ně z~jazyka
+Spiral odkazuje prostřednictvím jejich změněných (\emph{mangled}) jmen.
