@@ -36,12 +36,35 @@ objektu na řetězec a pro porovnávání objektů. Tyto funkce jsou využity pr
 implementaci funkcí \texttt{stringify}, \texttt{eqv?} a \texttt{equal?}
 standardní knihovny, které musí být schopny pracovat se všemi typy objektů.
 
+\begin{cplusplus}
+  struct ObjTable {
+    const char* type_name;
+    void (*stringify_fun)(Bg* bg, Buffer* buf, void* obj_ptr);
+    auto (*length_fun)(void* obj_ptr) -> uint32_t;
+    auto (*evacuate_fun)(GcCtx* gc_ctx, void* obj_ptr) -> Val;
+    void (*scavenge_fun)(GcCtx* gc_ctx, void* obj_ptr);
+    void (*drop_fun)(Bg* bg, void* obj_ptr);
+    auto (*eqv_fun)(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
+    auto (*equal_fun)(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
+  };
+\end{cplusplus}
+
 Obsah úseku paměti po ukazateli na tabulku objektu je již závislý na typu
 objektu. Je zde například umístěn ukazatel na data a délka řetězce nebo prvky
 n-tice. Funkce mají po tabulce objektu uloženu adresu začátku kódu funkce. Před
 kódem je umístěna tabulka funkce (\emph{fun table} či zkráceně \emph{ftable}),
 která obsahuje informace o počtu argumentů, slotů a zachycených hodnot, které
 jsou potřeba pro korektní čtení zásobníku při úklidu paměti.
+
+\begin{cplusplus}
+  struct FunTable {
+    uint32_t slot_count;
+    uint32_t arg_count;
+    uint32_t capture_count;
+    const char* fun_name;
+    uint8_t padding_0[16];
+  };
+\end{cplusplus}
 
 \section{Správa paměti}
 
