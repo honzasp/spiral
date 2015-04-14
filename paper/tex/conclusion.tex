@@ -12,38 +12,39 @@ PHP), trpí řadou fundamentálních nedostatků:
     trhu je zaměřen právě jazyk Rust, který ji dle autora může zaplnit velmi
     důstojně. Spiral je jako dynamický jazyk ve vývoji programovacích jazyků
     dnes již naprosto nezajímavá větev, jelikož se zde tísní spolu s~Pythonem,
-    Luou, JavaScriptem a jinými maskovanými deriváty Scheme a Lispu vůbec.
+    Luou, JavaScriptem a všemi ostatními deriváty Scheme a Lispu vůbec.
 
   \item V~jazyce chybí možnost pracovat se strukturami (záznamy, objekty,
     slovníky, tabulkami, ...), tedy n-ticemi, k~jejichž prvkům lze přistupovat
     pomocí symbolických jmen. Takovéto objekty buď vyžadují statické typování
-    (\texttt{struct} v~C) nebo implementaci pomocí hešovací tabulky nebo jiné
-    mapovací datové struktury (objekty v~JavaScriptu, Ruby nebo Pythonu), což je
-    však dle autora příliš velká cena za takto elementární operaci.
+    (\texttt{struct} v~C) nebo implementaci pomocí hešovací tabulky či jiné
+    mapovací datové struktury (jako jsou objekty v~JavaScriptu, Ruby nebo
+    Pythonu), což je však dle autora příliš velká cena za takto elementární
+    operaci.
 \end{itemize}
 
 Kromě těchto vad, které jsou inherentním důsledkem typu jazyka, kterým Spiral
-je, pak implementaci trpí množstvím dalších nedodělků, které by pro praktické
+je, pak implementace trpí množstvím dalších nedodělků, které by pro praktické
 použití musely být napraveny:
 
 \begin{itemize}
   \item Kvůli nízké kvalitě generátoru kódu, který ani není schopen umístit
     proměnné do registrů, a kvůli nutnosti volat externí funkce pro každou
     elementární operaci, včetně sčítání dvou celých čísel, jsou přeložené programy
-    velmi pomalé. Neblahý vliv na výkon má nepochybně i nutnost alokovat paměť pro
-    každé použité reálné číslo. Pro nedostatek místa a času není součástí práce
-    reálné srovnání rychlostí programu ve Spiral a programů v~jiných jazycích,
-    ovšem výsledky by jistě byly pro Spiral velice nepříznivé. Nekvalitní garbage
-    collector, který při každém úklidu paměti kopíruje všechny alokované objekty,
-    a naivní (a tedy pomalé) algoritmy použité v~samotném překladači už jen
-    katastrofickou situaci z~pohledu výkonu dovrší.
+    velmi pomalé. Neblahý vliv na výkon má i nutnost alokovat paměť pro každé
+    použité reálné číslo. Pro nedostatek místa a času není součástí práce reálné
+    srovnání rychlostí programu ve Spiral a programů v~jiných jazycích, ovšem
+    výsledky by jistě byly pro Spiral velice nepříznivé. Nekvalitní garbage
+    collector, který při každém úklidu paměti kopíruje všechny alokované
+    objekty, a naivní (a tedy pomalé) algoritmy použité v~samotném překladači už
+    jen katastrofickou situaci z~pohledu výkonu dovrší.
 
   \item Při parsování programu není nikde uchována informace o pozicích ve
-    zdrojovém souboru, takže když nastane chyba při překladu i za běhu, není
+    zdrojovém souboru, takže když nastane chyba při překladu nebo za běhu, není
     implementace schopna určit ani v~náznaku místo, kde chyba nastala, což činí
     vývoj jakéhokoli jen trochu většiho programu prakticky nemožným.
 
-  \item Výše zmíněný generátor kódu je nejen děsivě neefektivní, ale zároveň
+  \item Výše zmíněný generátor kódu je nejen hrozivě neefektivní, ale zároveň
     velmi nepřehledný a špatně napsaný, a to i ve srovnání se zbytkem
     překladače.
 
@@ -55,8 +56,8 @@ použití musely být napraveny:
     standardní knihovna musí exportovat palety funkcí jako \texttt{tuple-0} až
     \texttt{tuple-8} nebo \texttt{str-cat-0} až \texttt{str-cat-8}.
 
-  \item Zdrojový kód neobsahuje ani jeden komentář, jazyk Spiral dokonce syntaxi
-    na zápis komentářů úplně postrádá.
+  \item Zdrojový kód postrádá jakoukoli dokumentaci. Jazyk Spiral dokonce ani
+    nemá syntaxi na zápis komentářů.
 \end{itemize}
 
 Na závěr lze tedy říci, že jednoduchý programovací jazyk byl sice podle zadání

@@ -1,19 +1,20 @@
 \chapter{Postup překladu}
 
-Vstupní zdrojový kód je nejprve přečten parserem S-výrazů do obecné struktury,
-ze které je poté dekódován syntaktický strom pro Spiral. Poté jsou všechny
-moduly a hlavní program přeloženy do \emph{continuation-passing style} v~jazyku
-Spine, který slouží jako první přechodný jazyk. Z~jazyka Spine je pak celý
-program přeložen do imperativního jazyka Grit, na kterém proběhne optimalizace.
-Z~jazyka Grit je pak již vygenerován assembler, čímž postup překladu končí. 
+Vstupní zdrojový kód je nejprve přečten parserem s-výrazů do obecné struktury,
+ze které je poté dekódován syntaktický strom pro Spiral. Následně jsou všechny
+moduly a hlavní program společně přeloženy do \emph{continuation-passing style}
+v~jazyku Spine, který slouží jako první přechodný jazyk. Z~jazyka Spine je pak
+celý program přeložen do imperativního jazyka Grit, na kterém proběhne
+optimalizace.  Z~jazyka Grit je pak již vygenerován assembler, čímž postup
+překladu končí. 
 
 \section{S-výrazy}
 
-Parsování S-výrazů provádí jednoduchý ručně psaný parser. Výsledná datová
+Parsování s-výrazů provádí jednoduchý ručně psaný parser. Výsledná datová
 struktura je poté dále zpracovávána. Rovněž je možné tuto datovou strukturu
 zpětně zapsat do textové formy (\emph{pretty-print}). Kromě jazyka Spiral je
-v~s-výrazech možno zapsat i přechodné jazyky Spine a Grit, čehož je možno využít
-během testování, a to pro čtení i výpis programů.
+v~s-výrazech možno zapsat i přechodné jazyky Spine a Grit, což je využito pro
+testování, a to na čtení i výpis programů.
 
 \section{Spiral}
 
@@ -36,8 +37,8 @@ funkci a nikdy nevrátí hodnotu, volání \emph{continuation} tedy modeluje sko
 \emph{basic block}, se kterým bychom se mohli setkat v~imperativním jazyce nebo
 SSA formě (\emph{single static assignment}). Při volání funkce je kromě funkce
 samotné a jejích argumentů třeba specifikovat i \emph{continuation}, které bude
-výsledek volání funkce předán. Návrat výsledné hodnoty funkce je pak
-implementován jako skok do její návratové \emph{continuation}.
+výsledek volání funkce předán. Návrat z~funkce má podobu skoku do její návratové
+\emph{continuation}.
 
 \begin{gram}
 <program>   = (program <cont-name> <term>)
@@ -62,34 +63,33 @@ Program je definován jako jeden velký výraz (\emph{term}) a ukončovací
 
 \begin{description}
 \item[\texttt{(cont <cont-name> <arg>...)}] skočí do zadané \emph{continuation}
-  a předá jí určené argumenty (počet argumentů musí odpovídat definici).
+  a předá jí určené argumenty (počet argumentů musí odpovídat její definici).
 
 \item[\texttt{(branch <boolval> <then-name> <else-name>)}] vyhodnotí
   pravdivostní výrok \texttt{<boolval>} a podle toho skočí na jednu z~uvedených
   \emph{continuations} (které nesmí očekávat argumenty).
 
 \item[\texttt{(call <fun-val> <return-cont> <arg>...)}] zavolá danou funkci se
-  zadanými argumenty a poté skočí do \texttt{<return-cont>}, které předá svou
+  zadanými argumenty a poté skočí do \texttt{<return-cont>}, které předá
   návratovou hodnotu. Pokud je \texttt{<return-cont>} návratovou
-  \emph{continuation} volající funkce, je toto volání koncové
-  (\emph{tail-call}).
+  \emph{continuation} volající funkce, je toto volání koncové.
 
 \item[\texttt{(extern-call <extern-name> <return-cont> <arg>...)}] zavolá
   externí funkci danou svým jménem a s~jejím výsledkem skočí do
-  \texttt{<return-cont>}.
+  \texttt{<return-cont>}. Toto voláni nikdy není koncové.
 
-\item[\texttt{(letcont (<cont-name> (<arg>...))... <term>)}] definuje
+\item[\texttt{(letcont (<cont-name> (<arg>...) <body>)... <term>)}] definuje
   \emph{continuations}, které budou viditelné ve vnořeném výrazu. Každá může
   přijímat libovolný počet argumentů (\texttt{(<arg>...)}). Tyto
   \emph{continuations} mohou být vzájemně rekurzivní, takže je možno
   implementovat cykly.
 
 \item[\texttt{(letfun (<fun> <ret-cont> (<capture>...) (<arg>...) <body>)...
-  <term>)}] definuje funkce, které je možno použít ve vnořeném výrazu. Uvnitř těla
-  funkci (\texttt{<body>}) není možné použít \emph{continuation} z~aktuálního
-  kontextu a veškeré zachycené (\emph{captured}) proměnné musí být zahrnuty
-  v~definici funkce (\texttt{(<captured>..)}). Návrat z~funkce bude proveden jako
-  skok do \emph{continuation} \texttt{<ret-cont>}.
+  <term>)}] definuje funkce, které je možno použít ve vnořeném výrazu. Uvnitř
+  těla funkci (\texttt{<body>}) není možné použít \emph{continuation}
+  z~aktuálního kontextu a veškeré zachycené (\emph{captured}) proměnné musí být
+  specifikovány v~definici funkce (\texttt{(<captured>..)}). Návrat z~funkce
+  bude proveden jako skok do \emph{continuation} \texttt{<ret-cont>}.
 
 \item[\texttt{(letobj <obj-def> <term>)}] definuje objekt (řetězec nebo
   reálné číslo).
@@ -103,16 +103,16 @@ libovolně kopírovat.
 
 Při překladu výrazu z~jazyka Spiral do Spine je třeba převést program
 z~\emph{direct style} do \emph{continuation-passing style}. Základem překladu
-jsou dvě funkce, \texttt{translate_expr(Spiral expr) -> (onion, Spine val)} a
-\texttt{translate_expr_tail(Spiral expr, Spine cont name) -> Spine term}.
+jsou dvě funkce, \texttt{translate-expr(spiral-expr) -> (onion, spine-val)} a
+\texttt{translate-expr-tail(spiral-expr, spine-cont-name) -> spine-term}.
 
-Funkce \texttt{translate_expr} přeloží předaný výraz ve Spiral tak, že vrátí
+Funkce \texttt{translate-expr} přeloží předaný výraz ve Spiral tak, že vrátí
 \uv{cibuli}\footnote{Na obranu komunity počítačových vědců je třeba dodat, že
 tento název vymyslel autor sám.} (\emph{onion}) a hodnotu. \uv{Slupka cibule} je
 tvořena výrazy \texttt{letcont}, \texttt{letfun} a \texttt{letobj}. Uvnitř této
-slupky je pak výsledek výrazu reprezentován danou hodnotou.
+slupky je výsledek výrazu reprezentován danou hodnotou.
 
-Druhá funkce \texttt{translate_expr_tail} pak přeloží výraz do podoby výrazu ve
+Druhá funkce \texttt{translate-expr-tail} pak přeloží výraz do podoby výrazu ve
 Spine, který s~výslednou hodnotou skočí do předané \emph{continuation}. Tímto
 způsobem jsou přeložena například koncová volání (\emph{tail-calls}).
 
@@ -129,15 +129,15 @@ Nejprve vygenerujeme jméno návratové \emph{continuation} pro funkci
 \texttt{big-enough?}, například \texttt{r}. Tělo funkce musí být přeloženo tak,
 aby volání v~koncových pozicích byla koncová, tedy aby vracela do \texttt{r}.
 Proto na výraz \texttt{(if (< x 0) (println "small") (println "ok"))} použijeme
-\texttt{translate_expr_tail} s~\texttt{r}.
+\texttt{translate-expr-tail} s~\texttt{r}.
 
 Při vyhodnocení výrazu \texttt{if} musíme nejprve vyhodnotit podmínku \texttt{(<
-x 0)}. Tu přeložíme pomocí \texttt{translate_expr}, čímž dostaneme \uv{cibuli}
+x 0)}. Tu přeložíme pomocí \texttt{translate-expr}, čímž dostaneme \uv{cibuli}
 \texttt{(letcont (lt-ret (lt-result) ?) (call < lt-ret x 0))}. Otazník označuje
-místo, kde obdržíme výsledek v~proměnné \texttt{lt-result}.
+místo, kde obdržíme výsledek v~proměnné \texttt{lt-result} (\uv{díru}).
 
 Obě alternativy v~příkazu \texttt{if} přeložíme opět pomocí
-\texttt{translate_expr_tail} s~\emph{continuation} \texttt{r}, abychom zachovali
+\texttt{translate-expr-tail} s~\emph{continuation} \texttt{r}, abychom zachovali
 koncová volání. Obdržíme Spine výrazy \texttt{(letobj (string s1 "small") (call
 println r s1))} a \texttt{(letobj (string s2 "ok") (call println r s2))}.
 
@@ -171,7 +171,7 @@ přeloženo jako koncové.
 
 Dalším jazykem v~pořadí je Grit. Tento jazyk je již poměrně nízkoúrovňový a
 blízký assembleru. Definice všech funkcí a objektů jsou globální a proměnné jsou
-zapisovatelné a pojmenované pouze čísly. Funkce se skládají z~bloků, které
+zapisovatelné a jsou pojmenované pouze čísly. Funkce se skládají z~bloků, které
 obsahují sekvenci operací a jsou ukončeny skokem.
 
 \begin{gram}
@@ -221,14 +221,14 @@ Jednotlivé operace reprezentují vše, co program může vykonávat:
         která má uložené proměnné z~prostředí (\emph{closure}), takže ji musíme
         volat spolu s~její funkční hodnotou. Pokud by hodnota \texttt{<val>}
         nebyla funkce \texttt{<fun-name>}, program by selhal. I zde je zaručeno,
-        že počet argumentů pasuje, takže volaná funkce je nekontroluje.
+        že počet argumentů odpovídá, takže volaná funkce je nekontroluje.
       \item[\texttt{(unknown <val>)}] je volání, u kterého není staticky
-        zaručeno, kterou funkci bude volat. Za běhu je proto nutno zkontrolovat,
+        zjištěno, kterou funkci bude volat. Za běhu je proto nutno zkontrolovat,
         že \texttt{<val>} je skutečně funkce, a tato pak ještě sama kontroluje
         počet předaných argumentů.
     \end{description}
 
-  \item[\texttt{(extern-call <var> <extern-name> <arg>...)}] volá externí
+  \item[\texttt{(extern-call <var> <extern-name> <arg>...)}] zavolá externí
     funkci s~předanými argumenty a výsledek zapíše do dané proměnné.
 
   \item[\texttt{(alloc-clos (<var> <fun-name> <capture>...))}] alokuje funkce se
@@ -240,7 +240,7 @@ Jednotlivé operace reprezentují vše, co program může vykonávat:
 
   \item[\texttt{(assign (<var> <val>)...)}] zapíše do proměnných odpovídající
     hodnoty. Toto přiřazení proběhne najednou, takže na pravé straně je možno
-    použít proměnné z~levé strany -- jejich hodnota bude odpovídat hodnotě před
+    použít proměnné z~levé strany, jejichž hodnota bude odpovídat hodnotě před
     operací \texttt{assign}.
 \end{description}
 
@@ -249,19 +249,20 @@ Skoky mohou být rovněž několika druhů:
 \begin{description}
   \item[\texttt{(goto <label>)}] skočí na daný blok.
   \item[\texttt{(return <val>)}] vrátí z~funkce určenou hodnotu.
-  \item[\texttt{(tail-call <callee> <arg>...)}] provede koncové volání funkce
-    z~\texttt{<callee>} (odpovídá operaci \texttt{call}) s~argumenty. Tímto se
-    místo na zásobníku volající funkce nahradí místem volané funkce.
-  \item[\texttt{(branch <boolval> <then> <else>)}] skočí na jeden z~určených
-    bloků podle určené pravdivostní hodnoty.
+  \item[\texttt{(tail-call <callee> <arg>...)}] provede koncové volání
+    \texttt{<callee>} (podobně jako v~operaci \texttt{call}) s~argumenty. Tímto
+    se místo na zásobníku zabrané volající funkcí uvolní ještě před vstupem do
+    volané funkce.
+  \item[\texttt{(branch <boolval> <then> <else>)}] skočí na jeden z~bloků podle
+    určené pravdivostní hodnoty.
 \end{description}
 
-Paleta hodnot je nyní širší než ve Spine, ovšem stále platí, že každá hodnota je
-konstanta nebo ji lze snadno načíst z~paměti:
+Paleta hodnot je širší než ve Spine, ovšem stále platí, že každá hodnota je
+konstantní nebo ji lze snadno načíst z~paměti:
 
 \begin{description}
-  \item[\texttt{(var <index>)}] je hodnota proměnné,
-  \item[\texttt{(arg <index>)}] je hodnota argumentu s~daným číslem,
+  \item[\texttt{(var <index>)}] je hodnota proměnné.
+  \item[\texttt{(arg <index>)}] je hodnota argumentu.
   \item[\texttt{(capture <index>)}] je hodnota zachycené hodnoty z~aktuální funkce.
   \item[\texttt{(combinator <fun-name>)}] je konstantní hodnota staticky
     alokovaného kombinátoru.
@@ -271,16 +272,16 @@ konstanta nebo ji lze snadno načíst z~paměti:
   \item[\texttt{(true)}, \texttt{(false)}] jsou pravdivostní konstanty.
   \item[\texttt{(undefined)}] je nedefinovaná hodnota. Tuto hodnotu mohou
     vytvořit optimalizace, například při čtení z~proměnné, do které nebylo
-    zapsáno. Při zápis nedefinované hodnoty do proměnné či registru v~assembleru
-    není vygenerována žádná instrukce.
+    zapsáno. Při zápisu nedefinované hodnoty do paměti či registru během
+    překladu do~assembleru není vygenerována žádná instrukce.
 \end{description}
 
 \subsection{Překlad z~jazyka Spine}
 
 Překlad ze Spine do Gritu je poměrně přímočarý. Volání \emph{continuation} je
-přeloženo jako přiřazení do proměnných vygenerovaných jako argumenty a skok do
-bloku, kterým tělo \emph{continuation} začíná. Ostatní konstrukce ve Spine mají
-v~jazyku Grit přímý ekvivalent.
+přeloženo jako přiřazení do proměnných vygenerovaných jako její argumenty a skok
+do bloku, kterým tělo \emph{continuation} začíná. Ostatní konstrukce ve Spine
+mají v~jazyku Grit přímý ekvivalent.
 
 \subsection{Optimalizace}
 
@@ -298,8 +299,8 @@ informace jsou poté využity několikerým způsobem:
   \item Optimalizace známých volání nahrazením \texttt{(call (unknown ...) ...)}
     za \texttt{(call (known-closure ...) ...)} nebo \texttt{(call (combinator
     ...) ...)}.
-  \item Nahrazení větvení nepodmíněným skokem, pokud je možné staticky dokázat,
-    že testovací hodnota je vždy pravdivá nebo vždy nepravdivá.
+  \item Nahrazení větvení nepodmíněným skokem, pokud je možné dokázat, že
+    testovací hodnota je vždy pravdivá nebo vždy nepravdivá.
   \item Propagace konstant odstraní proměnné, jejichž hodnota je konstantní
     (číslo, pravdivostní hodnota nebo staticky alokovaný objekt).
 \end{itemize}
@@ -326,7 +327,7 @@ většinou tak i k~nárůstu délky výsledného programu.
 Pro inlining jsou nyní vybírány funkce, které jsou dostatečně malé, jsou
 kombinátory a nevolají jiné funkce kromě externích. Do této kategorie spadá
 většina funkcí standardní knihovny, které obvykle pouze obalují externí volání
-do podpůrné běhové knihovny.
+podpůrné běhové knihovny.
 
 \subsubsection{Odstranění nepotřebných definic}
 
@@ -354,32 +355,33 @@ nepotřebných hodnot.
 \section{Alokace slotů}
 
 Program v~Gritu typicky pracuje s~velkým množstvím proměnných. Bylo by ovšem
-značným plýtváním paměti, pokud bychom každé proměnné alokovali na zásobníku
+značným plýtváním pamětí, pokud bychom každé proměnné alokovali na zásobníku
 zvláští prostor (slot), jelikož doba života proměnné je obvykle krátká a její
-slot by byl většinu času nevyužit. Proto je potřeba několika proměnným přiřadit
+slot by byl většinu času nevyužit. Proto je žádoucí několika proměnným přiřadit
 stejný slot, ovšem samozřejmě tak, aby nedošlo ke ztrátě informace, tedy aby
 zápis do proměnné nepřepsal hodnotu jiné proměnné, ze které se bude později
 číst.
 
 Této fázi v~běžných překladačích odpovídá alokace registrů, ovšem náš generátor
-kódu je zjednodušený, takže všechny proměnné rovnou umístíme do paměti. Podobně
-jako při alokaci registrů však můžeme použít přístup s~užitím barvení grafu
+kódu je zjednodušený, takže všechny proměnné umisťuje do paměti. Podobně jako
+při alokaci registrů však můžeme použít přístup s~užitím barvení grafu
 interference
 \cite{chaitin1981register,chaitin1982register,briggs1994improvements}, ovšem
 postup je jednodušší díky tomu, že počet barev (registrů) nemáme omezen, pouze
 se jej snažíme minimalizovat. Proto stačí pouze sestavit graf interference a ten
-pak hladovým algoritmem obarvit. Nyní jsou vrcholy barveny v~pořadí podle počtu
-vycházejících hran sestupně.
+pak hladovým algoritmem obarvit. U hladového algoritmu je klíčové pořadí,
+v~jakém jsou vrcholy barveny. V~našem případě vrcholy barvíme v~pořadí podle
+počtu vycházejících hran sestupně.
 
 \section{Assembler}
 
-Posledním krokem při překladu je generování assembleru z~jazyka Grit. Výsledný
-soubor obsahuje kód všech funkcí, staticky alokované objekty a řetězce.  Kvůli
-podpoře koncových volání mají funkce jazyka Spiral jinou volací konvenci
-(\emph{calling convention}) než funkce v~jazyku C. Argumenty pro funkci v~C jsou
-totiž umístěny na zásobníku v~oblasti volající funkce, pro koncová volání je
-však potřeba, aby z~volající funkce na zásobníku nic nezbylo, argumenty proto
-musí volaná funkce dostat do své oblasti.
+Posledním krokem překladu je generování assembleru pro architekturu IA-32
+z~jazyka Grit. Výsledný soubor obsahuje kód všech funkcí, staticky alokované
+objekty a řetězce.  Kvůli podpoře koncových volání mají funkce jazyka Spiral
+jinou volací konvenci (\emph{calling convention}) než funkce jazyka C. Argumenty
+pro funkci v~C jsou totiž umístěny na zásobníku v~oblasti volající funkce, pro
+koncová volání je však potřeba, aby z~volající funkce na zásobníku nic nezbylo,
+argumenty proto musí volaná funkce dostat do své oblasti.
 
 Zásobník ve funkci s~\texttt{N} sloty vypadá takto (relativně vůči vrcholu
 zásobníku v~registru \texttt{\%esp}):
@@ -394,24 +396,26 @@ zásobníku v~registru \texttt{\%esp}):
       0  :  closure value
 \end{ttcode}
 
-Volaná funkce dostane argumenty ve svých několika prvních slotech, které se
-nachází těsně pod návratovou adresou (zapsanou instrukcí \texttt{call}). Ostatní
-sloty jsou umístěny níž. Počet argumentů u neznámých volání je uložen v~registru
-\texttt{\%eax}, hodnota funkce v~\texttt{\%ecx}. Tuto hodnotu funkce zapíše na
-začátek svého zásobníku, aby bylo možno projít zásobník při úklidu paměti.
-Návratovou hodnotu pak funkce na místo volání předá v~registru \texttt{\%eax}.
+Volaná funkce dostane argumenty ve svých prvních slotech, které se nachází těsně
+pod návratovou adresou (zapsanou instrukcí \texttt{call}). Ostatní sloty jsou
+umístěny níž. Hodnota funkce je umístěna v~registru \texttt{\%ecx}, počet
+argumentů u neznámých volání v~\texttt{\%eax}. Hodnotu z~\texttt{\%ecx} funkce
+zapíše na začátek svého zásobníku, aby bylo možno projít zásobník při úklidu
+paměti.  Návratovou hodnotu pak funkce zpět na místo volání předá v~registru
+\texttt{\%eax}.
 
-Volání funkce pak proběhne tak, že se argumenty umístí pod prostor obsazený
-volající funkcí a instrukcí \texttt{call} se na zásobník uloží návratová adresa.
-Při koncovém volání argumenty přepíšou sloty volající funkce, zásobník se posune
-zpátky nahoru a do funkce se provede skok (\texttt{jmp}). Návratová adresa tak
-zůstane nezměněna a při návratu z~koncové funkce dojde ke skoku do původní
-volající funkce.
+Volání funkce proběhne tak, že se argumenty umístí pod prostor obsazený volající
+funkcí a instrukcí \texttt{call} se na zásobník uloží návratová adresa.  Při
+koncovém volání argumenty přepíšou sloty volající funkce, zásobník se posune
+zpátky nahoru a do funkce se provede skok (instrukcí \texttt{jmp}). Návratová
+adresa tak zůstane nezměněna a při návratu z~koncové funkce dojde ke skoku do
+původní volající funkce.
 
-Jelikož všechny proměnné jsou uloženy v~paměti, je v~generátoru kódu možno
-použít pevně dané registry. Registry \texttt{\%eax} a \texttt{\%edx} se
-používají při přesunech hodnot v~paměti, v~registru \texttt{\%ecx} je uložena
-hodnota aktuální funkce, která se využívá při přístupu k~zachyceným hodnotám.
-V~jistých speciálních případech je rovněž využit i registr \texttt{\%ebx}. Dále
-funkce přistupuje k~registru \texttt{\%edi}, ve kterém je uložen ukazatel na
-aktuální pozadí (\texttt{Bg*}) běhové knihovny.
+Jelikož všechny proměnné jsou uloženy v~paměti, může generátor kódu použít pevně
+dané registry pro dočasné uložení hodnot. Registry \texttt{\%eax} a
+\texttt{\%edx} se používají při přesunech hodnot v~paměti, v~registru
+\texttt{\%ecx} je uložena hodnota aktuální funkce, která se využívá při
+přístupu k~zachyceným hodnotám.  V~jistých speciálních případech je rovněž
+využit i registr \texttt{\%ebx}. Dále funkce přistupuje k~registru
+\texttt{\%edi}, ve kterém je uložen ukazatel na aktuální pozadí
+(\texttt{Bg*}) běhové knihovny.

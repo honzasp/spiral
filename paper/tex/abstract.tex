@@ -4,29 +4,31 @@
 
 We present a~simple programming language Spiral and its implementation. Spiral
 is an impure untyped functional language inspired by Scheme, featuring
-first-class functions, tail-calls, module system and mutable and immutable data
-structures. We first translate the source language to Spine, a
+first-class functions, tail-calls, module system and both mutable and immutable
+data structures. We first translate the source language to Spine, a
 continuation-passing style functional language. Spine is then transformed into
 low-level imperative language Grit. Several optimization passes operate on this
-intermediate language, including global liveness analysis and inlining. As the
-last step of the compilation pipeline, we generate input to an external
-assembler and link the resulting object file with the runtime library. The
-runtime, written in \Cplusplus, defines core functions and objects and manages
-the heap with a~moving garbage collector.
+intermediate language, including global value analysis and inlining. As the last
+step of the compilation pipeline, we generate assembly, translate it with an
+external assembler and link the resulting object file with the runtime library.
+The runtime, written in \Cplusplus, defines core functions and objects and
+manages the heap with a~moving garbage collector. The implementation includes a
+basic standard library.
 
 \section*{Abstrakt}
 
 V~práci je představen jednoduchý programovací jazyk Spiral a jeho implementace.
 Spiral je funkcionální jazyk inspirovaný Scheme, který zahrnuje funkce první
-kategorie, koncová volání, modulární systém a měnitelné i konstantní datové
+kategorie, koncová volání, systém modulů a měnitelné i neměnitelné datové
 struktury. Zdrojový jazyk je nejprve přeložen do Spine, funkcionálního jazyka
 založeného na CPS (continuation-passing style). Spine je poté transformován do
 nízkoúrovňového imperativního jazyka Grit, na kterém operuje několik
-optimalizačních fází, včetně globální analýzy využití proměnných a inliningu.
-Jako poslední krok překladu je vygenerován soubor pro externí assembler.
-Výsledný objektový soubor je slinkován s~podpůrnou knihovnou. Podpůrná běhová
-knihovna je napsaná v~\Cplusplus, definuje základní funkce a objekty a spravuje
-paměť pomocí přemisťovacího garbage collectoru.
+optimalizačních fází, včetně globální optimalizace hodnot a inliningu.  Jako
+poslední krok překladu je vygenerován externí assembler a přeložen externím
+programem.  Výsledný objektový soubor je slinkován s~podpůrnou knihovnou.
+Podpůrná běhová knihovna je napsaná v~\Cplusplus, definuje základní funkce a
+objekty a spravuje paměť pomocí přemisťovacího garbage collectoru. Součástí
+implementace je i základní standardní knihovna.
 
 \end{adjustwidth}
 

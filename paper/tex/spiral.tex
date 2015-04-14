@@ -1,21 +1,20 @@
 \chapter{Popis jazyka Spiral}
 
-Samotný jazyk je velmi prostý, jelikož poskytuje pouze
-nástroje pro definici modulů, tvorbu funkcí a proměnných, podmíněné
-vyhodnocování a literály.  Primitivní operace (například sčítání čísel či
-přístup k~prvku pole) jsou definovány ve standardní knihovně, kde jsou
-implementovány jako externí volání podpůrné knihovny. Za zmínku stojí, že
-identifikátory jako \texttt{+} a \texttt{*} nejsou zabudované operátory, ale
-klasické proměnné. 
+Samotný jazyk je velmi prostý, jelikož poskytuje pouze nástroje pro definici
+modulů, tvorbu funkcí a proměnných, základní větvení a literály.  Primitivní
+operace (například sčítání čísel či přístup k~prvkům pole) jsou definovány ve
+standardní knihovně, kde jsou implementovány jako externí volání podpůrné
+knihovny. Za zmínku stojí, že identifikátory jako \texttt{+} a \texttt{*} nejsou
+zabudované operátory, ale klasické proměnné. 
 
-Proměnné jsou neměnitelné, neexistuje proto žádný příkaz přiřazení, některé
+Proměnné jsou neměnitelné, neexistuje proto žádný příkaz přiřazení. Některé
 objekty ze standardní knihovny, například pole, je ale možno interně upravovat.
 Funkce, které mění nějaký objekt, je zvykem pojmenovávat s~vykřičníkem na konci
 (\texttt{array-set!}).
 
 Volání funkcí v~koncových pozicích (\emph{tail-calls}) jsou implementována tak,
 že umožňují neomezené množství rekurzivních volání bez hrozby přetečení
-zásobníku, což umožňuje vyjádřit všechny iterace pomocí rekurze.
+zásobníku, což umožňuje efektivně vyjádřit všechny iterace pomocí rekurze.
 
 Funkce jsou hodnoty podobně jako čísla nebo řetězce, je s~nimi tedy možno bez
 omezení pracovat jako v~jiných funkcionálních jazycích. Ve funkci je možno
@@ -38,8 +37,8 @@ příjemný na psaní.
 <decl>        = (export <ident>...) | <stmt>
 \end{ttcode}
 
-Program obsahuje seznam příkazů (\emph{statement}, \texttt{<stmt>}), které jsou
-postupně vykonány. Modul obsahuje deklarace, které kromě příkazů zahrnují i
+Program obsahuje seznam příkazů (\emph{statements}, \texttt{<stmt>...}), které
+jsou postupně vykonány. Modul obsahuje deklarace, které kromě příkazů zahrnují i
 exporty, které modul poskutuje ostatním modulům a hlavnímu programu.
 
 ~
@@ -62,7 +61,7 @@ proměnných.
 \begin{description}
 
 \item[\texttt{(import <import-def>...)}] Příkaz importu načte modul a umožní
-  používat jeho exportované proměnné v~aktuálním kontextu. Je možno importovat jen
+  používat jeho exportované proměnné v~aktuálním kontextu. Je možno importovat
   vybraná jména pomocí \texttt{(only ...)}, nebo importovat všechny kromě zadaných
   \texttt{(except ...)} nebo všem importovaným jménům předřadit prefix
   \texttt{(prefix ...)}.
@@ -78,31 +77,32 @@ proměnných.
       z~\texttt{std.math} všechna jména kromě \texttt{sin} a \texttt{cos}.
     \item \texttt{(import (prefix (only std.math div mod) m.))} importuje z~modulu
       \texttt{std.math} jména \texttt{div} a \texttt{mod} a přidá jim prefix
-      \texttt{m.} (takže se na ně bude možno odkázat jako \texttt{m.div} a
+      \texttt{m.} (takže se na ně bude možno odkazovat jako \texttt{m.div} a
       \texttt{m.mod}).
   \end{itemize}
 
 \item[\texttt{(fun <fun-name> (<arg>...) <body-stmt>...)}] definuje pojmenovanou
   funkci. Funkce, které jsou takto definovány těsně za sebou, mohou být vzájemně
-  rekurzivní, takže funkce definovaná v~pořadí dříve \uv{vidí} definici pozdější
-  funkce (včetně sebe sama). Kromě toho je ve funkcích možno použít veškeré
-  proměnné definované vně (taková funkce se nazývá \emph{closure}).
+  rekurzivní, jelikož funkce definovaná v~pořadí dříve \uv{vidí} i definice
+  pozdějších funkcí (včetně sebe samotné). Kromě toho je ve funkcích možno použít
+  veškeré předem definované proměnné.
 
 \item[\texttt{(var <var-name> <value>)}] definuje proměnnou. Proměnná, narozdíl
-  od funkce, odkazovat na sebe samu nemůže, jelikož její hodnota může být použíta
+  od funkce, odkazovat na sebe samu nemůže, jelikož její hodnota může být použita
   až po její definici.
 
 \item[\texttt{<expr>}] -- pokud je na místě příkazu nalezen výraz, je vyhodnocen.
-  Pokud je na posledním místě v~posloupnosti příkazů, je jeho hodnota použíta jako
+  Pokud je na posledním místě v~posloupnosti příkazů, je jeho hodnota použita jako
   hodnota celé posloupnosti, jinak je výsledek zahozen.
 
 \end{description}
 
 \subsection{Výrazy}
 
-Všechny zbývající konstrukce jazyka jsou výrazy, což znamená, že vrací hodnotu.
-Pokud není žádná rozumná hodnota, kterou by měl výraz vrátit (například prázdný
-výraz \texttt{(begin)}), vrací výraz hodnotu \texttt{false}.
+Všechny zbývající konstrukce jazyka jsou výrazy (\emph{expressions}), což
+znamená, že vrací hodnotu.  Pokud není žádná rozumná hodnota, kterou by měl
+výraz vrátit (například prázdný výraz \texttt{(begin)}), vrátí výraz hodnotu
+\texttt{false}.
 
 \begin{gram}
 <expr>        = (if <expr> <expr> <expr>)
@@ -126,16 +126,16 @@ výraz \texttt{(begin)}), vrací výraz hodnotu \texttt{false}.
 \begin{description}
   \item[\texttt{<integer-literal>}, \texttt{<float-literal>}] jsou číselné
     konstanty, které se vyhodnotí na číslo, které reprezentují. Číslice je
-    množno oddělovat podtržitky a v~zápisu desetinného čísla je možno použít
+    množno oddělovat podtržítky a v~zápisu desetinného čísla je možno použít
     exponent.
 
-  \item[\texttt{<character-literal>}] je znaková konstanta, která se vyhodnotí
-    na číselnou hodnotu znaku.
+  \item[\texttt{<character-literal>}] je znaková konstanta, uzavřená
+    v~jednoduchách uvozovkách, která se vyhodnotí na číselnou hodnotu znaku.
 
   \item[\texttt{<string-literal>}] je řetězcový literál uzavřený v~uvozovkách,
-    ve kterém je možné použít escape sekvence z~jazyka C a podobných
-    (například \texttt{\textbackslash{}n} je znak nového řádku,
-    \texttt{\textbackslash{}"} je uvozovka).
+    ve kterém je možné použít escape sekvence z~jazyka C (například
+    \texttt{\textbackslash{}n} je znak nového řádku, \texttt{\textbackslash{}"}
+    je uvozovka).
 
   \item[\texttt{(if <condition> <then> <else>)}] je podmíněný příkaz, který
     nejprve vyhodnotí podmínku, a pokud je pravdivá, vyhodnotí první výraz,
@@ -146,7 +146,7 @@ výraz \texttt{(begin)}), vrací výraz hodnotu \texttt{false}.
     je pravdivá, vyhodnotí následující příkazy. 
 
   \item[\texttt{(unless <condition> <body-stmt>...)}] je obdobou \texttt{when},
-    ale příkazy vyhodnotí pokud je podmínka nepravdivá.
+    ale příkazy vyhodnotí pouze pokud je podmínka nepravdivá.
 
   \item[\texttt{(cond (<condition> <stmt>...)..)}] postupně zkouší vyhodnocovat
     podmínky a vyhodnotí příkazy u první, která je pravdivá.
@@ -161,25 +161,25 @@ výraz \texttt{(begin)}), vrací výraz hodnotu \texttt{false}.
     hodnoty daných výrazů a poté vyhodnotí následující příkazy.
 
   \item[\texttt{(lambda (<arg>...) <body-stmt>...)}] vytvoří anonymní funkci
-    s~danými argumenty a příkazy, které tvoří její tělo. Uvnitř funkce je možno
-    používat proměnné z~vnějšku funkce.
+    s~danými argumenty a příkazy, které tvoří její tělo. Uvnitř funkce je opět
+    možno používat proměnné z~vnějšku funkce.
 
-  \item[\texttt{(<fun> <arg>...)}] je výraz volání. Nejprve se vyhodnotí
-    všechny argumenty zleva doprava a poté výraz funkce, která je vzápětí
-    zavolána. Pokud se první výraz nevyhodnotí na funkci, program skončí s~chybou.
+  \item[\texttt{(<fun> <arg>...)}] je zápis volání. Nejprve se vyhodnotí všechny
+    argumenty zleva doprava a poté funkce, která je poté zavolána. Pokud se
+    první výraz nevyhodnotí na funkci, program skončí s~chybou.
 
   \item[\texttt{(extern <fun-name> <arg>...)}] je volání externí funkce
-    (definované v~jazyku C) s~danými argumenty. Normálně se tato volání objevují
+    (definované v~jazyku C) s~danými argumenty. Obvykle se tato volání objevují
     pouze ve standardní knihovně. Počet argumentů ani existenci funkce není
-    možno zkontrolovat, korektnost je tedy na programátorovi.
+    možno zkontrolovat, korektnost je tedy závislá na programátorovi.
 
   \item[\texttt{(begin <body-stmt>...)}] vyhodnotí všechny příkazy a vrátí
     hodnotu posledního.
 
   \item[\texttt{(do ((<var> <init> <next>)...) (<exit-condition> <exit-stmt>...)
-    <body-stmt>...)}] je příkaz cyklu. Do všech proměnných je neprve přiřazena
+    <body-stmt>...)}] je výraz cyklu. Do všech proměnných je neprve přiřazena
     počáteční hodnota (\texttt{<init>}). Poté je vyhodnocena podmínka
-    (\texttt{<edit-condition>}) a pokud je pravdivá, vyhodnotí se následující
+    (\texttt{<exit-condition>}) a pokud je pravdivá, vyhodnotí se následující
     příkazy (\texttt{<exit-stmt>...}) a cyklus se ukončí. V~opačném případě jsou
     vyhodnoceny příkazy v~těle cyklu (\texttt{<body-stmt>...}), poté jsou do
     proměnných přiřazeny hodnoty \texttt{<next>} a cyklus se opakuje novou
@@ -204,18 +204,18 @@ výraz \texttt{(begin)}), vrací výraz hodnotu \texttt{false}.
 
 Standardní knihovna definuje základní funkce. Jelikož program ve Spiral nemá
 implicitně definovaná žádná jména, je import standardní knihovny prakticky
-všudypřítomný.
+nutností.
 
 \begin{description}
   \item[\texttt{std.core}] definuje základní operace s~čísly (\texttt{+},
     \texttt{mod}, \texttt{<}, \texttt{==}, ...), predikáty ekvivalence
-    (\texttt{eqv?}, \texttt{equal?}) a funkce pro výstup (\texttt{println}).
-    Rovněž definuje logické proměnné \texttt{true} a \texttt{false} (jako
-    hodnoty výrazů \texttt{(and)} a \texttt{(or)}).
+    (\texttt{eqv?}, \texttt{equal?}) a základní funkci pro výstup
+    (\texttt{println}).  Rovněž definuje logické proměnné \texttt{true} a
+    \texttt{false} (jako hodnoty výrazů \texttt{(and)} a \texttt{(or)}).
 
   \item[\texttt{std.array}] poskytuje funkce pro práci s~poli
     (\texttt{array-new}, \texttt{array-push!}, \texttt{array-get},
-    \texttt{array-empty?}, ...). Pole jsou indexovány celými čísly od nuly a
+    \texttt{array-empty?}, ...). Pole jsou indexována celými čísly od nuly a
     jejich délka i obsah jsou měnitelné.
 
   \item[\texttt{std.tuple}] umožňuje používat n-tice (\emph{tuples}), a to
@@ -226,22 +226,22 @@ všudypřítomný.
 
   \item[\texttt{std.cons}] definuje funkce pro práci s~páry (\emph{cons}), které
     se převážně používají ve formě spojových seznamů, kdy první prvek páru
-    (\emph{car}) ukládá hodnotu prvního prvku seznamu a druhý prek prvek
-    (\emph{cdr}) odkazuje na zbytek seznamu. Konec seznamu reprezentuje
-    speciální hodnota (\emph{null} či \emph{nil}), pro kterou je ve Spiral
-    použito \texttt{false}. Tento modul definuje základní funkce pro práci
-    s~páry (\texttt{cons}, \texttt{car}, \texttt{cdr}, \texttt{cons?}, ...) i
-    pro manipulaci se seznamy (\texttt{list?}, \texttt{list-len},
-    \texttt{list-append}, \texttt{list-reverse}, ...). Páry jsou neměnné, což
-    znamená, že není možno vytvořit kruhový seznam.
+    (\emph{car}) ukládá hodnotu prvního prvku seznamu a druhý prvek (\emph{cdr})
+    odkazuje na zbytek seznamu. Konec seznamu reprezentuje speciální hodnota
+    (\emph{null} či \emph{nil}), pro kterou je ve Spiral použito \texttt{false}.
+    Tento modul definuje základní funkce pro práci s~páry (\texttt{cons},
+    \texttt{car}, \texttt{cdr}, \texttt{cons?}, ...) i pro manipulaci se seznamy
+    (\texttt{list?}, \texttt{list-len}, \texttt{list-append},
+    \texttt{list-reverse}, ...). Páry jsou neměnné, což znamená, že není možno
+    vytvořit kruhový seznam.
 
   \item[\texttt{std.string}] exportuje funkce pracující s~řetězci
     (\texttt{str-len}, \texttt{str-get}, \texttt{stringify}, \texttt{str-cat-2},
-    \texttt{str-cat-3}, ...). Řetězce jsou neměnitelné a jsou složené z~bytů.
+    \texttt{str-cat-3}, ...). Řetězce jsou neměnitelné a složené z~bytů.
 
   \item[\texttt{std.io}] slouží pro vstupní a výstupní operace
-    (\emph{input/output}) se soubory a standardním vstupem, výstupem a chybovým
-    výstupem (\texttt{io-file-open}, \texttt{io-close}, \texttt{io-stdin},
+    (\emph{input/output}) se soubory a standardními proudy
+    (\texttt{io-file-open}, \texttt{io-close}, \texttt{io-stdin},
     \texttt{io-write-line}, \texttt{io-read-line}, \texttt{io-read-number},
     ...).
 
@@ -251,39 +251,39 @@ všudypřítomný.
   \item[\texttt{std.math}] implementuje základní matematické funkce jako
     \texttt{abs}, \texttt{neg}, \texttt{sin} nebo \texttt{atan-2}.
 
-  \item[\texttt{std.test}] je minimalisticka knihovna pro tvorbu jednotkových
+  \item[\texttt{std.test}] je minimalistická knihovna pro tvorbu jednotkových
     testů.
 \end{description}
 
-Modul \texttt{std} je poskytován pro pohodlný import základních funkcí
-(například \texttt{+} nebo \texttt{car}).
+Modul \texttt{std} reexportuje základní definice (například \texttt{+} nebo
+\texttt{car}) a je poskytován pro pohodlí programátora.
 
 \section{Ovládání překladače z~příkazové řádky}
 
 Překladač je možno ovládat pomocí argumentů na příkazové řádce:
 
 \begin{description}
-  \item[\texttt{-o}, \texttt{-{}-output}] umožňuje určit výstupní soubor, jinak je
-    výstup umístěn do stejného adresáře jako vstupní soubor se stejným jménem a
-    příponou určenou podle typu výstupu.
+  \item[\texttt{-o}, \texttt{-{}-output}] umožňuje určit výstupní soubor.
+    Výstup je jinak umístěn do stejného adresáře jako vstupní soubor se stejným
+    jménem a příponou určenou podle typu výstupu.
   \item[\texttt{-I}, \texttt{-{}-include}] přidá adresář, ve kterém se hledají
     \texttt{import}ované moduly.
   \item[\texttt{-e}, \texttt{-{}-emit}] nastaví typ výstupu: \texttt{sexpr} přečte
-    vstupní S-výraz a vypíše jej ve formátované podobě, \texttt{spiral} vypíše
-    syntaktický strom Spiral v~interní debugovací podobě, \texttt{spine} a
-    \texttt{grit} vypíšou program v~odpovídajícím mezijazyku jako S-výraz,
+    vstupní s-výraz a vypíše jej ve formátované podobě, \texttt{spiral} vypíše
+    syntaktický strom Spiral v~interní podobě, \texttt{spine} a
+    \texttt{grit} vypíšou program v~odpovídajícím mezijazyku jako s-výraz,
     \texttt{asm} vypíše vygenerovaný assembler v~interní podobě, \texttt{gas}
     vypíše assembler jako vstup pro GNU Assembler a \texttt{exec} program
     přeloží a slinkuje s~běhovou knihovnou (což je výchozí chování).
   \item[\texttt{-t}, \texttt{-{}-runtime}] určí soubor s~běhovou knihovnou, se
     kterou bude program slinkován.
-  \item[\texttt{-{}-link-cmd}] změní linkovací program. Výchozí je \texttt{clang},
+  \item[\texttt{-{}-link-cmd}] nastaví linkovací program. Výchozí je \texttt{clang},
     který sám zavolá systémový linker tak, aby program správně slinkoval se
     standardní knihovnou jazyka C (\texttt{libc}).
   \item[\texttt{-{}-gas-cmd}] umožňuje změnit assembler místo výchozího
     \texttt{as}.
   \item[\texttt{-O}, \texttt{-{}-opt-level}] umožňuje nastavit úroveň optimalizace
-    jako číslo od 0 do 3.
+    od 0 do 3.
 \end{description}
 
 \section{Příklady}
@@ -333,8 +333,8 @@ nalezených prvočísel.
 \subsection{Počítání celých mocnin a odmocnin}
 
 Tento program aproximuje $\sqrt[n]{x}$ Newtonovou metodou (funkce \texttt{root})
-a počítá $x^n$ pomocí binárního umocňování. Oba algoritmy jsou otestovány pomocí
-knihovny \texttt{std.test}.
+a počítá $x^n$ pomocí binárního umocňování (funkce \texttt{power}). Oba
+algoritmy jsou poté otestovány pomocí knihovny \texttt{std.test}.
 
 \begin{spiral}
 (program
