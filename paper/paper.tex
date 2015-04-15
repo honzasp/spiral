@@ -13,6 +13,7 @@
 \usepackage{amsfonts}
 \usepackage{changepage}
 \usepackage[htt]{hyphenat}
+\usepackage{chngcntr}
 
 \geometry{
   marginparsep=0cm,marginparwidth=0cm,
@@ -22,6 +23,8 @@
 
 \chapterstyle{article}
 \pagestyle{plain}
+
+\counterwithout{footnote}{chapter}
 
 \selectbiblanguage{czech}
 
@@ -70,7 +73,6 @@
 \DisableLigatures[>,<]{encoding = T1,family=tt*} %
 
 \def\Cplusplus{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bfseries ++}}}
-\def\Csh{C\nolinebreak\hspace{-.05em}\raisebox{.4ex}{\scriptsize\bfseries \#}}
 
 \hypersetup{
   unicode=true,
