@@ -1,9 +1,29 @@
 \chapter{Závěr}
 
 Představili jsme funkční implementaci netriviálního programovacího jazyka včetně
-běhového prostředí a standardní knihovny. I když tento jazyk je v~některých
-aspektech kvalitnějši než jisté široce používané jazyky (například \uv{jazyk}
-PHP), trpí řadou fundamentálních nedostatků:
+běhového prostředí a standardní knihovny. Podporovány jsou plnohodnotné funkce,
+koncová volání i jednoduchý systém modulů.
+
+Původní autorův záměr byl vytvořit překladač jazyka
+Plch\footnote{\url{https://github.com/honzasp/plch}}, který měl být prakticky
+stejný jako Spiral. Jeho první mezijazyk $^p\lambda_\chi$ byl velmi podobný
+Spine, umožňoval však přímo pracovat s~celými čísly a funkcemi a měl proto i
+jednoduchý typový systém. Druhý mezijazyk \texttt{tac} (\emph{\texttt{t}hree
+\texttt{a}ddress \texttt{c}ode}), jehož zjednodušením vznikl Grit, se pak
+překládal do assembleru za použití skutečného alokátoru registrů, generovaný kód
+byl tedy poměrně kvalitní.
+
+Rozvržení překladu přes jazyky Spine a Grit tak původně počítalo s~tím, že
+většina optimalizací bude probíhat v~\uv{typově bezpečném} jazyku Spine a Grit
+bude sloužit jen jako multiplatformní předstupeň assembleru, stejně jako jako
+jeho neúspěšný předchůdce \texttt{tac}. Ukázalo se však, že optimalizovat
+strukturovaný Spine je obtížnější než jednoduchý Grit, navíc některé důležité
+aspekty (známá a neznámá volání) nelze v~bezpečném netypovaném jazyce vyjádřit
+stejně přímo jako v~Gritu.
+
+I když je jazyk Spine v~některých aspektech kvalitnějši než jisté široce
+používané jazyky (například \uv{jazyk} PHP), trpí některými fundamentálními
+nedostatky:
 
 \begin{itemize}
   \item Autor je přesvědčen, že dynamicky typované jazyky dosáhly své popularity
@@ -23,9 +43,9 @@ PHP), trpí řadou fundamentálních nedostatků:
     operaci.
 \end{itemize}
 
-Kromě těchto vad, které jsou inherentním důsledkem typu jazyka, kterým Spiral
-je, pak implementace trpí množstvím dalších nedodělků, které by pro praktické
-použití musely být napraveny:
+Kromě těchto vad, které jsou důsledkem návrhu jazyka, pak implementace trpí
+množstvím dalších nedodělků, které by pro praktické použití musely být
+napraveny:
 
 \begin{itemize}
   \item Kvůli nízké kvalitě generátoru kódu, který ani není schopen umístit
@@ -44,7 +64,7 @@ použití musely být napraveny:
     implementace schopna určit ani v~náznaku místo, kde chyba nastala, což činí
     vývoj jakéhokoli jen trochu většiho programu prakticky nemožným.
 
-  \item Výše zmíněný generátor kódu je nejen hrozivě neefektivní, ale zároveň
+  \item Výše zmíněný generátor kódu je nejen děsivě neefektivní, ale zároveň
     velmi nepřehledný a špatně napsaný, a to i ve srovnání se zbytkem
     překladače.
 
@@ -55,12 +75,13 @@ použití musely být napraveny:
   \item Jazyk neumožňuje používat funkce s~proměnným počtem argumentů, takže
     standardní knihovna musí exportovat palety funkcí jako \texttt{tuple-0} až
     \texttt{tuple-8} nebo \texttt{str-cat-0} až \texttt{str-cat-8}.
-
-  \item Zdrojový kód postrádá jakoukoli dokumentaci. Jazyk Spiral dokonce ani
-    nemá syntaxi na zápis komentářů.
+    
+  \item Zdrojový kód neobsahuje ani jeden komentář, jazyk Spiral dokonce syntaxi
+    na zápis komentářů úplně postrádá.
 \end{itemize}
 
 Na závěr lze tedy říci, že jednoduchý programovací jazyk byl sice podle zadání
 z~názvu práce přeložen, ovšem přínos práce končí tímto konstatováním. Byly
 použity pouze běžné a v~literatuře mnohokrát popsané postupy, navíc často notně
 zjednodušené.
+
