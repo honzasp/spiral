@@ -40,6 +40,20 @@ namespace spiral {
 
     auto spiral_std_floor(Bg* bg, void* sp, uint32_t a) -> uint32_t;
     auto spiral_std_ceil(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_abs(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+
+    auto spiral_std_exp(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_log(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_pow(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+    auto spiral_std_sqrt(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+
+    auto spiral_std_sin(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_cos(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_tan(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_asin(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_acos(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_atan(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_atan_2(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
   }
 }
 #endif

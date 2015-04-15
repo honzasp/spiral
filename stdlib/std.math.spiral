@@ -1,8 +1,25 @@
 (module std.math
   (import std.core)
   (fun neg (a) (- 0 a))
+  (fun square (a) (* a a))
+  (export neg square)
+  
   (fun floor (a) (extern spiral_std_floor a))
   (fun ceil (a) (extern spiral_std_ceil a))
-  (fun abs (a) (if (< a 0) (neg a) a))
-  (fun square (a) (* a a))
-  (export neg floor ceil abs square))
+  (fun abs (a) (extern spiral_std_abs a))
+  (export floor ceil abs)
+
+  (fun exp (a) (extern spiral_std_exp a))
+  (fun log (a) (extern spiral_std_log a))
+  (fun pow (a b) (extern spiral_std_pow a b))
+  (fun sqrt (a) (extern spiral_std_sqrt a))
+  (export exp log pow sqrt)
+
+  (fun sin (a) (extern spiral_std_sin a))
+  (fun cos (a) (extern spiral_std_cos a))
+  (fun tan (a) (extern spiral_std_tan a))
+  (fun asin (a) (extern spiral_std_asin a))
+  (fun acos (a) (extern spiral_std_acos a))
+  (fun atan (a) (extern spiral_std_atan a))
+  (fun atan-2 (a b) (extern spiral_std_atan_2 a b))
+  (export sin cos tan asin acos atan atan-2))

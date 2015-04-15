@@ -2,23 +2,43 @@
   (import std)
   (import std.math)
   (import std.test)
+  (var eps 0.00001)
 
   (test "neg" (lambda (t)
     (assert-eq t (neg (neg 20)) 20)
     (assert-eq t (- 0 3) (neg 3))))
+  (test "square" (lambda (t)
+    (assert-eq t (square 8) 64)
+    (assert-eq t (square 0.5) 0.25)))
 
   (test "floor" (lambda (t)
     (assert-eq t (floor 2.34) 2)
     (assert-eq t (floor (neg 4.3)) (neg 5))))
-
   (test "ceil" (lambda (t)
     (assert-eq t (ceil 4.6) 5)
     (assert-eq t (ceil (neg 10.3)) (neg 10))))
-
   (test "abs" (lambda (t)
     (assert-eq t (abs 10) 10)
     (assert-eq t (abs (neg 3.45)) 3.45)))
 
-  (test "square" (lambda (t)
-    (assert-eq t (square 8) 64)
-    (assert-eq t (square 0.5) 0.25))))
+  (test "exponential" (lambda (t)
+    (assert-near-eq t eps (exp 1.23) 3.4212295362896734)
+    (assert-near-eq t eps (exp (neg 2.3)) 0.10025884372280375) 
+    (assert-near-eq t eps (log 123.456) 4.815884817283264)
+    (assert-near-eq t eps (log 0.123) (neg 2.0955709236097197))
+    (assert-near-eq t eps (pow 7.2 4.23) 4231.7154775408)
+    (assert-near-eq t eps (pow 0.23 0.234) 0.7089968630053979)
+    (assert-near-eq t eps (sqrt 234) 15.297058540778355)
+    (assert-near-eq t eps (sqrt 0.9374) 0.9681941953967707)))
+
+  (test "goniometric" (lambda (t)
+    (assert-near-eq t eps (sin 2.12) 0.8529404815528762)
+    (assert-near-eq t eps (cos (neg 0.12)) 0.9928086358538663)
+    (assert-near-eq t eps (tan 8.91) (neg 0.5656484729918302))))
+
+  (test "inverse goniometric" (lambda (t)
+    (assert-near-eq t eps (asin 0.83) 0.9791076843683526)
+    (assert-near-eq t eps (acos 0.49) 1.0587065738607488)
+    (assert-near-eq t eps (atan (neg 1.84)) (neg 1.0729739941778955))
+    (assert-near-eq t eps (atan-2 (neg 2.3) 1.34) (neg 1.043262711198445)))))
+

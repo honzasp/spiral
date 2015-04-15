@@ -1,5 +1,8 @@
 test neg ok
+test square ok
 test floor ok
 test ceil ok
 test abs ok
-test square ok
+test exponential ok
+test goniometric ok
+test inverse goniometric ok

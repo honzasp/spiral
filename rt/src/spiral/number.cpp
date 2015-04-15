@@ -163,6 +163,23 @@ namespace spiral {
     }
   }
 
+  template<typename D>
+  static auto unop_dbl(Bg* bg, void* sp, uint32_t a, D dbl_op) -> uint32_t {
+    auto a_val = Val(a);
+    double a_dbl;
+
+    if(a_val.is_int()) {
+      a_dbl = static_cast<double>(a_val.unwrap_int());
+    } else if(a_val.is_obj() && a_val.get_otable() == &double_otable) {
+      auto a_dbl_obj = a_val.unwrap_obj<DoubleObj>();
+      a_dbl = a_dbl_obj->num;
+    } else {
+      bg_panic(bg, "unary operation did not get a number");
+    }
+
+    return double_new(bg, sp, dbl_op(a_dbl)).u32;
+  }
+
   template<typename I>
   static auto binop_int(Bg* bg, void*, uint32_t a, uint32_t b, I int_op) -> uint32_t {
     auto a_val = Val(a), b_val = Val(b);
@@ -267,11 +284,48 @@ namespace spiral {
           [](int32_t a){ return a; },
           [](double a){ return std::floor(a); });
     }
-
     auto spiral_std_ceil(Bg* bg, void* sp, uint32_t a) -> uint32_t {
       return unop_num(bg, sp, a,
           [](int32_t a){ return a; },
           [](double a){ return std::ceil(a); });
+    }
+    auto spiral_std_abs(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::abs(a); });
+    }
+
+    auto spiral_std_exp(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::exp(a); });
+    }
+    auto spiral_std_log(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::log(a); });
+    }
+    auto spiral_std_pow(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t {
+      return binop_dbl(bg, sp, a, b, [](double a, double b){ return std::pow(a, b); });
+    }
+    auto spiral_std_sqrt(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::sqrt(a); });
+    }
+
+    auto spiral_std_sin(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::sin(a); });
+    }
+    auto spiral_std_cos(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::cos(a); });
+    }
+    auto spiral_std_tan(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::tan(a); });
+    }
+    auto spiral_std_asin(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::asin(a); });
+    }
+    auto spiral_std_acos(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::acos(a); });
+    }
+    auto spiral_std_atan(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl(bg, sp, a, [](double a){ return std::atan(a); });
+    }
+    auto spiral_std_atan_2(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t {
+      return binop_dbl(bg, sp, a, b, [](double a, double b){ return std::atan2(a, b); });
     }
   }
 }
