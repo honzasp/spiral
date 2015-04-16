@@ -2,7 +2,7 @@ CXX = clang++
 CXX_FLAGS = -Wall -Wextra -std=c++11 -Iinclude -fno-exceptions -fno-rtti \
   -mstackrealign
 CXX_DEBUG_FLAGS = $(CXX_FLAGS) -g -O0
-CXX_FAST_FLAGS = $(CXX_FLAGS) -O3
+CXX_FAST_FLAGS = $(CXX_FLAGS) -O3 -DNDEBUG
 AS = as
 AR = ar
 
