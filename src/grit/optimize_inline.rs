@@ -1,5 +1,4 @@
 use std::collections::{HashSet, HashMap};
-use std::iter::{AdditiveIterator};
 use grit;
 
 pub fn optimize(mut prog: grit::ProgDef) -> grit::ProgDef {
@@ -210,8 +209,8 @@ fn calls_only_extern(fun_def: &grit::FunDef) -> bool {
 
 fn fun_size(fun_def: &grit::FunDef) -> usize {
   fun_def.blocks.iter().map(|block| {
-    block.ops.iter().map(op_size).sum() + jump_size(&block.jump)
-  }).sum()
+    block.ops.iter().map(op_size).sum::<usize>() + jump_size(&block.jump)
+  }).sum::<usize>()
 }
 
 fn op_size(op: &grit::Op) -> usize {

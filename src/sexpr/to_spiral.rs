@@ -4,7 +4,7 @@ use spiral::*;
 pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<Prog, String> {
   match *prog {
     sexpr::Elem::List(ref list) => match list.get(0) {
-      Some(&sexpr::Elem::Identifier(ref head)) if head.as_slice() == "program" =>
+      Some(&sexpr::Elem::Identifier(ref head)) if &head[..] == "program" =>
         Ok(Prog { stmts: try!(stmts_from_sexprs(&list[1..])) }),
       _ => Err(format!("program has to begin with 'program'")),
     },
@@ -17,7 +17,7 @@ pub fn mod_from_sexpr(module: &sexpr::Elem) -> Result<Mod, String> {
     sexpr::Elem::List(ref list) => {
       if list.len() >= 2 {
         let _ = try!(match list[0] {
-          sexpr::Elem::Identifier(ref head) if head.as_slice() == "module" => Ok(()),
+          sexpr::Elem::Identifier(ref head) if &head[..] == "module" => Ok(()),
           _ => Err(format!("module has to begin with 'module'")),
         });
 
@@ -43,7 +43,7 @@ fn decls_from_sexprs(elems: &[sexpr::Elem]) -> Result<Vec<Decl>, String> {
 pub fn decl_from_sexpr(decl: &sexpr::Elem) -> Result<Decl, String> {
   match *decl {
     sexpr::Elem::List(ref list) => match list.first() {
-      Some(&sexpr::Elem::Identifier(ref id)) => match id.as_slice() {
+      Some(&sexpr::Elem::Identifier(ref id)) => match &id[..] {
         "export" => return export_from_sexprs(list.tail()),
         _ => (),
       },
@@ -73,7 +73,7 @@ fn stmts_from_sexprs(elems: &[sexpr::Elem]) -> Result<Vec<Stmt>, String> {
 pub fn stmt_from_sexpr(stmt: &sexpr::Elem) -> Result<Stmt, String> {
   match *stmt {
     sexpr::Elem::List(ref list) => match list.first() {
-      Some(&sexpr::Elem::Identifier(ref id)) => match id.as_slice() {
+      Some(&sexpr::Elem::Identifier(ref id)) => match &id[..] {
         "fun" => return fun_def_from_sexprs(list.tail()),
         "var" => return var_def_from_sexprs(list.tail()),
         "import" => return import_from_sexprs(list.tail()),
@@ -178,7 +178,7 @@ pub fn expr_from_sexpr(expr: &sexpr::Elem) -> Result<Expr, String> {
     sexpr::Elem::Char(chr) =>
       Ok(Expr::Char(chr)),
     sexpr::Elem::List(ref list) => match list.get(0) {
-      Some(&sexpr::Elem::Identifier(ref id)) => match id.as_slice() {
+      Some(&sexpr::Elem::Identifier(ref id)) => match &id[..] {
         "if" => if_from_sexpr(&list[1..]),
         "cond" => cond_from_sexpr(&list[1..]),
         "when" => when_from_sexpr(&list[1..]),

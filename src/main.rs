@@ -1,12 +1,9 @@
-#![allow(stable_features, deprecated)]
-#![feature(collections, box_syntax)]
-#![feature(core, unboxed_closures)]
-#![feature(process)]
-#![feature(str_char)]
-#![feature(convert)]
+#![feature(box_syntax, str_char, collections, core)]
 extern crate docopt;
 extern crate rustc_serialize;
 extern crate tempdir;
+
+use std::convert;
 
 mod args;
 mod sexpr;
@@ -197,14 +194,14 @@ pub fn main() {
   }
 }
 
-impl std::error::FromError<std::io::Error> for SpiralError {
-  fn from_error(err: std::io::Error) -> SpiralError {
+impl convert::From<std::io::Error> for SpiralError {
+  fn from(err: std::io::Error) -> SpiralError {
     SpiralError(format!("{}", err))
   }
 }
 
-impl std::error::FromError<String> for SpiralError {
-  fn from_error(err: String) -> SpiralError {
+impl convert::From<String> for SpiralError {
+  fn from(err: String) -> SpiralError {
     SpiralError(err)
   }
 }

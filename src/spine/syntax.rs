@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #[derive(PartialEq, Clone, Debug)]
 pub struct ProgDef {
   pub halt_cont: ContName,

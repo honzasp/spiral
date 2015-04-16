@@ -8,9 +8,8 @@ pub fn pretty_print_sexpr(elem: &sexpr::Elem) -> String {
 
 fn pp_elem(buffer: &mut String, indent: usize, elem: &sexpr::Elem) {
   use std::iter;
-  use std::iter::AdditiveIterator;
   if let sexpr::Elem::List(ref elems) = *elem {
-    let words = elems.iter().map(count_words).sum();
+    let words: usize = elems.iter().map(count_words).sum();
     if elems.is_empty() || words <= 12 {
       pp_inline_elem(buffer, elem)
     } else {
@@ -45,17 +44,16 @@ fn pp_inline_elem(buffer: &mut String, elem: &sexpr::Elem) {
         "identifier {:?} contains bad characters", id);
       buffer.push_str(&id[..]);
     },
-    sexpr::Elem::Int(num) => buffer.push_str(format!("{}", num).as_slice()),
-    sexpr::Elem::Double(num) => buffer.push_str(format!("{}", num).as_slice()),
-    sexpr::Elem::String(ref txt) => buffer.push_str(format!("{:?}", txt).as_slice()),
-    sexpr::Elem::Char(chr) => buffer.push_str(format!("{:?}", chr).as_slice()),
+    sexpr::Elem::Int(num) => buffer.push_str(format!("{}", num).as_ref()),
+    sexpr::Elem::Double(num) => buffer.push_str(format!("{}", num).as_ref()),
+    sexpr::Elem::String(ref txt) => buffer.push_str(format!("{:?}", txt).as_ref()),
+    sexpr::Elem::Char(chr) => buffer.push_str(format!("{:?}", chr).as_ref()),
   }
 }
 
 fn count_words(elem: &sexpr::Elem) -> usize {
-  use std::iter::AdditiveIterator;
   match *elem {
-    sexpr::Elem::List(ref list) => list.iter().map(count_words).sum() + 1,
+    sexpr::Elem::List(ref list) => list.iter().map(count_words).sum::<usize>() + 1,
     sexpr::Elem::Identifier(_) => 1,
     sexpr::Elem::Int(_) | sexpr::Elem::Double(_) | sexpr::Elem::Char(_) => 1,
     sexpr::Elem::String(ref txt) => txt.len() / 8,

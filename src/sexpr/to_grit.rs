@@ -6,7 +6,7 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<grit::ProgDef, String> {
   match *prog {
     sexpr::Elem::List(ref list) => {
       match list.get(0) {
-        Some(&sexpr::Elem::Identifier(ref head)) if head.as_slice() == "program" => (),
+        Some(&sexpr::Elem::Identifier(ref head)) if &head[..] == "program" => (),
         _ => return Err(format!("program has to begin with 'program'")),
       };
 
@@ -45,7 +45,7 @@ pub fn fun_def_from_sexpr(elem: &sexpr::Elem) -> Result<grit::FunDef, String> {
   match *elem {
     sexpr::Elem::List(ref list) => 
       match list.get(0) {
-        Some(&sexpr::Elem::Identifier(ref head)) if head.as_slice() == "fun" =>
+        Some(&sexpr::Elem::Identifier(ref head)) if &head[..] == "fun" =>
           fun_def_from_sexprs(&list[1..]),
         _ => Err(format!("fun def must begin with 'fun'")),
       },

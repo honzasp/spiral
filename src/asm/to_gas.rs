@@ -272,7 +272,7 @@ fn escape_ascii(bytes: &[u8]) -> String {
       _ if byte == b'\t' => buf.push_str("\\t"),
       _ if byte == b'\r' => buf.push_str("\\r"),
       Some(ch) if byte >= 32 && byte <= 126 => buf.push(ch),
-      _ => buf.push_str(format!("\\{:03o}", byte).as_slice()),
+      _ => buf.push_str(format!("\\{:03o}", byte).as_ref()),
     }
   }
   buf.push('"');

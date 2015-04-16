@@ -30,7 +30,7 @@ pub struct Args {
   pub flag_opt_level: Option<u8>,
 }
 
-#[derive(RustcDecodable, Debug, Copy, PartialEq)]
+#[derive(RustcDecodable, Debug, Copy, Clone, PartialEq)]
 pub enum Emit {
   Sexpr,
   Spiral,

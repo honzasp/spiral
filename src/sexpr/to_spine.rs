@@ -7,7 +7,7 @@ pub fn prog_from_sexpr(prog: &sexpr::Elem) -> Result<spine::ProgDef, String> {
     sexpr::Elem::List(ref list) => 
       if list.len() == 3 {
         match list[0] {
-          sexpr::Elem::Identifier(ref head) if head.as_slice() == "program" => (),
+          sexpr::Elem::Identifier(ref head) if &head[..] == "program" => (),
           _ => return Err(format!("program has to begin with 'program'")),
         };
 

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #[derive(PartialEq, Debug)]
 pub struct Prog {
   pub stmts: Vec<Stmt>,
