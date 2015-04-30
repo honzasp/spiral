@@ -1,10 +1,11 @@
 CXX = clang++
-CXX_FLAGS = -Wall -Wextra -std=c++11 -Iinclude -fno-exceptions -fno-rtti \
-  -mstackrealign
-CXX_DEBUG_FLAGS = $(CXX_FLAGS) -g -O0
-CXX_FAST_FLAGS = $(CXX_FLAGS) -O3 -DNDEBUG
 AS = as
 AR = ar
+CXX_FLAGS = -Wall -Wextra -std=c++11 -Iinclude -fno-exceptions -fno-rtti \
+  -mstackrealign -m32
+CXX_DEBUG_FLAGS = $(CXX_FLAGS) -g -O0
+CXX_FAST_FLAGS = $(CXX_FLAGS) -O3 -DNDEBUG
+AS_FLAGS = -march=i386 --32
 
 !cxx_debug_c = |> ^ c++ -c %f^ $(CXX) $(CXX_DEBUG_FLAGS) -c %f -o %o |>
 !cxx_debug_s = |> ^ c++ -S %f^ $(CXX) $(CXX_DEBUG_FLAGS) -S %f -o %o |>

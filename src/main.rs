@@ -135,6 +135,7 @@ fn main_body() -> Result<(), SpiralError> {
   let gas_out = try!(process::Command::new(&gas_cmd[..])
     .arg(&asm_file)
     .arg("-o").arg(&obj_file)
+    .arg("-march=i386").arg("--32")
     .output());
   if !gas_out.status.success() {
     try!(Err(format!("Assembler failed:\n{}", String::from_utf8_lossy(&gas_out.stderr))))
@@ -147,6 +148,7 @@ fn main_body() -> Result<(), SpiralError> {
     .arg(&runtime_path[..])
     .arg("-o").arg(&output_path)
     .arg("-lm")
+    .arg("-march=i386").arg("-m32")
     .output());
   if !link_out.status.success() {
     try!(Err(format!("Linker failed:\n{}", String::from_utf8_lossy(&link_out.stderr))))
