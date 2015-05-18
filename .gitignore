@@ -5,7 +5,7 @@ target/
 *.s
 *.o
 !rt/*.s
-!examples/*.spiral
+!samples/*.spiral
 !stdlib/*.spiral
 Session.vim
 bench/

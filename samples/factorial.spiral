@@ -1,0 +1,8 @@
+(program
+  (import std std.io std.string)
+
+  (fun factorial (x)
+    (if (<= x 0) 1 (* x (factorial (- x 1)))))
+      
+  (let ((x (io-read-int (io-stdin))))
+    (io-write-line (io-stdout) (stringify (factorial x)))))
