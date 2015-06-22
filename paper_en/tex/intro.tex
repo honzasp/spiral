@@ -1,0 +1,57 @@
+\chapter{Introduction}
+
+Computer processors operate on a set of simple instructions that are fast and
+effective to execute. However, programming using these basic building blocks is
+slow, tedious and error-prone, so the development of the first programming
+languages closely followed the development of the first computers. These
+languages improved the productivity of the programmers and also the portability
+of the programs.
+
+To execute a program written in a higher programming language, there must be an
+interpreter of a compiler for that language. Interpreter is a program that reads
+the source code in the interpreted language and performs the operations
+described in the code. On the other hand, a compiler translates the source code
+into machine code. The translated program can then run on the processor of the
+computer with no further need for the source code or the compiler. It is usually
+easier to create an interpreter, but the performance of the interpreted program
+is usually worse compared to the program translated into the machine code.
+
+Programming languages mostly focused on the origanization of code and the
+sequencing of computations, with less attention to the management of memory.
+Today, we have basically two families of languages: low-level languages like C
+or \Cplusplus with manual memory management, and other languages, employing
+some form of garbage collection to manage the memory with no assistance from the
+programmer. Both approaches are not perfect. Manual memory management is prone
+to errors that are hard to debug and often create a security vulnerability
+(probably the best-known bug of this kind was Heartbleed \cite{heartbleed}).
+On the contrary, garbage collectors prohibit free use of memory and may have
+negative effects on performance.
+
+\section{Structure of a compiler}
+
+Common compilers are usually structured as following
+\cite{grune2012modern,appel1998modern}:
+
+\begin{itemize}
+  \item Lexical and syntactic analysis of the source language. The output of
+    this phase is the syntactic tree.
+  \item Semantic analysis of the syntactic tree (binding the names and the
+    definitions, typechecking). This part of the compiler together with lexical
+    and syntactic analysis is called front-end.
+  \item Translation into an intermediate language that is simpler and easier to
+    process than the source language.
+  \item Analysis and optimization of the intermediate language.
+  \item Generation of machine code from the intermediate language (back-end).
+\end{itemize}
+
+As an example, Glasgow Haskell Compiler (GHC)
+\cite{jones1993glasgow,haskellreport2010}, first translates the source language
+Haskell into Core \cite{jones1996compiling}, which is then optimized
+\cite{jones1997optimiser,santos1995compilation} and translated into STG
+\cite{jones1992implementing}, that serves as the last step before generating
+code.
+
+It is sometimes possible to translate multiple source languages into a single
+intermediate language and share a common back-end. An example of such project is
+LLVM \cite{llvm}, back-end for C and \Cplusplus{} compiler Clang \cite{clang} or
+the compiler of Rust \cite{rust}.

@@ -1,0 +1,105 @@
+\chapter{Běhová knihovna}
+
+Přeložený program potřebuje ke svému běhu podpůrnou běhovou knihovnu
+(\emph{runtime}). V~této knihovně jsou definovány základní funkce, které využívá
+standardní knihovna, a rovněž se zde nachází kód pro automatickou správu paměti.
+
+Je špatnou programovací praxí používat nekonstantní globální proměnné, proto
+jsou veškerá "globální" data uložena v~objektu nazývaném pozadí
+(\emph{background}, kvůli všudypřítomnosti zkráceno až na \emph{bg}). Odkaz na
+tento objekt je skrz funkce ve Spiral přenášen v~registru \texttt{\%edi},
+v~běhové knihovně pak explicitně jako první argument většiny funkcí.
+
+\section{Reprezentace hodnot}
+
+Všechny hodnoty jsou reprezentovány jako 32-bitové číslo. Hodnoty celých čísel
+jsou reprezentovány přímo, a to vynásobené dvěmi, tudíž jejich nejnižší bit je
+nulový. Takto je možno uložit $2^{31}$ čísel, takže rozsah celých čísel v~jazyku
+Spiral je od $-2^{30}$ do $2^{30}-1$. Ostatní hodnoty jsou uloženy jako ukazatel
+do paměti a jsou od celých čísel odlišeny tak, že jejich nejnižší bit je
+nastaven na jedničku. Aby bylo možno rychle rozpoznat funkce, mají datové
+objekty (tedy všechny, které nejsou funkce) poslední dva bity nastaveny na 01,
+funkce pak na 11 (binárně). Původní ukazatel obdržíme snadno bitovou operací
+\emph{and}.
+
+\begin{ttcode}
+   <int>0 ... integer
+  <ptr>01 ... data object
+  <ptr>11 ... function
+\end{ttcode}
+
+Všechny objekty v~paměti mají v~prvních 4~bajtech uložen ukazatel na statickou
+tabulku objektu (\emph{object table} neboli \emph{otable}). Pomocí této tabulky
+lze dynamické objekty rozlišovat a pracovat s~nimi. Tabulka kromě ukazatelů na
+funkce sloužící ke správě paměti obsahuje rovněž ukazatele na funkce pro převod
+objektu na řetězec a pro porovnávání objektů. Tyto funkce jsou využity pro
+implementaci funkcí \texttt{stringify}, \texttt{eqv?} a \texttt{equal?}
+standardní knihovny, které musí být schopny pracovat se všemi typy objektů.
+
+\begin{cplusplus}
+  struct ObjTable {
+    const char* type_name;
+    void (*stringify_fun)(Bg* bg, Buffer* buf, void* obj_ptr);
+    auto (*length_fun)(void* obj_ptr) -> uint32_t;
+    auto (*evacuate_fun)(GcCtx* gc_ctx, void* obj_ptr) -> Val;
+    void (*scavenge_fun)(GcCtx* gc_ctx, void* obj_ptr);
+    void (*drop_fun)(Bg* bg, void* obj_ptr);
+    auto (*eqv_fun)(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
+    auto (*equal_fun)(Bg* bg, void* l_ptr, void* r_ptr) -> bool;
+  };
+\end{cplusplus}
+
+Obsah úseku paměti po ukazateli na tabulku objektu je již závislý na typu
+objektu. Je zde například umístěn ukazatel na data a délka řetězce nebo prvky
+n-tice. Funkce mají po tabulce objektu uloženu adresu začátku kódu funkce. Před
+kódem je umístěna tabulka funkce (\emph{fun table} či zkráceně \emph{ftable}),
+která obsahuje informace o počtu argumentů, slotů a zachycených hodnot, které
+jsou potřeba pro korektní čtení zásobníku při úklidu paměti.
+
+\begin{cplusplus}
+  struct FunTable {
+    uint32_t slot_count;
+    uint32_t arg_count;
+    uint32_t capture_count;
+    const char* fun_name;
+    uint8_t padding_0[16];
+  };
+\end{cplusplus}
+
+\section{Správa paměti}
+
+Paměť objektů je strukturovaná do úseků (\emph{chunks}), které tvoří spojový
+seznam. Když program požádá o paměť na uložení objektu, běhová knihovna použije
+prostor prvního úseku. Pokud v~něm již není dostatek prostoru, může knihovna od
+operačního systému získat další úsek a zařadit jej na začátek seznamu. Pokud
+však program již alokoval velké množství paměti, je spuštěn garbage collector,
+který všechny živé objekty zkopíruje do nových úseků paměti a staré úseky poté
+uvolní k~dalšímu použití.
+
+Za živé jsou považovány všechny objekty, které jsou odkazovány z~proměnných
+v~daném okamžiku běhu programu a všechny objekty, na které jiné živé objekty
+odkazují. Nejprve jsou proto evakuovány (tedy zkopírovány ze staré oblasti do
+nové a zachráněny před zničením) všechny objekty ze zásobníku. Poté jsou
+evakuované objekty prohledány (\emph{scavenged} -- doslova "hledat
+v~odpadcích") a všechny objekty, na které odkazují, jsou rovněž evakuovány. Aby
+objekt nebyl evakuován vícekrát a nebyl pokaždé zkopírován, je na jeho místo po
+evakuaci zapsán ukazatel (\emph{forward pointer}) odkazující na nové umístění
+původního objektu. Zbylé objekty ze starých úseků paměti jsou zahozeny
+(\emph{dropped}).
+
+Některé objekty (například pole nebo řetězce) využívají pro uložení svého obsahu
+další oblasti paměti mimo paměť objektů. Tyto objekty se o správu své paměti
+starají samy a když jsou zahozeny, svou paměť uvolní.
+
+\section{Rozhraní mezi programem a knihovnou}
+
+Při volání externí funkce v~programu v~jazyce Spiral se zavolá céčková funkce
+odpovídajícího jména. Jejími argumenty je odkaz na pozadí (tedy obsah registru
+\texttt{\%edi}), vrchol zásobníku (z~registru \texttt{\%esp}) a poté argumenty
+předané na místě volání. Jelikož runtime je napsaný v~\Cplusplus{}, jsou
+funkce určené pro volání ze standardní knihovny umístěny v~blocích
+\texttt{extern "C"~\{ ... \}}, jelikož překladač \Cplusplus{} jména funkcí
+mění (kvůli podpoře overloadingu). Některé proměnné, například objekty
+\texttt{true} a \texttt{false}, by bylo nepraktické takto definovat, proto se
+na ně z~jazyka Spiral odkazujeme prostřednictvím jejich změněných
+(\emph{mangled}) jmen.

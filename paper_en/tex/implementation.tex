@@ -1,0 +1,106 @@
+\chapter{Implementace}
+
+Celá implementace je dostupná v~gitovém repozitáři ze serveru GitHub na adrese
+\url{https://github.com/honzasp/spiral}. V~adresáři \texttt{src/} se nachází
+zdrojové kódy samotného překladače, adresář \texttt{rt/} obsahuje implementaci
+běhové knihovny, v~adresář \texttt{stdlib/} jsou definovány moduly standardní
+knihovny jazyka Spiral a v~adresáři \texttt{tests/} jsou umístěny celkové testy.
+Všechny soubory jsou uvolněny do public domain (viz soubor \texttt{UNLICENSE}).
+
+\section{Překladač}
+
+Překladač je napsaný v~jazyce Rust \cite{rust} a s~více než 6000 řádky
+kódu\footnote{Započítány jsou pouze řádky, které obsahují alespoň dva neprázdné
+znaky.} (včetně jednotkových testů) se jedná o největší část implementace. Celý
+program je rozdělen do modulů a toto rozdělení úzce souvisí s~rozdělením postupu
+překladu na jednotlivé mezijazyky.
+
+\begin{description}
+  \item[\texttt{main}] obsahuje hlavní funkci, která vykoná všechny akce zadané
+    uživatelem na příkazové řádce.
+  \item[\texttt{args}] zodpovídá za dekódování argumentů z~příkazové řádky.
+\end{description}
+~
+\begin{description}
+  \item[\texttt{sexpr::syntax}] definuje datové typy s-výrazů.
+  \item[\texttt{sexpr::parse}] poskytuje parser s-výrazů.
+  \item[\texttt{sexpr::pretty_print}] převádí s-výrazy z~interní podoby opět do
+    textového formátu v~lidsky čitelné podobě.
+  \item[\texttt{sexpr::to_spiral}] umožňuje z~s-výrazu získat syntaktický strom
+    jazyka Spiral.
+  \item[\texttt{sexpr::to_spine}] z~s-výrazu načte definici programu v~jazyku
+    Spine (což se využívá pro testování).
+  \item[\texttt{sexpr::to_grit}] přečte z~s-výrazu definici programu v~jazyku
+    Grit (opět využito pro testování).
+\end{description}
+~
+\begin{description}
+  \item[\texttt{spiral::syntax}] definuje typy pro syntaktický strom jazyka
+    Spiral.
+  \item[\texttt{spiral::env}] poskytuje pomocný objekt prostředí
+    (\emph{environment}) pro průchod syntaktického stromu.
+  \item[\texttt{spiral::imported}] slouží pro získání seznamu všech
+    importovaných modulů z~jednoho modulu či programu.
+  \item[\texttt{spiral::to_spine}] překládá program ze Spiral do Spine, k~čemuž
+    využívá:
+  \item[\texttt{spiral::to_spine::mods}] k~překladu celých modulů,
+  \item[\texttt{spiral::to_spine::decls}] k~překladu deklarací,
+  \item[\texttt{spiral::to_spine::stmts}] k~překladů příkazů a
+  \item[\texttt{spiral::to_spine::exprs}] k~překladu výrazů.
+\end{description}
+~
+\begin{description}
+  \item[\texttt{spine::syntax}] definuje syntaktický strom jazyka Spine.
+  \item[\texttt{spine::env}] poskytuje prostředí pro průchod tímto stromem.
+  \item[\texttt{spine::check}] implementuje kontrolu korektnosti
+    (\emph{well-formedness}), která je využívána pro testování.
+  \item[\texttt{spine::eval}] umožňuje vyhodnocovat (interpretovat) programy
+    v~jazyku Spine, čehož se opět využívá při testování.
+  \item[\texttt{spine::free}] umožňuje zjistit všechny volné proměnné ve výrazu,
+    čehož se využívá pro zachycení pšech proměnných v~definici funkce.
+  \item[\texttt{spine::onion}] poskytuje typ "cibule" pro překlad ze Spiral.
+  \item[\texttt{spine::to_grit}] překládá program ze Spine do jazyka Grit.
+  \item[\texttt{spine::to_sexpr}] převede Spine na s-výraz.
+\end{description}
+~
+\begin{description}
+  \item[\texttt{grit::syntax}] definuje syntaxi jazyka Grit.
+  \item[\texttt{grit::optimize_dead_vals}] implementuje optimalizaci nevyužitých
+    hodnot.
+  \item[\texttt{grit::optimize_dead_defs}] zastřešuje optimalizaci nepoužitých
+    definic funkcí a objektů.
+  \item[\texttt{grit::optimize_values}] poskytuje optimalizaci známých hodnot.
+  \item[\texttt{grit::optimize_inline}] implementuje inlining.
+  \item[\texttt{grit::interf}] zkonstruuje pro funkci graf interference.
+  \item[\texttt{grit::slot_alloc}] pomocí grafu interference alokuje proměnným
+    sloty.
+  \item[\texttt{grit::to_asm}] přeloží Grit do interní podoby assembleru.
+  \item[\texttt{grit::to_sexpr}] převede Grit na s-výraz.
+\end{description}
+~
+\begin{description}
+  \item[\texttt{asm::syntax}] definuje interní syntaxi assembleru.
+  \item[\texttt{asm::simplify}] implementuje jednoduchou optimalizaci na úrovni
+    instrukcí.
+  \item[\texttt{asm::to_gas}] generuje vstup pro GNU Assembler.
+\end{description}
+
+\section{Běhová knihovna}
+
+Běhová knihovna je implementována v~\Cplusplus{} a nemá rozsah ani 2000 řádků.
+\Cplusplus{} bylo místo čistého C použito především kvůli podpoře jmenných
+prostorů a \texttt{auto}-deklarace proměnných. Možnosti jazyka vyžadující skrytý
+kód generovaný překladačem (výjimky, RTTI, virtuální funkce, ...) jsou záměrně
+potlačeny\footnote{Pomocí přepínačů \texttt{-fno-rtti} a
+\texttt{-fno-exceptions} překladače \texttt{clang++}.} a použití standardní
+knihovny je omezeno na část odpovídající jazyku C.
+
+\section{Testy}
+
+Jednotkové testy kontrolující funkčnost vybraných částí překladače jsou umístěny
+přímo v~kódu pomocí nástrojů podporovaných jazykem Rust. Hlavní porce testů má
+podobu malých programů ve Spiral, které jsou automaticky přeloženy a spuštěny.
+Jejich výstup je poté porovnán s~očekávaným výstupem a pokud se liší, je
+ohlášena chyba. Většina z~objemu testů testuje jednotlivé oblasti standardní
+knihovny, další větší skupinou jsou zátěžové testy, které jsou převážně zaměřené
+na testování správy paměti.

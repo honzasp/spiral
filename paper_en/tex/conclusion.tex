@@ -1,0 +1,88 @@
+\chapter{Závěr}
+
+Představili jsme funkční implementaci netriviálního programovacího jazyka včetně
+běhového prostředí a standardní knihovny. Podporovány jsou plnohodnotné funkce,
+koncová volání i jednoduchý systém modulů.
+
+Původní autorův záměr byl vytvořit překladač jazyka
+Plch\footnote{\url{https://github.com/honzasp/plch}}, který měl být prakticky
+stejný jako Spiral. Jeho první mezijazyk $^p\lambda_\chi$ byl velmi podobný
+Spine, umožňoval však přímo pracovat s~celými čísly a funkcemi a měl proto i
+jednoduchý typový systém. Druhý mezijazyk \texttt{tac} (\emph{\texttt{t}hree
+\texttt{a}ddress \texttt{c}ode}), jehož zjednodušením vznikl Grit, se pak
+překládal do assembleru za použití skutečného alokátoru registrů, generovaný kód
+byl tedy poměrně kvalitní. Snaha o vytvoření tohoto překladače ale nakonec
+selhala.
+
+Rozvržení překladu přes jazyky Spine a Grit tak původně počítalo s~tím, že
+většina optimalizací bude probíhat v~"typově bezpečném" jazyku Spine a Grit
+bude sloužit jen jako multiplatformní předstupeň assembleru, stejně jako jako
+jeho neúspěšný předchůdce \texttt{tac}. Ukázalo se však, že optimalizovat
+strukturovaný Spine je obtížnější než jednoduchý Grit, navíc některé důležité
+aspekty (známá a neznámá volání) nelze v~bezpečném netypovaném jazyce vyjádřit
+stejně přímo jako v~Gritu.
+
+I když je jazyk Spine v~některých aspektech kvalitnějši než jisté široce
+používané jazyky (například "jazyk" PHP), trpí některými fundamentálními
+nedostatky:
+
+\begin{itemize}
+  \item Autor je přesvědčen, že dynamicky typované jazyky dosáhly své popularity
+    především díky absenci vysokoúrovňového praktického jazyka s~kvalitním
+    statickým typovým systémem a bezpečnou správou paměti. Na tuto mezeru na
+    trhu je zaměřen právě jazyk Rust, který ji dle autora může zaplnit velmi
+    důstojně. Spiral je jako dynamický jazyk ve vývoji programovacích jazyků
+    dnes již naprosto nezajímavá větev, jelikož se zde tísní spolu s~Pythonem,
+    Luou, JavaScriptem a všemi ostatními deriváty Scheme a Lispu vůbec.
+
+  \item V~jazyce chybí možnost pracovat se strukturami (záznamy, objekty,
+    slovníky, tabulkami, ...), tedy n-ticemi, k~jejichž prvkům lze přistupovat
+    pomocí symbolických jmen. Takovéto objekty buď vyžadují statické typování
+    (\texttt{struct} v~C) nebo implementaci pomocí hešovací tabulky či jiné
+    mapovací datové struktury (jako jsou objekty v~JavaScriptu, Ruby nebo
+    Pythonu), což je však dle autora příliš velká cena za takto elementární
+    operaci.
+\end{itemize}
+
+Kromě těchto vad, které jsou důsledkem návrhu jazyka, pak implementace trpí
+množstvím dalších nedodělků, které by pro praktické použití musely být
+napraveny:
+
+\begin{itemize}
+  \item Kvůli nízké kvalitě generátoru kódu, který ani není schopen umístit
+    proměnné do registrů, a kvůli nutnosti volat externí funkce pro každou
+    elementární operaci, včetně sčítání dvou celých čísel, jsou přeložené programy
+    velmi pomalé. Neblahý vliv na výkon má i nutnost alokovat paměť pro každé
+    použité reálné číslo. Pro nedostatek místa a času není součástí práce reálné
+    srovnání rychlostí programu ve Spiral a programů v~jiných jazycích, ovšem
+    výsledky by jistě byly pro Spiral velice nepříznivé. Nekvalitní garbage
+    collector, který při každém úklidu paměti kopíruje všechny alokované
+    objekty, a naivní (a tedy pomalé) algoritmy použité v~samotném překladači už
+    jen katastrofickou situaci z~pohledu výkonu dovrší.
+
+  \item Při parsování programu není nikde uchována informace o pozicích ve
+    zdrojovém souboru, takže když nastane chyba při překladu nebo za běhu, není
+    implementace schopna určit ani v~náznaku místo, kde chyba nastala, což činí
+    vývoj jakéhokoli jen trochu většiho programu prakticky nemožným.
+
+  \item Výše zmíněný generátor kódu je nejen děsivě neefektivní, ale zároveň
+    velmi nepřehledný a špatně napsaný, a to i ve srovnání se zbytkem
+    překladače.
+
+  \item Standardní knihovna je pro praktické použití příliš minimalistická,
+    chybí například funkce pro práci se souborovým systémem nebo základní datové
+    struktury jako haldy nebo hešovací tabulky.
+
+  \item Jazyk neumožňuje používat funkce s~proměnným počtem argumentů, takže
+    standardní knihovna musí exportovat palety funkcí jako \texttt{tuple-0} až
+    \texttt{tuple-8} nebo \texttt{str-cat-0} až \texttt{str-cat-8}.
+    
+  \item Zdrojový kód neobsahuje ani jeden komentář, jazyk Spiral dokonce syntaxi
+    na zápis komentářů úplně postrádá.
+\end{itemize}
+
+Na závěr lze tedy říci, že jednoduchý programovací jazyk byl sice podle zadání
+z~názvu práce přeložen, ovšem přínos práce končí tímto konstatováním. Byly
+použity pouze běžné a v~literatuře mnohokrát popsané postupy, navíc často notně
+zjednodušené.
+
