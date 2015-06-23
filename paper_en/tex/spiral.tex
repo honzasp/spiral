@@ -193,100 +193,98 @@ there is no reasonable value for an expression (e.g. an empty expression
 
 \section{Standard library and basic types}
 
-Standardní knihovna definuje základní funkce. Jelikož program ve Spiral nemá
-implicitně definovaná žádná jména, je import standardní knihovny prakticky
-nutností.
+Standard library defines basic functions. Programs in Spiral have no names
+defined by default, so the import of the standard library is virtually
+necessary.
 
 \begin{description}
-  \item[\texttt{std.core}] definuje základní operace s~čísly (\texttt{+},
-    \texttt{mod}, \texttt{<}, \texttt{==}, ...), predikáty ekvivalence
-    (\texttt{eqv?}, \texttt{equal?}) a základní funkci pro výstup
-    (\texttt{println}).  Rovněž definuje logické proměnné \texttt{true} a
-    \texttt{false} (jako hodnoty výrazů \texttt{(and)} a \texttt{(or)}).
+  \item[\texttt{std.core}] defines core numeric operations (\texttt{+},
+    \texttt{mod}, \texttt{<}, \texttt{==}, ...), equivalence predicates
+    (\texttt{eqv?}, \texttt{equal?}) and the basic output function
+    (\texttt{println}). It also defines \texttt{true} a \texttt{false} (as the
+    values of \texttt{(and)} a \texttt{(or)}).
 
-  \item[\texttt{std.array}] poskytuje funkce pro práci s~poli
+  \item[\texttt{std.array}] provides functions for working with arrays
     (\texttt{array-new}, \texttt{array-push!}, \texttt{array-get},
-    \texttt{array-empty?}, ...). Pole jsou indexována celými čísly od nuly a
-    jejich délka i obsah jsou měnitelné.
+    \texttt{array-empty?}, ...). Arrays are indexed by integers starting from
+    zero and their size and contents are mutable.
 
-  \item[\texttt{std.tuple}] umožňuje používat n-tice (\emph{tuples}), a to
-    v~délce od 0 do 8 prvků. Modul definuje konstruktory (\texttt{tuple-2},
-    ...), funkce pro přístup k~jednotlivým prvkům (\texttt{get-0},
-    \texttt{get-2}) a predikáty (\texttt{tuple?}, \texttt{tuple-2?},
-    \texttt{tuple-n?}, ...). Prvky n-tic jsou neměnitelné.
+  \item[\texttt{std.tuple}] gives access to tuples with size from 0 to 8
+    elements. The module defines the constructors (\texttt{tuple-2}, ...),
+    access functions (\texttt{get-0}, \texttt{get-2}) and predicates
+    (\texttt{tuple?}, \texttt{tuple-2?}, \texttt{tuple-n?}, ...). Tuple elements
+    are immutable.
 
-  \item[\texttt{std.cons}] definuje funkce pro práci s~páry (\emph{cons}), které
-    se převážně používají ve formě spojových seznamů, kdy první prvek páru
-    (\emph{car}) ukládá hodnotu prvního prvku seznamu a druhý prvek (\emph{cdr})
-    odkazuje na zbytek seznamu. Konec seznamu reprezentuje speciální hodnota
-    (\emph{null} či \emph{nil}), pro kterou je ve Spiral použito \texttt{false}.
-    Tento modul definuje základní funkce pro práci s~páry (\texttt{cons},
-    \texttt{car}, \texttt{cdr}, \texttt{cons?}, ...) i pro manipulaci se seznamy
-    (\texttt{list?}, \texttt{list-len}, \texttt{list-append},
-    \texttt{list-reverse}, ...). Páry jsou neměnné, což znamená, že není možno
-    vytvořit kruhový seznam.
+  \item[\texttt{std.cons}] defines cons pairs, used mostly to encode linked
+    lists, where the first field (\emph{car}) contains the head of the list and
+    the second field (\emph{cdr}) the tail. The end of the list is denoted by a
+    special value (\emph{null} or \emph{nil}), in Spiral \texttt{false} is used.
+    This module exports the essential functions for working with pairs
+    (\texttt{cons}, \texttt{car}, \texttt{cdr}, \texttt{cons?}, ...) and linked
+    lists (\texttt{list?}, \texttt{list-len}, \texttt{list-append},
+    \texttt{list-reverse}, ...). Cons pairs are immutable, so it is not possible
+    to create a circular list.
 
-  \item[\texttt{std.string}] exportuje funkce pracující s~řetězci
+  \item[\texttt{std.string}] exports functions manipulating strings
     (\texttt{str-len}, \texttt{str-get}, \texttt{stringify}, \texttt{str-cat-2},
-    \texttt{str-cat-3}, ...). Řetězce jsou neměnitelné a složené z~bytů.
+    \texttt{str-cat-3}, ...). Strings are immutable sequences of bytes.
 
-  \item[\texttt{std.io}] slouží pro vstupní a výstupní operace
-    (\emph{input/output}) se soubory a standardními proudy
+  \item[\texttt{std.io}] provides input/output for files and standard streams
     (\texttt{io-file-open}, \texttt{io-close}, \texttt{io-stdin},
     \texttt{io-write-line}, \texttt{io-read-line}, \texttt{io-read-number},
     ...).
 
-  \item[\texttt{std.env}] poskytuje programu přístup k~argumentům z~příkazové
-    řádky (\texttt{env-get-argv}) a k~proměnným prostředí (\texttt{env-get-var}).
+  \item[\texttt{std.env}] allows the program to access command line arguments
+    (\texttt{env-get-argv}) and environment variables (\texttt{env-get-var}).
 
-  \item[\texttt{std.math}] implementuje základní matematické funkce jako
-    \texttt{abs}, \texttt{neg}, \texttt{sin} nebo \texttt{atan-2}.
+  \item[\texttt{std.math}] implements mathematical functions such as
+    \texttt{abs}, \texttt{neg}, \texttt{sin} or \texttt{atan-2}.
 
-  \item[\texttt{std.test}] je minimalistická knihovna pro tvorbu jednotkových
-    testů.
+  \item[\texttt{std.test}] is a minimal unit testing library.
 \end{description}
 
-Modul \texttt{std} reexportuje základní definice (například \texttt{+} nebo
-\texttt{car}) a je poskytován pro pohodlí programátora.
+Module \texttt{std} conveniently reexports the most used definitions (such as
+\texttt{+} or \texttt{car}).
 
-\section{Ovládání překladače z~příkazové řádky}
+\section{Command line interface of the compiler}
 
-Překladač je možno ovládat pomocí argumentů na příkazové řádce:
+The compiler is controlled by command line arguments:
 
 \begin{description}
-  \item[\texttt{-o}, \texttt{-{}-output}] umožňuje určit výstupní soubor.
-    Výstup je jinak umístěn do stejného adresáře jako vstupní soubor se stejným
-    jménem a příponou určenou podle typu výstupu.
-  \item[\texttt{-I}, \texttt{-{}-include}] přidá adresář, ve kterém se hledají
-    \texttt{import}ované moduly.
-  \item[\texttt{-e}, \texttt{-{}-emit}] nastaví typ výstupu: \texttt{sexpr} přečte
-    vstupní s-výraz a vypíše jej ve formátované podobě, \texttt{spiral} vypíše
-    syntaktický strom Spiral v~interní podobě, \texttt{spine} a
-    \texttt{grit} vypíšou program v~odpovídajícím mezijazyku jako s-výraz,
-    \texttt{asm} vypíše vygenerovaný assembler v~interní podobě, \texttt{gas}
-    vypíše assembler jako vstup pro GNU Assembler a \texttt{exec} program
-    přeloží a slinkuje s~běhovou knihovnou (což je výchozí chování).
-  \item[\texttt{-t}, \texttt{-{}-runtime}] určí soubor s~běhovou knihovnou, se
-    kterou bude program slinkován.
-  \item[\texttt{-{}-link-cmd}] nastaví linkovací program. Výchozí je \texttt{clang},
-    který sám zavolá systémový linker tak, aby program správně slinkoval se
-    standardní knihovnou jazyka C (\texttt{libc}).
-  \item[\texttt{-{}-gas-cmd}] umožňuje změnit assembler místo výchozího
-    \texttt{as}.
-  \item[\texttt{-O}, \texttt{-{}-opt-level}] umožňuje nastavit úroveň optimalizace
-    od 0 do 3.
+  \item[\texttt{-o}, \texttt{-{}-output}] sets the output file. By default, the
+    output file is placed into the same directory and with the same basename as
+    the input file. The suffix is determined by the type of output..
+  \item[\texttt{-I}, \texttt{-{}-include}] adds a directory to the list of paths
+    where the compiler looks for \texttt{import}ed modules.
+  \item[\texttt{-e}, \texttt{-{}-emit}] controls the type of output:
+    \texttt{sexpr} reads the input s-expression and pretty-prints that,
+    \texttt{spiral} dumps the internal syntax tree of Spiral, \texttt{spine} and
+    \texttt{grit} print the program in the respective intermediate language as
+    an s-expression, \texttt{asm} dumps the internal assembler representation,
+    \texttt{gas} produces input file for GNU Assembler and \texttt{exec} invokes
+    the assembler, compiles the program and links it with the runtime library
+    (default)..
+  \item[\texttt{-t}, \texttt{-{}-runtime}] sets path to the compiled runtime
+    library.
+  \item[\texttt{-{}-link-cmd}] sets the linker program. The default is
+    \texttt{clang} to ensure that the system linker is correctly set up to link
+    to C standard library (\texttt{libc}).
+  \item[\texttt{-{}-gas-cmd}] changes the command for assembler (default is
+    \texttt{as}).
+  \item[\texttt{-O}, \texttt{-{}-opt-level}] sets the optimization level as
+    an integer from 0 to 3.
 \end{description}
 
-\section{Příklady}
+\section{Examples}
 
-Na závěr uvádíme několik drobných programů napsaných v~jazyce Spiral.
+We conclude the chapter with a few tiny programs written in Spiral.
 
-\subsection{Počítání prvočísel}
+\subsection{Prime number generation}
 
-Následující program vypíše prvních tisíc prvočísel. Funkce
-\texttt{make-prime-gen} vytvoří generátor, tedy funkci, která při každém dalším
-zavolání vrátí další prvočíslo. Tato funkce má interně uloženo pole doposud
-nalezených prvočísel.
+The following program prints the first thousand primes. Function
+\texttt{make-prime-gen} creates a generator function that returns consecutive
+primes upon subsequent invocations. The function stores the found primes in an
+internal array.
 
 \begin{spiral}
 (program
@@ -321,11 +319,11 @@ nalezených prvočísel.
     (println (gen))))
 \end{spiral}
 
-\subsection{Počítání celých mocnin a odmocnin}
+\subsection{Computing integer powers and roots}
 
-Tento program aproximuje $\sqrt[n]{x}$ Newtonovou metodou (funkce \texttt{root})
-a počítá $x^n$ pomocí binárního umocňování (funkce \texttt{power}). Oba
-algoritmy jsou poté otestovány pomocí knihovny \texttt{std.test}.
+This program approximates $\sqrt[n]{x}$ using Newton's method (function
+\texttt{root}) and computes $x^n$ by binary exponentiation (function
+\texttt{power}). Both algorithms are then tested using \texttt{std.test}.
 
 \begin{spiral}
 (program
