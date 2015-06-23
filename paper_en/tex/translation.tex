@@ -1,44 +1,40 @@
-\chapter{Postup překladu}
+\chapter{The translation pipeline}
 
-Vstupní zdrojový kód je nejprve přečten parserem s-výrazů do obecné struktury,
-ze které je poté dekódován syntaktický strom pro Spiral. Následně jsou všechny
-moduly a hlavní program společně přeloženy do \emph{continuation-passing style}
-v~jazyku Spine, který slouží jako první přechodný jazyk. Z~jazyka Spine je pak
-celý program přeložen do imperativního jazyka Grit, na kterém proběhne
-optimalizace.  Z~jazyka Grit je pak již vygenerován assembler, čímž postup
-překladu končí. 
+The compiler parses the source code into a general s-expression structure and
+transforms it into the Spiral syntax tree. All modules and the main program are
+merged and translated into continuation-passing style in the first intermediate
+language Spine. The next step converts Spine into the next intermediate
+language, imperative Grit. The optimization passes then operate on Grit and then
+the code generator emits assembly.
 
-\section{S-výrazy}
+\section{S-expressions}
 
-Parsování s-výrazů provádí jednoduchý ručně psaný parser. Výsledná datová
-struktura je poté dále zpracovávána. Rovněž je možné tuto datovou strukturu
-zpětně zapsat do textové formy (\emph{pretty-print}). Kromě jazyka Spiral je
-v~s-výrazech možno zapsat i přechodné jazyky Spine a Grit, což je využito pro
-testování, a to na čtení i výpis programů.
+S-expressions are read using a simple hand-written parser. The resulting data
+structure serves as an input to further processing. There is also a
+pretty-printer to translate the s-expression back to textual form. Spine and
+Grit can be read from s-expressions and written to them for the purposes of
+testing and debugging.
 
 \section{Spiral}
 
-Syntaktický strom jazyka Spiral je dekódován z~načteného s-výrazu, což je
-jednoduchý, leč nezáživný proces. Zde jsou odhaleny a oznámeny syntaktické
-chyby, které se v~programu nacházejí. Po přečtení následuje průchod stromem
-s~cílem odhalit všechny importované moduly, které jsou posléze rovněž načteny a
-zpracovány. Moduly se posléze topologicky seřadí podle vzájemné závislosti, aby
-mohly být zpracovány. Pokud žádné takové seřazení neexistuje, tedy pokud graf
-závislosti není acyklický, překlad skončí s~chybou.
+Syntax tree of Spiral is decoded from s-expression using a simple but tedious
+process. If the program contains syntax errors, the compiler detects them in
+this phase and rejects the program. Imported modules are collected in a pass
+through the tree, loaded and also examined in the same way. Then the compiler
+computes a topological ordering of the modules for further processing, producing
+an error if the dependency graph is cyclic.
 
 \section{Spine}
 
-Prvním přechodným jazykem je Spine. Tento jazyk je silně inspirován jazykem
-$\lambda^U_\text{CPS}$ \cite{kennedy2007compiling} a je založen na
-$\lambda$-kalkulu a \emph{continuation-passing style}.
+The first intermediate language is Spine. This language is derived from
+$\lambda^U_\text{CPS}$ \cite{kennedy2007compiling} and based on
+$\lambda$-calculus and continuation passing style.
 
-\emph{Continuation} je speciální $\lambda$-funkce, která je lokální pro danou
-funkci a nikdy nevrátí hodnotu, volání \emph{continuation} tedy modeluje skok na
-\emph{basic block}, se kterým bychom se mohli setkat v~imperativním jazyce nebo
-SSA formě (\emph{single static assignment}). Při volání funkce je kromě funkce
-samotné a jejích argumentů třeba specifikovat i \emph{continuation}, které bude
-výsledek volání funkce předán. Návrat z~funkce má podobu skoku do její návratové
-\emph{continuation}.
+Continuation is a special $\lambda$-value that cannot escape the local function
+and never returns. Calling a continuation is equivalent to jumping to a basic
+block in an imperative language or SSA form (single static assignment).
+Functions take a return continuation as an argument and return value to the
+caller by jumping to this continuation.
 
 \begin{gram}
 <program>   = (program <cont-name> <term>)
@@ -57,47 +53,42 @@ výsledek volání funkce předán. Návrat z~funkce má podobu skoku do její n
 <boolval>   = (is-true <val>) | (is-false <val>)
 \end{gram}
 
-
-Program je definován jako jeden velký výraz (\emph{term}) a ukončovací
-\emph{continuation}, po jejímž zavolání program skončí.
+A program is defined by a term and a halting continuation. Jump to the halting
+continuation terminates the program.
 
 \begin{description}
-\item[\texttt{(cont <cont-name> <arg>...)}] skočí do zadané \emph{continuation}
-  a předá jí určené argumenty (počet argumentů musí odpovídat její definici).
+\item[\texttt{(cont <cont-name> <arg>...)}] jumps to the given continuation,
+  passing the given arguments. The number of arguments on the call site must
+  match the definition of the continuation..
 
-\item[\texttt{(branch <boolval> <then-name> <else-name>)}] vyhodnotí
-  pravdivostní výrok \texttt{<boolval>} a podle toho skočí na jednu z~uvedených
-  \emph{continuations} (které nesmí očekávat argumenty).
+\item[\texttt{(branch <boolval> <then-name> <else-name>)}] evaluates a boolean
+  value and jumps to one of the passed continuations. Both continuations must
+  expect zero arguments.
 
-\item[\texttt{(call <fun-val> <return-cont> <arg>...)}] zavolá danou funkci se
-  zadanými argumenty a poté skočí do \texttt{<return-cont>}, které předá
-  návratovou hodnotu. Pokud je \texttt{<return-cont>} návratovou
-  \emph{continuation} volající funkce, je toto volání koncové.
+\item[\texttt{(call <fun-val> <return-cont> <arg>...)}] calls the function with
+  the given arguments, passing \texttt{<return-cont>} as the return
+  continuation. This is a tail call If the continuation is also the caller's
+  return continuation.
 
-\item[\texttt{(extern-call <extern-name> <return-cont> <arg>...)}] zavolá
-  externí funkci danou svým jménem a s~jejím výsledkem skočí do
-  \texttt{<return-cont>}. Toto voláni nikdy není koncové.
+\item[\texttt{(extern-call <extern-name> <return-cont> <arg>...)}] calls an
+  extern function by its name and passes its result to \texttt{<return-cont>}.
+  Extern calls are never translated as tail calls.
 
-\item[\texttt{(letcont (<cont-name> (<arg>...) <body>)... <term>)}] definuje
-  \emph{continuations}, které budou viditelné ve vnořeném výrazu. Každá může
-  přijímat libovolný počet argumentů (\texttt{(<arg>...)}). Tyto
-  \emph{continuations} mohou být vzájemně rekurzivní, takže je možno
-  implementovat cykly.
+\item[\texttt{(letcont (<cont-name> (<arg>...) <body>)... <term>)}] defines
+  a group of mutually recursive continuations.
 
 \item[\texttt{(letfun (<fun> <ret-cont> (<capture>...) (<arg>...) <body>)...
-  <term>)}] definuje funkce, které je možno použít ve vnořeném výrazu. Uvnitř
-  těla funkci (\texttt{<body>}) není možné použít \emph{continuation}
-  z~aktuálního kontextu a veškeré zachycené (\emph{captured}) proměnné musí být
-  specifikovány v~definici funkce (\texttt{(<captured>..)}). Návrat z~funkce
-  bude proveden jako skok do \emph{continuation} \texttt{<ret-cont>}.
+  <term>)}] defines mutually recursive functions. The function can use variables
+  visible at the definition, but must list them in the capture list.
+  However, no continuations from the outer context are available in the
+  function.
 
-\item[\texttt{(letobj <obj-def> <term>)}] definuje objekt (řetězec nebo
-  reálné číslo).
+\item[\texttt{(letobj <obj-def> <term>)}] defines an object (string or a real
+  number).
 \end{description}
 
-Všechny hodnoty (\texttt{<val>}) jsou atomické (jednoduché proměnné nebo
-konstanty), takže jejich vyhodnocení nestojí žádné výpočetní úsilí a je možno je
-libovolně kopírovat.
+All values (\texttt{<val>}) are atomic (variables or constants) and can be
+duplicated with no restriction, as their evaluation is free.
 
 \subsection{Překlad z~jazyka Spiral}
 
