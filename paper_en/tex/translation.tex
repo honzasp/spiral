@@ -90,24 +90,25 @@ continuation terminates the program.
 All values (\texttt{<val>}) are atomic (variables or constants) and can be
 duplicated with no restriction, as their evaluation is free.
 
-\subsection{Překlad z~jazyka Spiral}
+\subsection{Translation from Spiral}
 
-Při překladu výrazu z~jazyka Spiral do Spine je třeba převést program
-z~\emph{direct style} do \emph{continuation-passing style}. Základem překladu
-jsou dvě funkce, \texttt{translate-expr(spiral-expr) -> (onion, spine-val)} a
-\texttt{translate-expr-tail(spiral-expr, spine-cont-name) -> spine-term}.
+Translating expressions from Spiral to Spine requires converting the program
+from direct style to continuation-passing style. The translation is driven by a
+pair of functions, \texttt{translate-expr :: SpiralExpr -> (Onion, SpineVal)}
+and \texttt{translate-expr-tail :: SpineContName -> SpiralExpr -> SpineTerm}.
 
-Funkce \texttt{translate-expr} přeloží předaný výraz ve Spiral tak, že vrátí
-"cibuli"\footnote{Na obranu komunity počítačových vědců je třeba dodat, že
-tento název vymyslel autor sám.} (\emph{onion}) a hodnotu. "Slupka cibule" je
-tvořena výrazy \texttt{letcont}, \texttt{letfun} a \texttt{letobj}. Uvnitř této
-slupky je výsledek výrazu reprezentován danou hodnotou.
+\texttt{translate-expr} translates the Spiral expression as an
+,,onion''\footnote{The author is to be blamed for this name.} and a value.
+The onion consists of layers of \texttt{letcont}, \texttt{letfun} and
+\texttt{letobj} Spine terms. Inside, the value of the Spiral expression is
+evaluated to the returned Spine value.
 
-Druhá funkce \texttt{translate-expr-tail} pak přeloží výraz do podoby výrazu ve
-Spine, který s~výslednou hodnotou skočí do předané \emph{continuation}. Tímto
-způsobem jsou přeložena například koncová volání (\emph{tail-calls}).
+The other function \texttt{translate-expr-tail} translates the Spiral expression
+into a Spine term that jumps to the passed continuation with the evaluated value
+of the expression. As an example, tail-calls are translated this way.
 
-Pro ilustraci si ukážeme příklad, jak je přeložena tato funkce ve Spiral:
+To illustrate these functions, we consider the translation of a simple snippet
+in Spiral:
 
 \begin{spiral}
 (fun big-enough? (x)
@@ -116,26 +117,28 @@ Pro ilustraci si ukážeme příklad, jak je přeložena tato funkce ve Spiral:
     (println "ok")))
 \end{spiral}
 
-Nejprve vygenerujeme jméno návratové \emph{continuation} pro funkci
-\texttt{big-enough?}, například \texttt{r}. Tělo funkce musí být přeloženo tak,
-aby volání v~koncových pozicích byla koncová, tedy aby vracela do \texttt{r}.
-Proto na výraz \texttt{(if (< x 0) (println "small") (println "ok"))} použijeme
-\texttt{translate-expr-tail} s~\texttt{r}.
+First, we generate a name for the return continuation of the function
+\texttt{big-enough?}, say \texttt{r}. To ensure that the calls in tail positions
+will be translated correctly, returning directly to \texttt{r}, we pass the body
+of the function (\texttt{(if (< x 0) (println "small") (println "ok"))}) to function
+\texttt{translate-expr-tail "r"}.
 
-Při vyhodnocení výrazu \texttt{if} musíme nejprve vyhodnotit podmínku \texttt{(<
-x 0)}. Tu přeložíme pomocí \texttt{translate-expr}, čímž dostaneme "cibuli"
-\texttt{(letcont (lt-ret (lt-result) ?) (call < lt-ret x 0))}. Otazník označuje
-místo, kde obdržíme výsledek v~proměnné \texttt{lt-result} ("díru").
+To evaluate \texttt{if} expression, we must first evaluate the condition
+\texttt{(< x 0)} using \texttt{translate-expr}. We obtain the onion
+\texttt{(letcont (lt-ret (lt-result) ?) (call < lt-ret x 0))}, where the
+question mark \texttt{?} represents the ,,hole'', that is the place where we can
+get the result in variable \texttt{lt-result}.
 
-Obě alternativy v~příkazu \texttt{if} přeložíme opět pomocí
-\texttt{translate-expr-tail} s~\emph{continuation} \texttt{r}, abychom zachovali
-koncová volání. Obdržíme Spine výrazy \texttt{(letobj (string s1 "small") (call
-println r s1))} a \texttt{(letobj (string s2 "ok") (call println r s2))}.
+We translate both arms in the \texttt{if} expression by
+\texttt{translate-expr-tail} to preserve the tail calls and get Spine terms
+\texttt{(letobj (string s1 "small") (call println r s1))} and \texttt{(letobj
+(string s2 "ok") (call println r s2))}.
 
-Samotné větvení provedeme výrazem \texttt{branch}, na to ale potřebujeme
-\emph{continuation}, do které můžeme skočit. Ty si proto vytvoříme (nazveme je 
-\texttt{on-true} a \texttt{on-false}) a vložíme do nich přeložené výrazy z~obou
-větví zdrojového výrazu \texttt{if}. Výsledek pak vypadá takto:
+To generate the \texttt{branch} term, we need two continuations that would serve
+as the targets of the conditional jump. We will call these continuations
+\texttt{on-true} and \texttt{on-false} and set their bodies to the terms
+we have generated from the \texttt{if} arms. The body of the translated function
+then looks like this:
 
 \begin{spine}
 (letcont (lt-ret (lt-result)
@@ -147,23 +150,21 @@ větví zdrojového výrazu \texttt{if}. Výsledek pak vypadá takto:
   (call < lt-ret x 0))
 \end{spine}
 
-Je vidět, že pořadí vyhodnocování a přenos informací z~původního programu je
-nyní explicitně vyjádřeno. Nejprve se zavolá funkce \texttt{<} s~argumenty
-\texttt{x} a \texttt{0}. Ta svůj výsledek předá v~proměnné \texttt{lt-result} do
-\texttt{lt-ret}. Ta následně tuto proměnnou prozkoumá, a pokud je její hodnota
-pravdivá, skočí do \texttt{on-true}, jinak do \texttt{on-false}.
-V~\texttt{on-true} a \texttt{on-false} pak definujeme patřičný řetězec a
-následně zavoláme funkci \texttt{println}, které tento řetězec předáme. Funkce
-\texttt{println} vrátí svůj výsledek do \texttt{r}, což je ale návratová
-\emph{continuation} volající funkce \texttt{big-enough?}, takže toto volání bude
-přeloženo jako koncové.
+It is apparent that the order of evaluation and the flow of information from the
+original program is explicit after the translation to Spine. We must first call
+\texttt{<} with \texttt{x} and \texttt{0}. Then we get the result in
+\texttt{lt-result} inside \texttt{lt-ret}, where we scrutinize the variable and
+decide which branch will go next. In both branches we must first define the
+string that we want to print and then pass it to \texttt{println}. Upon
+returning, \texttt{println} will pass its result directly to our own caller, so
+this is a tail-call.
 
 \section{Grit}
 
-Dalším jazykem v~pořadí je Grit. Tento jazyk je již poměrně nízkoúrovňový a
-blízký assembleru. Definice všech funkcí a objektů jsou globální a proměnné jsou
-zapisovatelné a jsou pojmenované pouze čísly. Funkce se skládají z~bloků, které
-obsahují sekvenci operací a jsou ukončeny skokem.
+Next stage of the pipeline is the language Grit. It is quite low-level and is
+close to the assembler. All functions and objects are brought to the top level,
+variables are mutable and named by integers. Functions are composed from basic
+blocks, that contain a list of operations terminated by a jump.
 
 \begin{gram}
 <program>   = (program <fun-name> <fun-def>... <obj-def>...)
@@ -196,75 +197,75 @@ obsahují sekvenci operací a jsou ukončeny skokem.
 <boolval>   = (is-true <val>) | (is-false <val>)
 \end{gram}
 
-Jednotlivé operace reprezentují vše, co program může vykonávat:
+The operations represent all actions that the program can do:
 
 \begin{description}
-  \item[\texttt{(call <var> <callee> <arg>...)}] zavolá funkci specifikovanou
-    v~\texttt{<callee>} se zadanými argumenty a její výsledek zapíše do proměnné.
-    Hodnoty \texttt{<callee>} mohou být:
+  \item[\texttt{(call <var> <callee> <arg>...)}] calls the function determined
+    by \texttt{<callee>} with some arguments and writes the return value to a
+    variable. \texttt{<callee>} can be:
     \begin{description}
-      \item[\texttt{(combinator <fun-name>)}] je volání kombinátoru, tedy
-        funkce, která nemá žádné uložené proměnné z~prostředí. Taková funkce je
-        staticky alokovaná, není proto třeba žádná proměnná na její uchování.
-        U tohoto volání je navíc možno zkontrolovat počet argumentů předem,
-        takže volaná funkce je již kontrolovat nemusí.
-      \item[\texttt{(known-closure <fun-name> <val>)}] je volání známé funkce,
-        která má uložené proměnné z~prostředí (\emph{closure}), takže ji musíme
-        volat spolu s~její funkční hodnotou. Pokud by hodnota \texttt{<val>}
-        nebyla funkce \texttt{<fun-name>}, program by selhal. I zde je zaručeno,
-        že počet argumentů odpovídá, takže volaná funkce je nekontroluje.
-      \item[\texttt{(unknown <val>)}] je volání, u kterého není staticky
-        zjištěno, kterou funkci bude volat. Za běhu je proto nutno zkontrolovat,
-        že \texttt{<val>} je skutečně funkce, a tato pak ještě sama kontroluje
-        počet předaných argumentů.
+      \item[\texttt{(combinator <fun-name>)}] calls a combinator, which is a
+        function that has no captured variables. This call is very effective,
+        because there is no need to store the function value and pass it to the
+        callee at runtime. Furthermore, we can check the number of arguments
+        during compilation, so the callee does not have to check them at
+        runtime.
+      \item[\texttt{(known-closure <fun-name> <val>)}] calls a closure that is
+        known statically. To generate such a call, the compiler must be able to
+        prove that \texttt{<val>} will only ever be a function object of the
+        function \texttt{<fun-name>}, otherwise the behavior is undefined (and
+        probably catastrophic). We need to store the function value, but we can
+        jump directly to the function body and skip the argument check.
+      \item[\texttt{(unknown <val>)}] is a fully dynamic call. At runtime, we
+        must in the caller first check whether the value is a function and
+        report an error otherwise. The callee will then check the number of
+        arguments and also report an error if it does not match.
     \end{description}
 
-  \item[\texttt{(extern-call <var> <extern-name> <arg>...)}] zavolá externí
-    funkci s~předanými argumenty a výsledek zapíše do dané proměnné.
+  \item[\texttt{(extern-call <var> <extern-name> <arg>...)}] calls an external
+    function and writes the result into the variable \texttt{<var>}.
 
-  \item[\texttt{(alloc-clos (<var> <fun-name> <capture>...))}] alokuje funkce se
-    zadanými názvy a určeným seznamem zachycených hodnot. Tyto funkce jsou
-    zapsány do proměnných ještě předtím, než jsou zachycené hodnoty zapsány, což
-    umožňuje funkci uložit referenci na sebe samu. Rovněž je takto možné získat
-    hodnotu kombinátoru, pokud je seznam zachycených hodnot prázdný -- v~tom
-    případě se nic nealokuje.
+  \item[\texttt{(alloc-clos (<var> <fun-name> <capture>...))}] allocates
+    closures for functions with given names and list of captured values. The
+    variables that hold the closure values are initialized before the captures
+    are evaluated, so the functions can reference each other. As a special case,
+    if the capture list is empty, no allocation is performed but the static
+    function value of the combinator is produced.
 
-  \item[\texttt{(assign (<var> <val>)...)}] zapíše do proměnných odpovídající
-    hodnoty. Toto přiřazení proběhne najednou, takže na pravé straně je možno
-    použít proměnné z~levé strany, jejichž hodnota bude odpovídat hodnotě před
-    operací \texttt{assign}.
+  \item[\texttt{(assign (<var> <val>)...)}] rewrites the variables by
+    corresponding values. The whole operation is atomic, so a variable assigned
+    to on the left-hand side will be evaluated to its former value on the
+    right-hand side.
 \end{description}
 
-Skoky mohou být rovněž několika druhů:
+The jumps are formed as following:
 
 \begin{description}
-  \item[\texttt{(goto <label>)}] skočí na daný blok.
-  \item[\texttt{(return <val>)}] vrátí z~funkce určenou hodnotu.
-  \item[\texttt{(tail-call <callee> <arg>...)}] provede koncové volání
-    \texttt{<callee>} (podobně jako v~operaci \texttt{call}) s~argumenty. Tímto
-    se místo na zásobníku zabrané volající funkcí uvolní ještě před vstupem do
-    volané funkce.
-  \item[\texttt{(branch <boolval> <then> <else>)}] skočí na jeden z~bloků podle
-    určené pravdivostní hodnoty.
+  \item[\texttt{(goto <label>)}] jumps to the given block.
+  \item[\texttt{(return <val>)}] returns a value from the function.
+  \item[\texttt{(tail-call <callee> <arg>...)}] performs a tail-call to
+    \texttt{<callee>} (with the same semantics as in \texttt{call}). The stack
+    frame of the current function will be freed before the jump to the callee.
+  \item[\texttt{(branch <boolval> <then> <else>)}] jumps to one of the two
+    blocks depending on the boolean value.
 \end{description}
 
-Paleta hodnot je širší než ve Spine, ovšem stále platí, že každá hodnota je
-konstantní nebo ji lze snadno načíst z~paměti:
+There are more types of values than in Spine, but all values are either constant
+or reachable by a single load from memory.
 
 \begin{description}
-  \item[\texttt{(var <index>)}] je hodnota proměnné.
-  \item[\texttt{(arg <index>)}] je hodnota argumentu.
-  \item[\texttt{(capture <index>)}] je hodnota zachycené hodnoty z~aktuální funkce.
-  \item[\texttt{(combinator <fun-name>)}] je konstantní hodnota staticky
-    alokovaného kombinátoru.
-  \item[\texttt{(obj <obj-name>)}] je konstantní hodnota staticky alokovaného
-    objektu.
-  \item[\texttt{(int <int>)}] je celočíselná konstanta.
-  \item[\texttt{(true)}, \texttt{(false)}] jsou pravdivostní konstanty.
-  \item[\texttt{(undefined)}] je nedefinovaná hodnota. Tuto hodnotu mohou
-    vytvořit optimalizace, například při čtení z~proměnné, do které nebylo
-    zapsáno. Při zápisu nedefinované hodnoty do paměti či registru během
-    překladu do~assembleru není vygenerována žádná instrukce.
+  \item[\texttt{(var <index>)}] is value of a variable.
+  \item[\texttt{(arg <index>)}] is value of an argument.
+  \item[\texttt{(capture <index>)}] is value of a captured variable.
+  \item[\texttt{(combinator <fun-name>)}] is the constant value of a combinator.
+  \item[\texttt{(obj <obj-name>)}] is the constant value of a statically
+    allocated object.
+  \item[\texttt{(int <int>)}] is an integer constant.
+  \item[\texttt{(true)}, \texttt{(false)}] are boolean constants.
+  \item[\texttt{(undefined)}] is an undefined value. This special value can be
+    produced by optimizations, for example as a result of a read from
+    uninitialized variable. During the code generation, if an undefined value is
+    assigned to a register or a memory location, no code is generated.
 \end{description}
 
 \subsection{Překlad z~jazyka Spine}
