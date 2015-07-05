@@ -1,27 +1,27 @@
 \chapter{The translation pipeline}
 
 The compiler parses the source code into a general s-expression structure and
-transforms it into the Spiral syntax tree. All modules and the main program are
-merged and translated into continuation-passing style in the first intermediate
-language Spine. The next step converts Spine into the next intermediate
-language, imperative Grit. The optimization passes then operate on Grit and then
-the code generator emits assembly.
+transforms it to the Spiral syntax tree. All modules and the main program are
+then merged and translated to the first continuation-passing style intermediate
+language Spine. The next step converts Spine into the imperative intermediate
+language Grit. The optimization passes operate on Grit and then the code
+generator emits assembly.
 
 \section{S-expressions}
 
 S-expressions are read using a simple hand-written parser. The resulting data
-structure serves as an input to further processing. There is also a
+structure serves as an input for further processing. There is also a
 pretty-printer to translate the s-expression back to textual form. Spine and
-Grit can be read from s-expressions and written to them for the purposes of
-testing and debugging.
+Grit can be read from s-expressions and written to them for testing and
+debugging purposes.
 
 \section{Spiral}
 
-Syntax tree of Spiral is decoded from s-expression using a simple but tedious
+The syntax tree of Spiral is decoded from an s-expression using a simple but tedious
 process. If the program contains syntax errors, the compiler detects them in
 this phase and rejects the program. Imported modules are collected in a pass
 through the tree, loaded and also examined in the same way. Then the compiler
-computes a topological ordering of the modules for further processing, producing
+computes a topological ordering of the modules for further processing, reporting
 an error if the dependency graph is cyclic.
 
 \section{Spine}
@@ -30,11 +30,11 @@ The first intermediate language is Spine. This language is derived from
 $\lambda^U_\text{CPS}$ \cite{kennedy2007compiling} and based on
 $\lambda$-calculus and continuation passing style.
 
-Continuation is a special $\lambda$-value that cannot escape the local function
-and never returns. Calling a continuation is equivalent to jumping to a basic
-block in an imperative language or SSA form (single static assignment).
-Functions take a return continuation as an argument and return value to the
-caller by jumping to this continuation.
+A continuation is a special $\lambda$-value that cannot escape the local
+function and never returns. Calling a continuation is equivalent to jumping to a
+basic block in an imperative language or in SSA form (single static assignment).
+Functions take a return continuation as a special argument and return value to
+the caller by jumping to this continuation.
 
 \begin{gram}
 <program>   = (program <cont-name> <term>)
@@ -53,13 +53,13 @@ caller by jumping to this continuation.
 <boolval>   = (is-true <val>) | (is-false <val>)
 \end{gram}
 
-A program is defined by a term and a halting continuation. Jump to the halting
+A program is defined by a term and a halting continuation. A jump to the halting
 continuation terminates the program.
 
 \begin{description}
 \item[\texttt{(cont <cont-name> <arg>...)}] jumps to the given continuation,
   passing the given arguments. The number of arguments on the call site must
-  match the definition of the continuation..
+  match the definition of the continuation.
 
 \item[\texttt{(branch <boolval> <then-name> <else-name>)}] evaluates a boolean
   value and jumps to one of the passed continuations. Both continuations must
@@ -67,28 +67,28 @@ continuation terminates the program.
 
 \item[\texttt{(call <fun-val> <return-cont> <arg>...)}] calls the function with
   the given arguments, passing \texttt{<return-cont>} as the return
-  continuation. This is a tail call If the continuation is also the caller's
+  continuation. This is a tail call if the continuation is also the caller's
   return continuation.
 
 \item[\texttt{(extern-call <extern-name> <return-cont> <arg>...)}] calls an
   extern function by its name and passes its result to \texttt{<return-cont>}.
-  Extern calls are never translated as tail calls.
+  Extern calls are never translated to tail calls.
 
 \item[\texttt{(letcont (<cont-name> (<arg>...) <body>)... <term>)}] defines
   a group of mutually recursive continuations.
 
 \item[\texttt{(letfun (<fun> <ret-cont> (<capture>...) (<arg>...) <body>)...
-  <term>)}] defines mutually recursive functions. The function can use variables
+  <term>)}] defines mutually recursive functions. The functions can use variables
   visible at the definition, but must list them in the capture list.
   However, no continuations from the outer context are available in the
   function.
 
-\item[\texttt{(letobj <obj-def> <term>)}] defines an object (string or a real
+\item[\texttt{(letobj <obj-def> <term>)}] defines an object (a string or a real
   number).
 \end{description}
 
 All values (\texttt{<val>}) are atomic (variables or constants) and can be
-duplicated with no restriction, as their evaluation is free.
+duplicated without restriction, as their evaluation is free.
 
 \subsection{Translation from Spiral}
 
@@ -97,17 +97,17 @@ from direct style to continuation-passing style. The translation is driven by a
 pair of functions, \texttt{translate-expr :: SpiralExpr -> (Onion, SpineVal)}
 and \texttt{translate-expr-tail :: SpineContName -> SpiralExpr -> SpineTerm}.
 
-\texttt{translate-expr} translates the Spiral expression as an
-,,onion''\footnote{The author is to be blamed for this name.} and a value.
+\texttt{translate-expr} translates the Spiral expression to an
+,,onion''\footnote{Blame the author for this name.} and a value.
 The onion consists of layers of \texttt{letcont}, \texttt{letfun} and
 \texttt{letobj} Spine terms. Inside, the value of the Spiral expression is
 evaluated to the returned Spine value.
 
-The other function \texttt{translate-expr-tail} translates the Spiral expression
+The function \texttt{translate-expr-tail} translates the Spiral expression
 into a Spine term that jumps to the passed continuation with the evaluated value
 of the expression. As an example, tail-calls are translated this way.
 
-To illustrate these functions, we consider the translation of a simple snippet
+To illustrate these functions, let us consider the translation of a simple snippet
 in Spiral:
 
 \begin{spiral}
@@ -123,10 +123,10 @@ will be translated correctly, returning directly to \texttt{r}, we pass the body
 of the function (\texttt{(if (< x 0) (println "small") (println "ok"))}) to function
 \texttt{translate-expr-tail "r"}.
 
-To evaluate \texttt{if} expression, we must first evaluate the condition
+To evaluate the \texttt{if} expression, we must first evaluate the condition
 \texttt{(< x 0)} using \texttt{translate-expr}. We obtain the onion
 \texttt{(letcont (lt-ret (lt-result) ?) (call < lt-ret x 0))}, where the
-question mark \texttt{?} represents the ,,hole'', that is the place where we can
+question mark \texttt{?} represents the ,,hole'', the place where we
 get the result in variable \texttt{lt-result}.
 
 We translate both arms in the \texttt{if} expression by
@@ -150,19 +150,19 @@ then looks like this:
   (call < lt-ret x 0))
 \end{spine}
 
-It is apparent that the order of evaluation and the flow of information from the
-original program is explicit after the translation to Spine. We must first call
+The order of evaluation and the flow of information from the original program
+are clearly expressed after the translation to Spine.  We must first call
 \texttt{<} with \texttt{x} and \texttt{0}. Then we get the result in
 \texttt{lt-result} inside \texttt{lt-ret}, where we scrutinize the variable and
 decide which branch will go next. In both branches we must first define the
 string that we want to print and then pass it to \texttt{println}. Upon
-returning, \texttt{println} will pass its result directly to our own caller, so
-this is a tail-call.
+returning, \texttt{println} will pass its result directly to the callee's return
+continuation, so this is a tail-call.
 
 \section{Grit}
 
 Next stage of the pipeline is the language Grit. It is quite low-level and is
-close to the assembler. All functions and objects are brought to the top level,
+close to the assembler. All functions and objects are leveraged to the top level,
 variables are mutable and named by integers. Functions are composed from basic
 blocks, that contain a list of operations terminated by a jump.
 
@@ -217,7 +217,7 @@ The operations represent all actions that the program can do:
         probably catastrophic). We need to store the function value, but we can
         jump directly to the function body and skip the argument check.
       \item[\texttt{(unknown <val>)}] is a fully dynamic call. At runtime, we
-        must in the caller first check whether the value is a function and
+        must first check in the caller whether the value is a function and
         report an error otherwise. The callee will then check the number of
         arguments and also report an error if it does not match.
     \end{description}
@@ -245,7 +245,7 @@ The jumps are formed as following:
   \item[\texttt{(return <val>)}] returns a value from the function.
   \item[\texttt{(tail-call <callee> <arg>...)}] performs a tail-call to
     \texttt{<callee>} (with the same semantics as in \texttt{call}). The stack
-    frame of the current function will be freed before the jump to the callee.
+    frame of the current function will be popped before the call.
   \item[\texttt{(branch <boolval> <then> <else>)}] jumps to one of the two
     blocks depending on the boolean value.
 \end{description}
@@ -291,7 +291,7 @@ is then used at several places:
   \item Known call optimization by substituting \texttt{(call (unknown ...)
     ...)} for \texttt{(call (known-closure ...) ...)} or \texttt{(call
     (combinator ...) ...)}.
-  \item Replacement of branches with a boolean value that is always true or
+  \item Reduction of branches with a condition that is always true or
     always false.
   \item Constant propagation removes variables that have a simple constant value
     (number, boolean or a statically allocated object).
@@ -300,9 +300,9 @@ is then used at several places:
 \subsubsection{Dead value elimination}
 
 This phase is also global and its main goal is to remove unused captured
-variables, but unnecessary allocations and variables are also discarded. The
-functions often lose all their captured variables and become combinators, so
-the memory consumption and thus the pressure on the garbage collector is
+variables, but unnecessary allocations and variables are also discarded. Many
+functions lose all their captured variables and become combinators, so
+the memory consumption and thus the pressure on the garbage collector at runtime is
 reduced.
 
 \subsubsection{Function inlining}
@@ -310,7 +310,7 @@ reduced.
 Inlining substitutes calls to selected functions by including the body of the
 callee into the caller. This is a key optimization for functional programs,
 because they are usually composed from many small functions. When functions are
-expanded to the call site, we save the overhead of manipulating the stack and
+expanded to the call site, we avoid the overhead of manipulating the stack and
 two jumps. Further optimization possibilities are also exposed, because the
 compiler can gather more information from the local context. The downside is the
 possible increase in code side.
@@ -330,27 +330,27 @@ everywhere.
 \subsubsection{The order of optimizations}
 
 The ordering of optimizations is very important. Known value optimization leaves
-some variables and captured variables unused, so they can be later removed by
-dead value elimination. We also increase the number of combinators, so we can
+some variables and captured variables unused, so they can be removed by
+dead value elimination. It also increases the number of combinators, so we can
 then inline more functions. The unused definitions left after inlining can be
 pruned by dead code elimination.
 
 The optimization level can be adjusted from the command line. Level 0 disables
 all optimizations. Level 1 runs all phases in the order described above except
-inlining, that is enabled from level 2. On level 3, we follow inlining with
+inlining, which is enabled from level 2. On level 3, we follow inlining with
 another round of known value optimization and dead value elimination.
 
 \section{Slot allocation}
 
 Programs in Grit generally use many variables. It would be wasteful to allocate
-a slot on the stack for each variable, because their lifetimes are usually short
+a physical location for each variable, because their lifetimes are usually short
 and the space would be unused most of the time. We allocate more variables to a
-single slot, but we must be careful not to read from a variable whose value has
-been overwritten by a write to a variable assigned to the same slot.
+single location, but we must be careful not to read from a variable whose value has
+been overwritten by a write to a variable assigned to the same location.
 
 This phase corresponds to register allocation in practical compilers, but our
-code generator is greatly simplified and allocates all variables to memory. We
-use the interference graph coloring approach
+code generator is greatly simplified and allocates all variables to the stack
+slots. We use the interference graph coloring approach
 \cite{chaitin1981register,chaitin1982register,briggs1994improvements}, but the
 number of colors is not limited, we only seek to minimize it. The algorithm
 builds the interference graph and then greedily colors the nodes, ordered by the
@@ -359,12 +359,12 @@ decreasing number of outgoing edges.
 \section{Assembler}
 
 As the last step of the translation pipeline, we generate assembler for
-architecture IA-32 from Grit. The emitted code contains all functions,
+IA-32 architecture from Grit. The emitted code contains all functions,
 statically allocated objects and strings. To support tail-calls, the calling
-convention used in Spiral is not compatible with the C calling convention.
+convention used in Spiral is different to the C calling convention.
 Arguments for C functions are placed in the caller's frame on the stack, but
 during a tail-call, the frame of the caller must be discarded, so the callee
-must get the arguments in its frame.
+must receive the arguments in its frame.
 
 The stack of a function with \texttt{N} slots is laid out like this (the
 addresses are relative to the register \texttt{\%esp}):
@@ -387,7 +387,7 @@ function writes the value of \texttt{\%ecx} to the end of the stack frame, to
 help the garbage collector traverse the stack. The return value is passed back
 to the caller in \texttt{\%eax}.
 
-To call a function, the caller places the arguments below its stack and saves
+To call a function, the caller places the arguments under its stack frame and saves
 the return address by \texttt{call} instruction. A tail call overwrites the
 slots of the caller, shifts the stack upward and jumps to the callee
 (\texttt{jmp} instruction). Upon returning with \texttt{ret} instruction, the
@@ -397,6 +397,6 @@ The code generator can use fixed registers for temporary storage, because no
 variables are placed in registers. \texttt{\%eax} and \texttt{\%edx} are used
 for moving the values to and from memory, \texttt{\%ecx} stores the current
 function value, which is used to access the captured variables. In certain
-corner cases, the register \texttt{\%ebx} is used, too. The functions can also
-read from register \texttt{\%edi} the pointer to the runtime background
+corner cases, the register \texttt{\%ebx} is used, too. The functions also
+pass around the register \texttt{\%edi} with a pointer to the runtime background
 (\texttt{Bg*}).

@@ -1,6 +1,6 @@
 \chapter{Runtime library}
 
-Compiled programs need to be linked with the runtime library. This library
+Compiled programs need the runtime library to work properly. This library
 defines the core external functions referenced by standard library and also
 provides automatic memory management.
 
@@ -12,12 +12,12 @@ argument.
 
 \section{Value representation}
 
-All values are represented as 32-bit numbers. Integers are stored directly
+All values are represented as 32-bit numbers. Integers are stored directly,
 multiplied by two to ensure that their least important bit is zero. In this way,
 we can store $2^{31}$ numbers, so the range of integers in Spiral is from
 $-2^{30}$ to $2^{30}-1$. Other values are stored as pointers to memory and we
-discriminate them from integers by setting their least important bit to one. To
-quickly recognize functions from data objects, we set the two last bits of data
+distinguish them from integers by setting their least important bit to one. To
+quickly recognize functions, we set the two last bits of data
 objects to 01 and of functions to 11 (in binary). The original pointer can be
 obtained by a binary and.
 
@@ -48,10 +48,11 @@ to work with all objects.
   };
 \end{cplusplus}
 
-The contents of memory after the pointer to the object table is dependent on the
+The layout of memory after the pointer to the object table is dependent on the
 type of the value. For example, strings store here their length and a pointer to the
 character data and tuples place here their elements. Function pointers of
-function objects are saved after the pointer to the object table. Preceding the
+function objects are saved after the pointer to the object table, followed by
+the captured variables. Preceding the
 body of the function we store function table (,,ftable'') that contains
 important information about the function, such as the number of arguments, slots
 and captured variables, that are needed to correctly read the stack during
@@ -73,8 +74,8 @@ The object memory is separated into chunks forming a linked list. When the
 program requests memory to allocate an object, the runtime library uses the
 free memory of the first chunk. If there is not enough space, the runtime
 library asks the system for another chunk and places it at the beginning of the
-list. However, if the program have allocated too much memory, the garbage
-collector is invoked. The collector copies all live objects to fresh memory
+list. However, if the program has allocated too much memory, the garbage
+collector is invoked and copies all live objects to fresh memory
 locations and then releases old chunks.
 
 All objects referenced by variables and all objects referenced by live objects
@@ -91,7 +92,7 @@ for their memory management and release the memory when they are dropped.
 
 \section{Interface between the programs and the library}
 
-Call to an external function in Spiral program invokes a C functions of the
+Call to an external function in Spiral program invokes a C function of the
 same name. Passed arguments are the pointer to the background (from register
 \texttt{\%edi}) and the top of the stack (register \texttt{\%esp}), followed by
 the arguments from the Spiral call. Because the runtime is written in

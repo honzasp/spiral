@@ -1,35 +1,34 @@
 \chapter{Introduction}
 
-Computer processors operate on a set of simple instructions that are fast and
-effective to execute. However, programming using these basic building blocks is
-slow, tedious and error-prone, so the development of the first programming
-languages closely followed the development of the first computers. These
-languages improved the productivity of the programmers and also the portability
-of the programs.
+Computer processors execute simple instructions that are fast and effective.
+However, programming using these basic building blocks is slow, tedious and
+error-prone, so the development of the first programming languages closely
+followed the development of the first computers. These languages improved the
+productivity of the programmers and also the portability of the programs.
 
 To execute a program written in a higher programming language, there must be an
-interpreter of a compiler for that language. Interpreter is a program that reads
+interpreter or a compiler for that language. Interpreter is a program that reads
 the source code in the interpreted language and performs the operations
 described in the code. On the other hand, a compiler translates the source code
 into machine code. The translated program can then run on the processor of the
 computer with no further need for the source code or the compiler. It is usually
 easier to create an interpreter, but the performance of the interpreted program
-is usually worse compared to the program translated into the machine code.
+is generally worse compared to the program translated into the machine code.
 
-Programming languages mostly focused on the origanization of code and the
-sequencing of computations, with less attention to the management of memory.
-Today, we have basically two families of languages: low-level languages like C
-or \Cplusplus with manual memory management, and other languages, employing
-some form of garbage collection to manage the memory with no assistance from the
+Programming languages were mostly focused on the origanization of code and the
+sequencing of computations, with less attention paid to the management of
+memory.  Today, we have basically two families of languages: low-level languages
+like C or \Cplusplus{} with manual memory management, and other languages,
+employing some form of garbage collection to manage the memory, opaque to the
 programmer. Both approaches are not perfect. Manual memory management is prone
-to errors that are hard to debug and often create a security vulnerability
-(probably the best-known bug of this kind was Heartbleed \cite{heartbleed}).
-On the contrary, garbage collectors prohibit free use of memory and may have
-negative effects on performance.
+to errors that are hard to debug and often create a security vulnerability (one
+of the best-known bug of this kind is Heartbleed \cite{heartbleed}).  On the
+contrary, garbage collectors prohibit free use of memory and may have negative
+effects on performance.
 
 \section{Structure of a compiler}
 
-Common compilers are usually structured as following
+Compilers are usually structured as following
 \cite{grune2012modern,appel1998modern}:
 
 \begin{itemize}
@@ -52,6 +51,6 @@ Haskell into Core \cite{jones1996compiling}, which is then optimized
 code.
 
 It is sometimes possible to translate multiple source languages into a single
-intermediate language and share a common back-end. An example of such project is
-LLVM \cite{llvm}, back-end for C and \Cplusplus{} compiler Clang \cite{clang} or
-the compiler of Rust \cite{rust}.
+intermediate language and share a common back-end. An example of such a project
+is LLVM \cite{llvm}, the back-end of the C and \Cplusplus{} compiler Clang
+\cite{clang} or the compiler of Rust \cite{rust}.

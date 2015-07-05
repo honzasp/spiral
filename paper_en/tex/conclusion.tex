@@ -11,8 +11,8 @@ direct predecessor of Spine, but it featured a simple type system that allowed
 to directly work with integers and functions. Grit evolved from the second
 intermediate language \texttt{tac} (\texttt{t}hree \texttt{a}ddress
 \texttt{c}ode), that was translated to assembler using a real register
-allocator, so the quality of the generated code was better. However, we were not
-successful creating this compiler.
+allocator, so the quality of the generated code was better. However, we did not
+manage to finish this compiler.
 
 The original idea for the translation pipeline was to optimize in the
 ,,type-safe'' Spine and use Grit only as a portable code close to the assembler.
@@ -28,12 +28,12 @@ example the ,,programming language'' PHP), it has inherent drawbacks:
     their current popularity was chiefly the lack of a high-level practical
     language with rich type system and safe memory management. Spiral, as a
     dynamic language, is thus of no value to the development of programming
-    languages, because it is sitting on the same overcrowded branch as Python,
+    languages, because it is sitting on the same overcrowded chair as Python,
     Lua, JavaScript and all other descendants of Lisp.
 
   \item The language lacks any support for structures (records, objects,
     dictionaries, tables, ...), that is, tuples with symbolic names. This kind
-    of objects either require static typing (\texttt{struct} in C) or a hash
+    of objects either requires static typing (\texttt{struct} in C) or a hash
     table (objects in JavaScript, Ruby or Python). We believe that such an
     elementary operation should be cheaper than an access to a hash table.
 \end{itemize}
@@ -47,10 +47,9 @@ for a real-world use:
     operators such as integer addition. We also have to allocate memory for
     every single real number. Because of space and time limitations, we did not
     perform any benchmarks comparing Spiral and other languages, but we expect
-    that the results would be bad for Spiral. The low-quality garbage collector
+    that the results would be very poor. The low-quality garbage collector
     that has to copy the whole heap during a collection, and the naive (and
-    slow) algorithms in the compiler only complete the terrible performance
-    point of view.
+    slow) algorithms in the compiler also have a negative impact.
 
   \item We store no source locations during parsing, so the implementation
     cannot report any hint where a reported error happened. This renders
@@ -60,7 +59,7 @@ for a real-world use:
     obscure and badly written.
 
   \item The standard libary is too minimalistic for a real use. For example, it
-    lacks functions for manipulating the file system of basic data structures as
+    lacks functions for manipulating the file system or basic data structures as
     heaps or hash tables.
 
   \item The language has no support for variadic arguments, so the standard
@@ -71,6 +70,6 @@ for a real-world use:
     have a dedicated syntax for comments.
 \end{itemize}
 
-We conclude that we reached the goal that we had set for ourselves, but the
-contribution of this paper is quite limited. We used only the most common and
+We conclude that we reached the goal that we had set for ourselves, but we can
+show no real contribution of this paper. We used only the most common and
 well-described algorithms, usually very simplified.

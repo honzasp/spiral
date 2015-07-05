@@ -1,31 +1,32 @@
-\chapter{Description of the language Spiral}
+\chapter{Spiral}
 
 The language itself is very simple, as it provides only modules, functions,
-variables, basic branching and literals. Primitive operations (such as
+variables, basic branching and literals. Primitive operations (like number
 addition or array access) are defined in the standard library and implemented as
-calls to the runtime. Note that the identifiers like \texttt{+} or \texttt{*}
+calls to the runtime. Note that the identifiers such as \texttt{+} or \texttt{*}
 are not built-in operators but standard variables.
 
 No assignment operator is needed because all variables are immutable. Some
 objects from the standard library, for example arrays, are internally mutable.
-As a convention, functions that mutate objects have are suffixed with an
-exclamation mark (\texttt{array-set!}).
+As a convention, functions that mutate objects are suffixed with an exclamation
+mark (\texttt{array-set!}).
 
 Tail-calls allow an unbound number of recursive calls without the danger of
-stack overflow, so all iterations can be expressed as recursion. Functions are
+a stack overflow, so all iterations can be expressed as recursion. Functions are
 first-class values as in other functional languages, so there is no limitation
 on storing them to variables or passing them as arguments to other functions. A
 function can refer to variables defined outside of the body of the function.
-We store the functions as closures consisting of the address and the values of
-captured variables.
+We store the functions as closures consisting of the function address and the
+values of captured variables.
 
 \section{Grammar}
 
-The syntax of Spiral is based on the syntax of Scheme \cite{scheme7}. Program is
-written in the fully parenthesised prefix form of s-expressions that are simple
+The syntax of Spiral is based on the syntax of Scheme \cite{scheme7}. Programs
+are written as s-expressions, in fully parenthesised prefix form that is simple
 to parse and easy to write.
 
 \subsection{Programs and modules}
+
 \begin{ttcode}
 <top-level>   = <program> | <module>
 <program>     = (program <stmt>...)
@@ -33,9 +34,9 @@ to parse and easy to write.
 <decl>        = (export <ident>...) | <stmt>
 \end{ttcode}
 
-A program consists of a sequence of statements that are executed in order. A
-module can also contain exports denoting the names that the module provides to
-other modules and programs.
+A program consists of a sequence of statements that are executed in textual
+order. A module can also contain exports, denoting the names that the module
+provides to other modules and programs.
 
 ~
 \subsection{Statements}
@@ -56,10 +57,10 @@ Statements can define imported names, named functions or plain variables.
 \begin{description}
 
 \item[\texttt{(import <import-def>...)}] The import statement loads a module and
-  gives access to its exported variables in the active context. Only selected
-  names can be imported using \texttt{(only ...)}, names can be excluded using
-  \texttt{(except ...)} or prefixed with an identifier using \texttt{(prefix
-  ...)}.
+  exposes the imported variables in the active context. Specified list of names
+  can be imported using \texttt{(only ...)}, some names can be excluded using
+  \texttt{(except ...)} or the imported names can be prefixed with an identifier
+  using \texttt{(prefix ...)}.
 
   Examples of imports:
 
@@ -72,7 +73,7 @@ Statements can define imported names, named functions or plain variables.
       from~\texttt{std.math} all names except \texttt{sin} and \texttt{cos}.
     \item \texttt{(import (prefix (only std.math div mod) m.))} imports from
       \texttt{std.math} names \texttt{div} and \texttt{mod} prefixed
-      \texttt{m.} (so we can refer to them as \texttt{m.div} and \texttt{m.mod}).
+      \texttt{m.} (so we will refer to them as \texttt{m.div} and \texttt{m.mod}).
   \end{itemize}
 
 \item[\texttt{(fun <fun-name> (<arg>...) <body-stmt>...)}] defines a named
@@ -81,12 +82,11 @@ Statements can define imported names, named functions or plain variables.
   defined later, including itself.
 
 \item[\texttt{(var <var-name> <value>)}] defines a variable. Variables cannot
-  refer to themselves, because their values can be used only after they are
-  defined.
+  refer to themselves, because their values must be used after the definitions.
 
-\item[\texttt{<expr>}] -- an expression in place of a statement is evaluated. If
-  it is the last statement in a sequence of statements, its value is used as the
-  value of the whole sequence, otherwise it is ignored.
+\item[\texttt{<expr>}] -- an expression found where a statement is expected is
+  evaluated. If it ends a sequence of statements, its value is used as the value
+  of the whole sequence, otherwise it is ignored.
 
 \end{description}
 
@@ -124,7 +124,7 @@ there is no reasonable value for an expression (e.g. an empty expression
     that evaluates to the integer value of the character.
 
   \item[\texttt{<string-literal>}] is a string literal in double quotes. Escape
-    sequences from C are supported (for example \texttt{\textbackslash{}n} is
+    sequences from C are supported (for example \texttt{\textbackslash{}n} is a
     newline, \texttt{\textbackslash{}"} is a quote).
 
   \item[\texttt{(if <condition> <then> <else>)}] is a conditional expression.
@@ -135,11 +135,11 @@ there is no reasonable value for an expression (e.g. an empty expression
   \item[\texttt{(when <condition> <body-stmt>...)}] evaluates the statements in
     the body only if the condition evaluates to true.
 
-  \item[\texttt{(unless <condition> <body-stmt>...)}] is the counterpart of
+  \item[\texttt{(unless <condition> <body-stmt>...)}] is a counterpart of
     \texttt{when} that evaluates the body if the condition is false.
     
-  \item[\texttt{(cond (<condition> <stmt>...)...)}] evaluates the statements of
-    the first condition that evaluates to true.
+  \item[\texttt{(cond (<condition> <stmt>...)...)}] evaluates the statements
+    next to the first condition that evaluates to true.
 
   \item[\texttt{(and <expr>...)}] evaluates expressions from left to right and
     returns the value of the first expression that evaluates to false, or
@@ -149,21 +149,22 @@ there is no reasonable value for an expression (e.g. an empty expression
     returns the value of the first that evaluated to true.
 
   \item[\texttt{(let ((<var> <expr>)...) <body-stmt>...)}] evaluates the
-    expressions, bounds the values to the variables and then evaluates the
+    expressions, binds the values to the variables and then evaluates the
     statements in the body.
 
   \item[\texttt{(lambda (<arg>...) <body-stmt>...)}] creates an anonymous
     function with the given arguments. The statements in the body can access
     variables defined outside the function.
 
-  \item[\texttt{(<fun> <arg>...)}] denotes function call. All arguments are
+  \item[\texttt{(<fun> <arg>...)}] denotes a function call. All arguments are
     evaluated from left to right, then the function is evaluated and called. It
     is an error if the first expression does not evaluate to a function.
 
   \item[\texttt{(extern <fun-name> <arg>...)}] is an extern function call.
     Extern functions are defined in C and are mostly used in the standard
     library. The arguments and the existence of the function cannot be checked,
-    so the language does not guarantee safety.
+    so the language does not guarantee that the call is safe\footnote{In the
+    ,,will not segfault'' sense.}.
 
   \item[\texttt{(begin <body-stmt>...)}] evaluates all statements and returns
     the value of the last.
@@ -185,7 +186,7 @@ there is no reasonable value for an expression (e.g. an empty expression
   (do ((f1 0 f1)
        (f2 1 (+ f1 f2))
        (i  1 (+ i 1)))
-    ((>= i 100)
+    ((> i 100)
       (println "done"))
     (println f1)))
 \end{spiral}
@@ -193,7 +194,7 @@ there is no reasonable value for an expression (e.g. an empty expression
 
 \section{Standard library and basic types}
 
-Standard library defines basic functions. Programs in Spiral have no names
+The standard library defines basic functions. Programs in Spiral have no names
 defined by default, so the import of the standard library is virtually
 necessary.
 
@@ -209,7 +210,7 @@ necessary.
     \texttt{array-empty?}, ...). Arrays are indexed by integers starting from
     zero and their size and contents are mutable.
 
-  \item[\texttt{std.tuple}] gives access to tuples with size from 0 to 8
+  \item[\texttt{std.tuple}] defines tuples with size from 0 to 8
     elements. The module defines the constructors (\texttt{tuple-2}, ...),
     access functions (\texttt{get-0}, \texttt{get-2}) and predicates
     (\texttt{tuple?}, \texttt{tuple-2?}, \texttt{tuple-n?}, ...). Tuple elements
@@ -257,13 +258,13 @@ The compiler is controlled by command line arguments:
   \item[\texttt{-I}, \texttt{-{}-include}] adds a directory to the list of paths
     where the compiler looks for \texttt{import}ed modules.
   \item[\texttt{-e}, \texttt{-{}-emit}] controls the type of output:
-    \texttt{sexpr} reads the input s-expression and pretty-prints that,
+    \texttt{sexpr} reads the input s-expression and pretty-prints it,
     \texttt{spiral} dumps the internal syntax tree of Spiral, \texttt{spine} and
     \texttt{grit} print the program in the respective intermediate language as
     an s-expression, \texttt{asm} dumps the internal assembler representation,
-    \texttt{gas} produces input file for GNU Assembler and \texttt{exec} invokes
-    the assembler, compiles the program and links it with the runtime library
-    (default)..
+    \texttt{gas} produces input file for GNU Assembler and \texttt{exec}
+    (default) invokes the assembler, compiles the program and links it with the
+    runtime library.
   \item[\texttt{-t}, \texttt{-{}-runtime}] sets path to the compiled runtime
     library.
   \item[\texttt{-{}-link-cmd}] sets the linker program. The default is
