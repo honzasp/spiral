@@ -1,106 +1,104 @@
-\chapter{Implementace}
+\chapter{Implementation}
 
-Celá implementace je dostupná v~gitovém repozitáři ze serveru GitHub na adrese
-\url{https://github.com/honzasp/spiral}. V~adresáři \texttt{src/} se nachází
-zdrojové kódy samotného překladače, adresář \texttt{rt/} obsahuje implementaci
-běhové knihovny, v~adresář \texttt{stdlib/} jsou definovány moduly standardní
-knihovny jazyka Spiral a v~adresáři \texttt{tests/} jsou umístěny celkové testy.
-Všechny soubory jsou uvolněny do public domain (viz soubor \texttt{UNLICENSE}).
+The complete implementation is available as a git repository from GitHub at
+\url{https://github.com/honzasp/spiral}. The sources of the compiler are placed
+in directory \texttt{src/}, the runtime library is located in \texttt{rt/}, the
+directory \texttt{stdlib/} contains the standard library modules and
+\texttt{tests/} collects functional tests. All files are released into public
+domain (see file \texttt{UNLICENSE}).
 
-\section{Překladač}
+\section{Compiler}
 
-Překladač je napsaný v~jazyce Rust \cite{rust} a s~více než 6000 řádky
-kódu\footnote{Započítány jsou pouze řádky, které obsahují alespoň dva neprázdné
-znaky.} (včetně jednotkových testů) se jedná o největší část implementace. Celý
-program je rozdělen do modulů a toto rozdělení úzce souvisí s~rozdělením postupu
-překladu na jednotlivé mezijazyky.
+The compiler is written in Rust \cite{rust} and with more than 6000 lines of
+code\footnote{Only lines with at least two non-spaces count.} (including unit
+tests) is the biggest component. The program is divided into modules that
+mirror the sequence of intermediate languages used during translation.
 
 \begin{description}
-  \item[\texttt{main}] obsahuje hlavní funkci, která vykoná všechny akce zadané
-    uživatelem na příkazové řádce.
-  \item[\texttt{args}] zodpovídá za dekódování argumentů z~příkazové řádky.
+  \item[\texttt{main}] defines the function `main` that performs the actions
+    entered by the user on the command line.
+  \item[\texttt{args}] is responsible for decoding the command line arguments.
 \end{description}
 ~
 \begin{description}
-  \item[\texttt{sexpr::syntax}] definuje datové typy s-výrazů.
-  \item[\texttt{sexpr::parse}] poskytuje parser s-výrazů.
-  \item[\texttt{sexpr::pretty_print}] převádí s-výrazy z~interní podoby opět do
-    textového formátu v~lidsky čitelné podobě.
-  \item[\texttt{sexpr::to_spiral}] umožňuje z~s-výrazu získat syntaktický strom
-    jazyka Spiral.
-  \item[\texttt{sexpr::to_spine}] z~s-výrazu načte definici programu v~jazyku
-    Spine (což se využívá pro testování).
-  \item[\texttt{sexpr::to_grit}] přečte z~s-výrazu definici programu v~jazyku
-    Grit (opět využito pro testování).
+  \item[\texttt{sexpr::syntax}] defines the data types for s-expressions.
+  \item[\texttt{sexpr::parse}] provides an s-expression parser.
+  \item[\texttt{sexpr::pretty_print}] transforms s-expressions from the internal
+    form to a human-readable textual representation.
+  \item[\texttt{sexpr::to_spiral}] extracts the syntax tree of Spiral from
+    an s-expression.
+  \item[\texttt{sexpr::to_spine}] converts an s-expression to Spine program
+    (used for testing purposes).
+  \item[\texttt{sexpr::to_grit}] reads an s-expression as a Grit program (also
+    used for testing).
 \end{description}
 ~
 \begin{description}
-  \item[\texttt{spiral::syntax}] definuje typy pro syntaktický strom jazyka
+  \item[\texttt{spiral::syntax}] defines the Spiral syntax tree.
+  \item[\texttt{spiral::env}] defines a helper environment for traversing the
+    syntax tree.
+  \item[\texttt{spiral::imported}] collects all imported modules from a module
+    or a program.
+  \item[\texttt{spiral::to_spine}] translates a program from Spiral to Spine,
+    using:
+  \item[\texttt{spiral::to_spine::mods}] to translate modules,
+  \item[\texttt{spiral::to_spine::decls}] to translate declarations,
+  \item[\texttt{spiral::to_spine::stmts}] to translate statements, and
+  \item[\texttt{spiral::to_spine::exprs}] to translate expressions.
+\end{description}
+~
+\begin{description}
+  \item[\texttt{spine::syntax}] defines the Spine syntax tree.
+  \item[\texttt{spine::env}] provides the environment for traversing the tree.
+  \item[\texttt{spine::check}] implements a well-formedness checker (used for
+    testing).
+  \item[\texttt{spine::eval}] is a simple evaluator (interpreter) of Spine
+    programs that is valuable for testing.
+  \item[\texttt{spine::free}] discovers all free variables of a function. These
+    variables must be captured in the definition of the function.
+  \item[\texttt{spine::onion}] defines the ,,onion'' for translating from
     Spiral.
-  \item[\texttt{spiral::env}] poskytuje pomocný objekt prostředí
-    (\emph{environment}) pro průchod syntaktického stromu.
-  \item[\texttt{spiral::imported}] slouží pro získání seznamu všech
-    importovaných modulů z~jednoho modulu či programu.
-  \item[\texttt{spiral::to_spine}] překládá program ze Spiral do Spine, k~čemuž
-    využívá:
-  \item[\texttt{spiral::to_spine::mods}] k~překladu celých modulů,
-  \item[\texttt{spiral::to_spine::decls}] k~překladu deklarací,
-  \item[\texttt{spiral::to_spine::stmts}] k~překladů příkazů a
-  \item[\texttt{spiral::to_spine::exprs}] k~překladu výrazů.
+  \item[\texttt{spine::to_grit}] translates a program from Spine to Grit.
+  \item[\texttt{spine::to_sexpr}] converts Spine into an s-expression.
 \end{description}
 ~
 \begin{description}
-  \item[\texttt{spine::syntax}] definuje syntaktický strom jazyka Spine.
-  \item[\texttt{spine::env}] poskytuje prostředí pro průchod tímto stromem.
-  \item[\texttt{spine::check}] implementuje kontrolu korektnosti
-    (\emph{well-formedness}), která je využívána pro testování.
-  \item[\texttt{spine::eval}] umožňuje vyhodnocovat (interpretovat) programy
-    v~jazyku Spine, čehož se opět využívá při testování.
-  \item[\texttt{spine::free}] umožňuje zjistit všechny volné proměnné ve výrazu,
-    čehož se využívá pro zachycení pšech proměnných v~definici funkce.
-  \item[\texttt{spine::onion}] poskytuje typ "cibule" pro překlad ze Spiral.
-  \item[\texttt{spine::to_grit}] překládá program ze Spine do jazyka Grit.
-  \item[\texttt{spine::to_sexpr}] převede Spine na s-výraz.
+  \item[\texttt{grit::syntax}] defines the syntax of Grit.
+  \item[\texttt{grit::optimize_dead_vals}] implements dead value optimization.
+  \item[\texttt{grit::optimize_dead_defs}] contains the dead code optimization
+    that removes definitions of unused functions and objects.
+  \item[\texttt{grit::optimize_values}] defines the known value optimization.
+  \item[\texttt{grit::optimize_inline}] implements inlining.
+  \item[\texttt{grit::interf}] builds an interference graph of a function.
+  \item[\texttt{grit::slot_alloc}] allocates slots for variables using the
+    interference graph.
+  \item[\texttt{grit::to_asm}] translates Grit to assembler in the internal
+    form.
+  \item[\texttt{grit::to_sexpr}] converts Grit to an s-expression.
 \end{description}
 ~
 \begin{description}
-  \item[\texttt{grit::syntax}] definuje syntaxi jazyka Grit.
-  \item[\texttt{grit::optimize_dead_vals}] implementuje optimalizaci nevyužitých
-    hodnot.
-  \item[\texttt{grit::optimize_dead_defs}] zastřešuje optimalizaci nepoužitých
-    definic funkcí a objektů.
-  \item[\texttt{grit::optimize_values}] poskytuje optimalizaci známých hodnot.
-  \item[\texttt{grit::optimize_inline}] implementuje inlining.
-  \item[\texttt{grit::interf}] zkonstruuje pro funkci graf interference.
-  \item[\texttt{grit::slot_alloc}] pomocí grafu interference alokuje proměnným
-    sloty.
-  \item[\texttt{grit::to_asm}] přeloží Grit do interní podoby assembleru.
-  \item[\texttt{grit::to_sexpr}] převede Grit na s-výraz.
-\end{description}
-~
-\begin{description}
-  \item[\texttt{asm::syntax}] definuje interní syntaxi assembleru.
-  \item[\texttt{asm::simplify}] implementuje jednoduchou optimalizaci na úrovni
-    instrukcí.
-  \item[\texttt{asm::to_gas}] generuje vstup pro GNU Assembler.
+  \item[\texttt{asm::syntax}] defines the internal form of assembler.
+  \item[\texttt{asm::simplify}] implements simple instruction-level
+    optimizations.
+  \item[\texttt{asm::to_gas}] generates input for GNU Assembler.
 \end{description}
 
-\section{Běhová knihovna}
+\section{Runtime library}
 
-Běhová knihovna je implementována v~\Cplusplus{} a nemá rozsah ani 2000 řádků.
-\Cplusplus{} bylo místo čistého C použito především kvůli podpoře jmenných
-prostorů a \texttt{auto}-deklarace proměnných. Možnosti jazyka vyžadující skrytý
-kód generovaný překladačem (výjimky, RTTI, virtuální funkce, ...) jsou záměrně
-potlačeny\footnote{Pomocí přepínačů \texttt{-fno-rtti} a
-\texttt{-fno-exceptions} překladače \texttt{clang++}.} a použití standardní
-knihovny je omezeno na část odpovídající jazyku C.
+The runtime library is implemented in \Cplusplus{} in less than 2000 lines. The
+features that lead us to use \Cplusplus{} instead of pure C were namespaces and
+\texttt{auto}-declarations. The features of the language that require hidden
+code generated by the compiler (exceptions, RTTI, virtual methods...) are
+avoided and, where possible, disabled\footnote{Using the \texttt{clang++} flags
+\texttt{-fno-rtti} and \texttt{-fno-exceptions}}. We use only the C standard
+library.
 
-\section{Testy}
+\section{Tests}
 
-Jednotkové testy kontrolující funkčnost vybraných částí překladače jsou umístěny
-přímo v~kódu pomocí nástrojů podporovaných jazykem Rust. Hlavní porce testů má
-podobu malých programů ve Spiral, které jsou automaticky přeloženy a spuštěny.
-Jejich výstup je poté porovnán s~očekávaným výstupem a pokud se liší, je
-ohlášena chyba. Většina z~objemu testů testuje jednotlivé oblasti standardní
-knihovny, další větší skupinou jsou zátěžové testy, které jsou převážně zaměřené
-na testování správy paměti.
+Unit tests covering the compiler are placed directly in the code using the tools
+provided by Rust. We test the whole implementation by compiling and running a
+set of small Spiral programs. We then compare the real output with expected
+output and report an error if they differ. Most of the tests focus on the
+standard library, there are also tests checking that the garbage collector works
+correctly.

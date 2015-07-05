@@ -268,115 +268,106 @@ or reachable by a single load from memory.
     assigned to a register or a memory location, no code is generated.
 \end{description}
 
-\subsection{Překlad z~jazyka Spine}
+\subsection{Translation from Spine}
 
-Překlad ze Spine do Gritu je poměrně přímočarý. Volání \emph{continuation} je
-přeloženo jako přiřazení do proměnných vygenerovaných jako její argumenty a skok
-do bloku, kterým tělo \emph{continuation} začíná. Ostatní konstrukce ve Spine
-mají v~jazyku Grit přímý ekvivalent.
+Translation from Spine to Grit is straightforward. Call to a continuation is
+translated as an assignment to variables generated as its arguments followed by
+a jump to the first basic block of the continuation. Other structures from Spine
+have a direct counterpart in Grit.
 
-\subsection{Optimalizace}
+\subsection{Optimization}
 
-Jelikož je jazyk Spiral poměrně chudý, nabízí se relativně málo možností
-optimalizace. Proto se první optimalizační fáze aplikují až na nízkoúrovňový
-Grit a jedná se převážně o zjednodušující a zeštíhlující proces.
+Because Spiral has very few features, there are not many opportunities for
+optimization. The first optimization phases thus operate on the low-level Grit
+and usually just simplify the code.
 
-\subsubsection{Optimalizace známých hodnot}
+\subsubsection{Known-value optimization}
 
-V~této fázi, která operuje nad celým programem, je určen odhad hodnot, kterých
-může nabýt každá proměnná, zachycená proměnná a návratová hodnota. Tyto
-informace jsou poté využity několikerým způsobem:
+This whole-program phase first estimates the set of possible values of each
+variable, each captured variable and result of every function. This information
+is then used at several places:
 
 \begin{itemize}
-  \item Optimalizace známých volání nahrazením \texttt{(call (unknown ...) ...)}
-    za \texttt{(call (known-closure ...) ...)} nebo \texttt{(call (combinator
-    ...) ...)}.
-  \item Nahrazení větvení nepodmíněným skokem, pokud je možné dokázat, že
-    testovací hodnota je vždy pravdivá nebo vždy nepravdivá.
-  \item Propagace konstant odstraní proměnné, jejichž hodnota je konstantní
-    (číslo, pravdivostní hodnota nebo staticky alokovaný objekt).
+  \item Known call optimization by substituting \texttt{(call (unknown ...)
+    ...)} for \texttt{(call (known-closure ...) ...)} or \texttt{(call
+    (combinator ...) ...)}.
+  \item Replacement of branches with a boolean value that is always true or
+    always false.
+  \item Constant propagation removes variables that have a simple constant value
+    (number, boolean or a statically allocated object).
 \end{itemize}
 
-\subsubsection{Odstranění nepotřebných hodnot}
+\subsubsection{Dead value elimination}
 
-Tato fáze je opět globální a jejím účelem je převážně zrušit nepotřebné
-zachycené hodnoty, ovšem zároveň je možno odstranit i zápisy do nevyužitých
-proměnných a alokaci zbytečných funkcí. Často se stane, že funkce přijde o
-všechny zachycené hodnoty, čímž se stane kombinátorem. Její použití pak již není
-spojeno s~alokací paměti.
+This phase is also global and its main goal is to remove unused captured
+variables, but unnecessary allocations and variables are also discarded. The
+functions often lose all their captured variables and become combinators, so
+the memory consumption and thus the pressure on the garbage collector is
+reduced.
 
-\subsubsection{Inlining funkcí}
+\subsubsection{Function inlining}
 
-Během fáze inliningu jsou volání vybraných funkcí nahrazena přímým vložením
-volané funkce do funkce volající. Tato optimalizace je pro funkcionální programy
-zcela klíčová, protože se většinou skládají z~velkého počtu malých funkcí.
-Jejich expanzí na místo volání se ušetří instrukce pro manipulaci se zásobníkem
-a pro samotné volání a návrat z~funkce. Zároveň je pak možné provést další
-optimalizace, převážně proto, že jsou nyní zpravidla k~dispozici lepší informace
-o argumentech volané funkce. Na druhou stranu takto dochází k~duplikaci kódu a
-většinou tak i k~nárůstu délky výsledného programu.
+Inlining substitutes calls to selected functions by including the body of the
+callee into the caller. This is a key optimization for functional programs,
+because they are usually composed from many small functions. When functions are
+expanded to the call site, we save the overhead of manipulating the stack and
+two jumps. Further optimization possibilities are also exposed, because the
+compiler can gather more information from the local context. The downside is the
+possible increase in code side.
 
-Pro inlining jsou nyní vybírány funkce, které jsou dostatečně malé, jsou
-kombinátory a nevolají jiné funkce kromě externích. Do této kategorie spadá
-většina funkcí standardní knihovny, které obvykle pouze obalují externí volání
-podpůrné běhové knihovny.
+We currently inline functions that are small combinators and call no other
+functions except external calls. This rule applies to most standard library
+functions, as they are usually just thin wrappers around the runtime library.
 
-\subsubsection{Odstranění nepotřebných definic}
+\subsubsection{Dead code elimination}
 
-Tato optimalizace je známá rovněž jako odstranění mrtvého kódu (\emph{dead code
-elimination}) a spočívá ve vynechání funkcí a staticky alokovaných objektů,
-které nejsou referencovány z~hlavní funkce a jsou tedy zbytečné. Kromě
-nepoužitých definic z~importovaných modulů jsou obvykle odstraněny i funkce,
-jejichž volání byla všude inlinována.
+This optimization removes the functions and static objects that are not
+transitively referenced from the main function. These functions and objects can
+never be used, so there is no need to generate any code for them. We observe
+that the removed functions usually come from imported modules or are inlined
+everywhere.
 
-\subsubsection{Pořadí optimalizací}
+\subsubsection{The order of optimizations}
 
-U optimalizačních fází je velmi důležité pořadí, v~jakém jsou na program
-aplikovány. Optimalizace známých hodnot zanechá část proměnných a zachycených
-hodnot bez využití. Tyto proměnné jsou následně odstraněny ve fázi odstranění
-nepotřebných hodnot. Zároveň se takto zvýší počet kombinátorů, které můžeme
-inlinovat. Po inliningu pak dostaneme řadu nepotřebných definic, které jsou
-kandidáty na odstranění.
+The ordering of optimizations is very important. Known value optimization leaves
+some variables and captured variables unused, so they can be later removed by
+dead value elimination. We also increase the number of combinators, so we can
+then inline more functions. The unused definitions left after inlining can be
+pruned by dead code elimination.
 
-Úroveň optimalizací je možno ovlivnit z~argumentů příkazové řádky. Na úrovni 0
-neprobíhá žádná optimalizace. Úroveň 1 zapne všechny optimalizace ve výše
-uvedeném pořadí kromě inliningu, který je umožněn až od úrovně 2. Při úrovni 3
-pak po inliningu následuje ještě jednou optimalizace známých hodnot a odstranění
-nepotřebných hodnot.
+The optimization level can be adjusted from the command line. Level 0 disables
+all optimizations. Level 1 runs all phases in the order described above except
+inlining, that is enabled from level 2. On level 3, we follow inlining with
+another round of known value optimization and dead value elimination.
 
-\section{Alokace slotů}
+\section{Slot allocation}
 
-Program v~Gritu typicky pracuje s~velkým množstvím proměnných. Bylo by ovšem
-značným plýtváním pamětí, pokud bychom každé proměnné alokovali na zásobníku
-zvláští prostor (slot), jelikož doba života proměnné je obvykle krátká a její
-slot by byl většinu času nevyužit. Proto je žádoucí několika proměnným přiřadit
-stejný slot, ovšem samozřejmě tak, aby nedošlo ke ztrátě informace, tedy aby
-zápis do proměnné nepřepsal hodnotu jiné proměnné, ze které se bude později
-číst.
+Programs in Grit generally use many variables. It would be wasteful to allocate
+a slot on the stack for each variable, because their lifetimes are usually short
+and the space would be unused most of the time. We allocate more variables to a
+single slot, but we must be careful not to read from a variable whose value has
+been overwritten by a write to a variable assigned to the same slot.
 
-Této fázi v~běžných překladačích odpovídá alokace registrů, ovšem náš generátor
-kódu je zjednodušený, takže všechny proměnné umisťuje do paměti. Podobně jako
-při alokaci registrů však můžeme použít přístup s~užitím barvení grafu
-interference
-\cite{chaitin1981register,chaitin1982register,briggs1994improvements}, ovšem
-postup je jednodušší díky tomu, že počet barev (registrů) nemáme omezen, pouze
-se jej snažíme minimalizovat. Proto stačí pouze sestavit graf interference a ten
-pak hladovým algoritmem obarvit. U hladového algoritmu je klíčové pořadí,
-v~jakém jsou vrcholy barveny. V~našem případě vrcholy barvíme v~pořadí podle
-počtu vycházejících hran sestupně.
+This phase corresponds to register allocation in practical compilers, but our
+code generator is greatly simplified and allocates all variables to memory. We
+use the interference graph coloring approach
+\cite{chaitin1981register,chaitin1982register,briggs1994improvements}, but the
+number of colors is not limited, we only seek to minimize it. The algorithm
+builds the interference graph and then greedily colors the nodes, ordered by the
+decreasing number of outgoing edges.
 
 \section{Assembler}
 
-Posledním krokem překladu je generování assembleru pro architekturu IA-32
-z~jazyka Grit. Výsledný soubor obsahuje kód všech funkcí, staticky alokované
-objekty a řetězce.  Kvůli podpoře koncových volání mají funkce jazyka Spiral
-jinou volací konvenci (\emph{calling convention}) než funkce jazyka C. Argumenty
-pro funkci v~C jsou totiž umístěny na zásobníku v~oblasti volající funkce, pro
-koncová volání je však potřeba, aby z~volající funkce na zásobníku nic nezbylo,
-argumenty proto musí volaná funkce dostat do své oblasti.
+As the last step of the translation pipeline, we generate assembler for
+architecture IA-32 from Grit. The emitted code contains all functions,
+statically allocated objects and strings. To support tail-calls, the calling
+convention used in Spiral is not compatible with the C calling convention.
+Arguments for C functions are placed in the caller's frame on the stack, but
+during a tail-call, the frame of the caller must be discarded, so the callee
+must get the arguments in its frame.
 
-Zásobník ve funkci s~\texttt{N} sloty vypadá takto (relativně vůči vrcholu
-zásobníku v~registru \texttt{\%esp}):
+The stack of a function with \texttt{N} slots is laid out like this (the
+addresses are relative to the register \texttt{\%esp}):
 
 \begin{ttcode}
   4*N+4  :  return address
@@ -388,26 +379,24 @@ zásobníku v~registru \texttt{\%esp}):
       0  :  closure value
 \end{ttcode}
 
-Volaná funkce dostane argumenty ve svých prvních slotech, které se nachází těsně
-pod návratovou adresou (zapsanou instrukcí \texttt{call}). Ostatní sloty jsou
-umístěny níž. Hodnota funkce je umístěna v~registru \texttt{\%ecx}, počet
-argumentů u neznámých volání v~\texttt{\%eax}. Hodnotu z~\texttt{\%ecx} funkce
-zapíše na začátek svého zásobníku, aby bylo možno projít zásobník při úklidu
-paměti.  Návratovou hodnotu pak funkce zpět na místo volání předá v~registru
-\texttt{\%eax}.
+Callee receives arguments in the first slots, placed right under the return
+address (saved by the \texttt{call} instruction). Remaining slots are placed
+below. The value of the function (its closure) is saved in \texttt{\%ecx},
+number of arguments during unknown calls is placed in \texttt{\%eax}. The
+function writes the value of \texttt{\%ecx} to the end of the stack frame, to
+help the garbage collector traverse the stack. The return value is passed back
+to the caller in \texttt{\%eax}.
 
-Volání funkce proběhne tak, že se argumenty umístí pod prostor obsazený volající
-funkcí a instrukcí \texttt{call} se na zásobník uloží návratová adresa.  Při
-koncovém volání argumenty přepíšou sloty volající funkce, zásobník se posune
-zpátky nahoru a do funkce se provede skok (instrukcí \texttt{jmp}). Návratová
-adresa tak zůstane nezměněna a při návratu z~koncové funkce dojde ke skoku do
-původní volající funkce.
+To call a function, the caller places the arguments below its stack and saves
+the return address by \texttt{call} instruction. A tail call overwrites the
+slots of the caller, shifts the stack upward and jumps to the callee
+(\texttt{jmp} instruction). Upon returning with \texttt{ret} instruction, the
+callee correctly jumps to the original caller.
 
-Jelikož všechny proměnné jsou uloženy v~paměti, může generátor kódu použít pevně
-dané registry pro dočasné uložení hodnot. Registry \texttt{\%eax} a
-\texttt{\%edx} se používají při přesunech hodnot v~paměti, v~registru
-\texttt{\%ecx} je uložena hodnota aktuální funkce, která se využívá při
-přístupu k~zachyceným hodnotám.  V~jistých speciálních případech je rovněž
-využit i registr \texttt{\%ebx}. Dále funkce přistupuje k~registru
-\texttt{\%edi}, ve kterém je uložen ukazatel na aktuální pozadí
-(\texttt{Bg*}) běhové knihovny.
+The code generator can use fixed registers for temporary storage, because no
+variables are placed in registers. \texttt{\%eax} and \texttt{\%edx} are used
+for moving the values to and from memory, \texttt{\%ecx} stores the current
+function value, which is used to access the captured variables. In certain
+corner cases, the register \texttt{\%ebx} is used, too. The functions can also
+read from register \texttt{\%edi} the pointer to the runtime background
+(\texttt{Bg*}).

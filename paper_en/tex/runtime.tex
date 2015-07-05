@@ -1,26 +1,25 @@
-\chapter{Běhová knihovna}
+\chapter{Runtime library}
 
-Přeložený program potřebuje ke svému běhu podpůrnou běhovou knihovnu
-(\emph{runtime}). V~této knihovně jsou definovány základní funkce, které využívá
-standardní knihovna, a rovněž se zde nachází kód pro automatickou správu paměti.
+Compiled programs need to be linked with the runtime library. This library
+defines the core external functions referenced by standard library and also
+provides automatic memory management.
 
-Je špatnou programovací praxí používat nekonstantní globální proměnné, proto
-jsou veškerá "globální" data uložena v~objektu nazývaném pozadí
-(\emph{background}, kvůli všudypřítomnosti zkráceno až na \emph{bg}). Odkaz na
-tento objekt je skrz funkce ve Spiral přenášen v~registru \texttt{\%edi},
-v~běhové knihovně pak explicitně jako první argument většiny funkcí.
+It is not a good programming practice to use mutable global variables, so we
+store all ,,global'' data in an object called background (shortened to ,,bg'').
+Pointer to this object is passed in register \texttt{\%edi} through the code in
+Spiral and most functions in the standard library receive it as their first
+argument.
 
-\section{Reprezentace hodnot}
+\section{Value representation}
 
-Všechny hodnoty jsou reprezentovány jako 32-bitové číslo. Hodnoty celých čísel
-jsou reprezentovány přímo, a to vynásobené dvěmi, tudíž jejich nejnižší bit je
-nulový. Takto je možno uložit $2^{31}$ čísel, takže rozsah celých čísel v~jazyku
-Spiral je od $-2^{30}$ do $2^{30}-1$. Ostatní hodnoty jsou uloženy jako ukazatel
-do paměti a jsou od celých čísel odlišeny tak, že jejich nejnižší bit je
-nastaven na jedničku. Aby bylo možno rychle rozpoznat funkce, mají datové
-objekty (tedy všechny, které nejsou funkce) poslední dva bity nastaveny na 01,
-funkce pak na 11 (binárně). Původní ukazatel obdržíme snadno bitovou operací
-\emph{and}.
+All values are represented as 32-bit numbers. Integers are stored directly
+multiplied by two to ensure that their least important bit is zero. In this way,
+we can store $2^{31}$ numbers, so the range of integers in Spiral is from
+$-2^{30}$ to $2^{30}-1$. Other values are stored as pointers to memory and we
+discriminate them from integers by setting their least important bit to one. To
+quickly recognize functions from data objects, we set the two last bits of data
+objects to 01 and of functions to 11 (in binary). The original pointer can be
+obtained by a binary and.
 
 \begin{ttcode}
    <int>0 ... integer
@@ -28,13 +27,13 @@ funkce pak na 11 (binárně). Původní ukazatel obdržíme snadno bitovou opera
   <ptr>11 ... function
 \end{ttcode}
 
-Všechny objekty v~paměti mají v~prvních 4~bajtech uložen ukazatel na statickou
-tabulku objektu (\emph{object table} neboli \emph{otable}). Pomocí této tabulky
-lze dynamické objekty rozlišovat a pracovat s~nimi. Tabulka kromě ukazatelů na
-funkce sloužící ke správě paměti obsahuje rovněž ukazatele na funkce pro převod
-objektu na řetězec a pro porovnávání objektů. Tyto funkce jsou využity pro
-implementaci funkcí \texttt{stringify}, \texttt{eqv?} a \texttt{equal?}
-standardní knihovny, které musí být schopny pracovat se všemi typy objektů.
+All objects in memory start with a four byte pointer to static object table
+(,,otable''). This table allows us to dynamically recognize the objects and
+carry out some generic operations on them. It stores pointers to functions that
+are used for memory management, conversion to string and equality predicates.
+These functions are used to implement standard library functions
+\texttt{stringify}, \texttt{eqv?} and \texttt{equal?}, because they must be able
+to work with all objects.
 
 \begin{cplusplus}
   struct ObjTable {
@@ -49,12 +48,14 @@ standardní knihovny, které musí být schopny pracovat se všemi typy objektů
   };
 \end{cplusplus}
 
-Obsah úseku paměti po ukazateli na tabulku objektu je již závislý na typu
-objektu. Je zde například umístěn ukazatel na data a délka řetězce nebo prvky
-n-tice. Funkce mají po tabulce objektu uloženu adresu začátku kódu funkce. Před
-kódem je umístěna tabulka funkce (\emph{fun table} či zkráceně \emph{ftable}),
-která obsahuje informace o počtu argumentů, slotů a zachycených hodnot, které
-jsou potřeba pro korektní čtení zásobníku při úklidu paměti.
+The contents of memory after the pointer to the object table is dependent on the
+type of the value. For example, strings store here their length and a pointer to the
+character data and tuples place here their elements. Function pointers of
+function objects are saved after the pointer to the object table. Preceding the
+body of the function we store function table (,,ftable'') that contains
+important information about the function, such as the number of arguments, slots
+and captured variables, that are needed to correctly read the stack during
+garbage collection.
 
 \begin{cplusplus}
   struct FunTable {
@@ -66,40 +67,36 @@ jsou potřeba pro korektní čtení zásobníku při úklidu paměti.
   };
 \end{cplusplus}
 
-\section{Správa paměti}
+\section{Memory management}
 
-Paměť objektů je strukturovaná do úseků (\emph{chunks}), které tvoří spojový
-seznam. Když program požádá o paměť na uložení objektu, běhová knihovna použije
-prostor prvního úseku. Pokud v~něm již není dostatek prostoru, může knihovna od
-operačního systému získat další úsek a zařadit jej na začátek seznamu. Pokud
-však program již alokoval velké množství paměti, je spuštěn garbage collector,
-který všechny živé objekty zkopíruje do nových úseků paměti a staré úseky poté
-uvolní k~dalšímu použití.
+The object memory is separated into chunks forming a linked list. When the
+program requests memory to allocate an object, the runtime library uses the
+free memory of the first chunk. If there is not enough space, the runtime
+library asks the system for another chunk and places it at the beginning of the
+list. However, if the program have allocated too much memory, the garbage
+collector is invoked. The collector copies all live objects to fresh memory
+locations and then releases old chunks.
 
-Za živé jsou považovány všechny objekty, které jsou odkazovány z~proměnných
-v~daném okamžiku běhu programu a všechny objekty, na které jiné živé objekty
-odkazují. Nejprve jsou proto evakuovány (tedy zkopírovány ze staré oblasti do
-nové a zachráněny před zničením) všechny objekty ze zásobníku. Poté jsou
-evakuované objekty prohledány (\emph{scavenged} -- doslova "hledat
-v~odpadcích") a všechny objekty, na které odkazují, jsou rovněž evakuovány. Aby
-objekt nebyl evakuován vícekrát a nebyl pokaždé zkopírován, je na jeho místo po
-evakuaci zapsán ukazatel (\emph{forward pointer}) odkazující na nové umístění
-původního objektu. Zbylé objekty ze starých úseků paměti jsou zahozeny
-(\emph{dropped}).
+All objects referenced by variables and all objects referenced by live objects
+are considered live. We first evacuate (copy from the old memory space to the
+new and save from destruction) all objects found on the stack. Then we scavenge
+the evacuated objects and evacuate all referenced objects. To prevent an object
+from being evacuated and copied multiple times, we rewrite it with a forward
+pointer pointing to the new location after evacuation. The remaining objects
+that were not evacuated are then dropped.
 
-Některé objekty (například pole nebo řetězce) využívají pro uložení svého obsahu
-další oblasti paměti mimo paměť objektů. Tyto objekty se o správu své paměti
-starají samy a když jsou zahozeny, svou paměť uvolní.
+Some objects, such as arrays and strings, store their contents in an additional
+memory space independent from the object memory. These objects are responsible
+for their memory management and release the memory when they are dropped.
 
-\section{Rozhraní mezi programem a knihovnou}
+\section{Interface between the programs and the library}
 
-Při volání externí funkce v~programu v~jazyce Spiral se zavolá céčková funkce
-odpovídajícího jména. Jejími argumenty je odkaz na pozadí (tedy obsah registru
-\texttt{\%edi}), vrchol zásobníku (z~registru \texttt{\%esp}) a poté argumenty
-předané na místě volání. Jelikož runtime je napsaný v~\Cplusplus{}, jsou
-funkce určené pro volání ze standardní knihovny umístěny v~blocích
-\texttt{extern "C"~\{ ... \}}, jelikož překladač \Cplusplus{} jména funkcí
-mění (kvůli podpoře overloadingu). Některé proměnné, například objekty
-\texttt{true} a \texttt{false}, by bylo nepraktické takto definovat, proto se
-na ně z~jazyka Spiral odkazujeme prostřednictvím jejich změněných
-(\emph{mangled}) jmen.
+Call to an external function in Spiral program invokes a C functions of the
+same name. Passed arguments are the pointer to the background (from register
+\texttt{\%edi}) and the top of the stack (register \texttt{\%esp}), followed by
+the arguments from the Spiral call. Because the runtime is written in
+\Cplusplus{}, the functions that are called from Spiral are placed inside
+\texttt{extern "C"~\{ ... \}} blocks, because the \Cplusplus{} compiler would
+otherwise mangle their names. Some variables, for example objects \texttt{true}
+and \texttt{false}, would be inconvenient to define in this way, so we use their
+mangled names in compiled Spiral programs.

@@ -1,88 +1,76 @@
-\chapter{Závěr}
+\chapter{Conclusion}
 
-Představili jsme funkční implementaci netriviálního programovacího jazyka včetně
-běhového prostředí a standardní knihovny. Podporovány jsou plnohodnotné funkce,
-koncová volání i jednoduchý systém modulů.
+We presented a working implementation of a non-trivial programming language,
+including a runtime and a standard library. We support first-class functions,
+tail-calls and simple module system.
 
-Původní autorův záměr byl vytvořit překladač jazyka
-Plch\footnote{\url{https://github.com/honzasp/plch}}, který měl být prakticky
-stejný jako Spiral. Jeho první mezijazyk $^p\lambda_\chi$ byl velmi podobný
-Spine, umožňoval však přímo pracovat s~celými čísly a funkcemi a měl proto i
-jednoduchý typový systém. Druhý mezijazyk \texttt{tac} (\emph{\texttt{t}hree
-\texttt{a}ddress \texttt{c}ode}), jehož zjednodušením vznikl Grit, se pak
-překládal do assembleru za použití skutečného alokátoru registrů, generovaný kód
-byl tedy poměrně kvalitní. Snaha o vytvoření tohoto překladače ale nakonec
-selhala.
+Our original goal was to construct a compiler for a language
+Plch\footnote{\url{https://github.com/honzasp/plch}}, that was supposed to be
+very similar to Spiral. The first intermediate language $^p\lambda_\chi$ was the
+direct predecessor of Spine, but it featured a simple type system that allowed
+to directly work with integers and functions. Grit evolved from the second
+intermediate language \texttt{tac} (\texttt{t}hree \texttt{a}ddress
+\texttt{c}ode), that was translated to assembler using a real register
+allocator, so the quality of the generated code was better. However, we were not
+successful creating this compiler.
 
-Rozvržení překladu přes jazyky Spine a Grit tak původně počítalo s~tím, že
-většina optimalizací bude probíhat v~"typově bezpečném" jazyku Spine a Grit
-bude sloužit jen jako multiplatformní předstupeň assembleru, stejně jako jako
-jeho neúspěšný předchůdce \texttt{tac}. Ukázalo se však, že optimalizovat
-strukturovaný Spine je obtížnější než jednoduchý Grit, navíc některé důležité
-aspekty (známá a neznámá volání) nelze v~bezpečném netypovaném jazyce vyjádřit
-stejně přímo jako v~Gritu.
+The original idea for the translation pipeline was to optimize in the
+,,type-safe'' Spine and use Grit only as a portable code close to the assembler.
+However, we found optimizing the structured Spine much harder than the simple
+Grit. We also could not find a way to express some important aspects (known and
+unknown calls) in a safe untyped language.
 
-I když je jazyk Spine v~některých aspektech kvalitnějši než jisté široce
-používané jazyky (například "jazyk" PHP), trpí některými fundamentálními
-nedostatky:
+Even though Spine is in some aspects superior to certain popular languages (for
+example the ,,programming language'' PHP), it has inherent drawbacks:
 
 \begin{itemize}
-  \item Autor je přesvědčen, že dynamicky typované jazyky dosáhly své popularity
-    především díky absenci vysokoúrovňového praktického jazyka s~kvalitním
-    statickým typovým systémem a bezpečnou správou paměti. Na tuto mezeru na
-    trhu je zaměřen právě jazyk Rust, který ji dle autora může zaplnit velmi
-    důstojně. Spiral je jako dynamický jazyk ve vývoji programovacích jazyků
-    dnes již naprosto nezajímavá větev, jelikož se zde tísní spolu s~Pythonem,
-    Luou, JavaScriptem a všemi ostatními deriváty Scheme a Lispu vůbec.
+  \item We are convinced that the reason why dynamically typed languages reached
+    their current popularity was chiefly the lack of a high-level practical
+    language with rich type system and safe memory management. Spiral, as a
+    dynamic language, is thus of no value to the development of programming
+    languages, because it is sitting on the same overcrowded branch as Python,
+    Lua, JavaScript and all other descendants of Lisp.
 
-  \item V~jazyce chybí možnost pracovat se strukturami (záznamy, objekty,
-    slovníky, tabulkami, ...), tedy n-ticemi, k~jejichž prvkům lze přistupovat
-    pomocí symbolických jmen. Takovéto objekty buď vyžadují statické typování
-    (\texttt{struct} v~C) nebo implementaci pomocí hešovací tabulky či jiné
-    mapovací datové struktury (jako jsou objekty v~JavaScriptu, Ruby nebo
-    Pythonu), což je však dle autora příliš velká cena za takto elementární
-    operaci.
+  \item The language lacks any support for structures (records, objects,
+    dictionaries, tables, ...), that is, tuples with symbolic names. This kind
+    of objects either require static typing (\texttt{struct} in C) or a hash
+    table (objects in JavaScript, Ruby or Python). We believe that such an
+    elementary operation should be cheaper than an access to a hash table.
 \end{itemize}
 
-Kromě těchto vad, které jsou důsledkem návrhu jazyka, pak implementace trpí
-množstvím dalších nedodělků, které by pro praktické použití musely být
-napraveny:
+The implementation also suffers from other problems that would have to be solved
+for a real-world use:
 
 \begin{itemize}
-  \item Kvůli nízké kvalitě generátoru kódu, který ani není schopen umístit
-    proměnné do registrů, a kvůli nutnosti volat externí funkce pro každou
-    elementární operaci, včetně sčítání dvou celých čísel, jsou přeložené programy
-    velmi pomalé. Neblahý vliv na výkon má i nutnost alokovat paměť pro každé
-    použité reálné číslo. Pro nedostatek místa a času není součástí práce reálné
-    srovnání rychlostí programu ve Spiral a programů v~jiných jazycích, ovšem
-    výsledky by jistě byly pro Spiral velice nepříznivé. Nekvalitní garbage
-    collector, který při každém úklidu paměti kopíruje všechny alokované
-    objekty, a naivní (a tedy pomalé) algoritmy použité v~samotném překladači už
-    jen katastrofickou situaci z~pohledu výkonu dovrší.
+  \item The compiled code is quite slow, because the code generator cannot place
+    variables to registers and calls an external function even for trivial
+    operators such as integer addition. We also have to allocate memory for
+    every single real number. Because of space and time limitations, we did not
+    perform any benchmarks comparing Spiral and other languages, but we expect
+    that the results would be bad for Spiral. The low-quality garbage collector
+    that has to copy the whole heap during a collection, and the naive (and
+    slow) algorithms in the compiler only complete the terrible performance
+    point of view.
 
-  \item Při parsování programu není nikde uchována informace o pozicích ve
-    zdrojovém souboru, takže když nastane chyba při překladu nebo za běhu, není
-    implementace schopna určit ani v~náznaku místo, kde chyba nastala, což činí
-    vývoj jakéhokoli jen trochu většiho programu prakticky nemožným.
+  \item We store no source locations during parsing, so the implementation
+    cannot report any hint where a reported error happened. This renders
+    development of any program bigger than a few lines nearly impossible.
 
-  \item Výše zmíněný generátor kódu je nejen děsivě neefektivní, ale zároveň
-    velmi nepřehledný a špatně napsaný, a to i ve srovnání se zbytkem
-    překladače.
+  \item The code generator is not only exceedingly ineffective, but also quite
+    obscure and badly written.
 
-  \item Standardní knihovna je pro praktické použití příliš minimalistická,
-    chybí například funkce pro práci se souborovým systémem nebo základní datové
-    struktury jako haldy nebo hešovací tabulky.
+  \item The standard libary is too minimalistic for a real use. For example, it
+    lacks functions for manipulating the file system of basic data structures as
+    heaps or hash tables.
 
-  \item Jazyk neumožňuje používat funkce s~proměnným počtem argumentů, takže
-    standardní knihovna musí exportovat palety funkcí jako \texttt{tuple-0} až
-    \texttt{tuple-8} nebo \texttt{str-cat-0} až \texttt{str-cat-8}.
+  \item The language has no support for variadic arguments, so the standard
+    library has to export families of functions such as \texttt{tuple-0} to
+    \texttt{tuple-8} or \texttt{str-cat-0} to \texttt{str-cat-8}.
     
-  \item Zdrojový kód neobsahuje ani jeden komentář, jazyk Spiral dokonce syntaxi
-    na zápis komentářů úplně postrádá.
+  \item There is not a single comment in the source code. Spiral does not even
+    have a dedicated syntax for comments.
 \end{itemize}
 
-Na závěr lze tedy říci, že jednoduchý programovací jazyk byl sice podle zadání
-z~názvu práce přeložen, ovšem přínos práce končí tímto konstatováním. Byly
-použity pouze běžné a v~literatuře mnohokrát popsané postupy, navíc často notně
-zjednodušené.
-
+We conclude that we reached the goal that we had set for ourselves, but the
+contribution of this paper is quite limited. We used only the most common and
+well-described algorithms, usually very simplified.
