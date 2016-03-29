@@ -1,4 +1,5 @@
-#![feature(box_syntax, str_char, collections, core)]
+#![feature(box_syntax, str_char, iter_arith)]
+extern crate bit_set;
 extern crate docopt;
 extern crate rustc_serialize;
 extern crate tempdir;
@@ -11,6 +12,7 @@ mod spiral;
 mod spine;
 mod grit;
 mod asm;
+mod map_in_place;
 
 static VERSION: &'static str = "0.0.1";
 

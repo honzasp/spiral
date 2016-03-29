@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 #[derive(PartialEq, Debug)]
 pub struct ProgDef {
   pub fun_defs: Vec<FunDef>,

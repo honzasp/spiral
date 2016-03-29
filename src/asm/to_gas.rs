@@ -44,7 +44,7 @@ pub fn gas_from_asm(prog: &asm::ProgDef) -> String {
 
   lines.push(format!(".Lstatic_data_end:"));
 
-  lines.connect("\n")
+  lines.join("\n")
 }
 
 fn emit_fun_def(lines: &mut Vec<String>, fun_def: &asm::FunDef) {

@@ -227,7 +227,7 @@ fn emit_fun_def(prog_st: &mut ProgSt, fun_def: &grit::FunDef) {
       instrs.push(asm::Instr::MoveMemReg(closure_mem, asm::Reg::ECX))
     }
 
-    for slot_idx in (fun_def.arg_count..st.slot_alloc.slot_count) {
+    for slot_idx in fun_def.arg_count..st.slot_alloc.slot_count {
       instrs.push(asm::Instr::MoveMemImm(st.slot_mem(&grit::Slot(slot_idx)),
         asm::Imm::Int(0)));
     }

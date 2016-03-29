@@ -1,13 +1,14 @@
 use std::collections::{HashMap};
 use grit;
+use map_in_place::{map_in_place};
 
 pub fn optimize(prog: grit::ProgDef) -> grit::ProgDef {
   let mut prog = prog;
   let prog_info = collect_prog_info(&prog);
-  prog.fun_defs = prog.fun_defs.map_in_place(|mut fun_def| {
+  prog.fun_defs = map_in_place(prog.fun_defs, |mut fun_def| {
     let fun_info = prog_info.get(&fun_def.name).unwrap();
-    fun_def.blocks = fun_def.blocks.map_in_place(|mut block| {
-      block.ops = block.ops.map_in_place(|op| 
+    fun_def.blocks = map_in_place(fun_def.blocks, |mut block| {
+      block.ops = map_in_place(block.ops, |op| 
         update_op(&prog_info, fun_info, op));
       block.jump = update_jump(&prog_info, fun_info, block.jump);
       block
@@ -52,16 +53,16 @@ fn update_op(prog_info: &ProgInfo, fun_info: &FunInfo, op: grit::Op) -> grit::Op
     grit::Op::Call(target_var, callee, args) =>
       grit::Op::Call(target_var,
         update_callee(prog_info, fun_info, callee, args.len()),
-        args.map_in_place(|a| update_val(prog_info, fun_info, a))),
+        map_in_place(args, |a| update_val(prog_info, fun_info, a))),
     grit::Op::ExternCall(target_var, ext_name, args) =>
       grit::Op::ExternCall(target_var, ext_name,
-        args.map_in_place(|a| update_val(prog_info, fun_info, a))),
+        map_in_place(args, |a| update_val(prog_info, fun_info, a))),
     grit::Op::AllocClos(closs) =>
-      grit::Op::AllocClos(closs.map_in_place(|(var, fun_name, captures)| {
-        (var, fun_name, captures.map_in_place(|c| update_val(prog_info, fun_info, c)))
+      grit::Op::AllocClos(map_in_place(closs, |(var, fun_name, captures)| {
+        (var, fun_name, map_in_place(captures, |c| update_val(prog_info, fun_info, c)))
       })),
     grit::Op::Assign(var_vals) =>
-      grit::Op::Assign(var_vals.map_in_place(|(var, val)| {
+      grit::Op::Assign(map_in_place(var_vals, |(var, val)| {
         (var, update_val(prog_info, fun_info, val))
       })),
   }
@@ -76,7 +77,7 @@ fn update_jump(prog_info: &ProgInfo, fun_info: &FunInfo, jump: grit::Jump) -> gr
       grit::Jump::Return(update_val(prog_info, fun_info, val)),
     grit::Jump::TailCall(callee, args) =>
       grit::Jump::TailCall(update_callee(prog_info, fun_info, callee, args.len()),
-        args.map_in_place(|arg| update_val(prog_info, fun_info, arg))),
+        map_in_place(args, |arg| update_val(prog_info, fun_info, arg))),
     grit::Jump::Branch(boolval, then_label, else_label) =>
       match boolval_info(fun_info, &boolval) {
         BoolInfo::True => grit::Jump::Goto(then_label),

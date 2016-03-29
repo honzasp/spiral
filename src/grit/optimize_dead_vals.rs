@@ -1,14 +1,16 @@
-use std::collections::{BitSet, HashMap};
+use std::collections::{HashMap};
+use bit_set::{BitSet};
 use grit;
+use map_in_place::map_in_place;
 
 pub fn optimize(prog: grit::ProgDef) -> grit::ProgDef {
   let mut prog = prog;
   let prog_info = collect_prog_info(&prog);
-  prog.fun_defs = prog.fun_defs.map_in_place(|mut fun_def| {
+  prog.fun_defs = map_in_place(prog.fun_defs, |mut fun_def| {
     let fun_info = prog_info.get(&fun_def.name).unwrap();
     fun_def.capture_count = fun_info.used_captures.len();
-    fun_def.blocks = fun_def.blocks.map_in_place(|mut block| {
-      block.ops = block.ops.map_in_place(|op| 
+    fun_def.blocks = map_in_place(fun_def.blocks, |mut block| {
+      block.ops = map_in_place(block.ops, |op| 
         optimize_op(&prog_info, fun_info, op));
       block.jump = optimize_jump(&prog_info, fun_info, block.jump);
       block
@@ -30,17 +32,17 @@ fn optimize_op(prog_info: &ProgInfo, fun_info: &FunInfo, op: grit::Op) -> grit::
   match op {
     grit::Op::Call(var, callee, args) => 
       grit::Op::Call(var, optimize_callee(prog_info, fun_info, callee),
-         args.map_in_place(|a| optimize_val(prog_info, fun_info, a))),
+         map_in_place(args, |a| optimize_val(prog_info, fun_info, a))),
     grit::Op::ExternCall(var, extern_name, args) =>
       grit::Op::ExternCall(var, extern_name,
-         args.map_in_place(|a| optimize_val(prog_info, fun_info, a))),
+         map_in_place(args, |a| optimize_val(prog_info, fun_info, a))),
     grit::Op::AllocClos(closs) =>
       grit::Op::AllocClos(closs.into_iter().filter_map(|(var, closure_name, captures)| {
-        if fun_info.used_vars.contains(&var.0) {
+        if fun_info.used_vars.contains(var.0) {
           let used_captures = &prog_info.get(&closure_name).unwrap().used_captures;
           let filtered = captures.into_iter().enumerate()
             .filter_map(|(idx, capture)| {
-              if used_captures.contains(&idx) {
+              if used_captures.contains(idx) {
                 Some(optimize_val(prog_info, fun_info, capture))
               } else {
                 None
@@ -53,7 +55,7 @@ fn optimize_op(prog_info: &ProgInfo, fun_info: &FunInfo, op: grit::Op) -> grit::
       }).collect()),
     grit::Op::Assign(var_vals) =>
       grit::Op::Assign(var_vals.into_iter().filter_map(|(var, val)| {
-        if fun_info.used_vars.contains(&var.0) {
+        if fun_info.used_vars.contains(var.0) {
           Some((var, optimize_val(prog_info, fun_info, val)))
         } else {
           None
@@ -72,7 +74,7 @@ fn optimize_jump(prog_info: &ProgInfo, fun_info: &FunInfo,
       grit::Jump::Return(optimize_val(prog_info, fun_info, val)),
     grit::Jump::TailCall(callee, args) =>
       grit::Jump::TailCall(optimize_callee(prog_info, fun_info, callee),
-        args.map_in_place(|a| optimize_val(prog_info, fun_info, a))),
+        map_in_place(args, |a| optimize_val(prog_info, fun_info, a))),
     grit::Jump::Branch(boolval, then_label, else_label) =>
       grit::Jump::Branch(optimize_boolval(prog_info, fun_info, boolval),
         then_label, else_label),
@@ -113,13 +115,13 @@ fn optimize_val(_prog_info: &ProgInfo, fun_info: &FunInfo,
 {
   match val {
     grit::Val::Var(var) => {
-      assert!(fun_info.used_vars.contains(&var.0));
+      assert!(fun_info.used_vars.contains(var.0));
       grit::Val::Var(var)
     },
     grit::Val::Arg(idx) =>
       grit::Val::Arg(idx),
     grit::Val::Capture(idx) => {
-      assert!(fun_info.used_captures.contains(&idx));
+      assert!(fun_info.used_captures.contains(idx));
       let (new_idx, _) = fun_info.used_captures.iter().enumerate()
         .find(|&(_, old_idx)| old_idx == idx).unwrap();
       grit::Val::Capture(new_idx)
@@ -189,7 +191,7 @@ fn op_info_update(prog_info: &mut ProgInfo, fun_name: &grit::FunName,
       },
     grit::Op::AllocClos(ref closs) =>
       for &(ref var, ref closure_name, ref captures) in closs.iter() {
-        if prog_info.get(fun_name).unwrap().used_vars.contains(&var.0) {
+        if prog_info.get(fun_name).unwrap().used_vars.contains(var.0) {
           for idx in prog_info.get(closure_name).unwrap().used_captures.clone().iter() {
             mark_val_used(prog_info, fun_name, &captures[idx]);
           }
@@ -197,7 +199,7 @@ fn op_info_update(prog_info: &mut ProgInfo, fun_name: &grit::FunName,
       },
     grit::Op::Assign(ref var_vals) =>
       for &(ref var, ref val) in var_vals.iter() {
-        if prog_info.get(fun_name).unwrap().used_vars.contains(&var.0) {
+        if prog_info.get(fun_name).unwrap().used_vars.contains(var.0) {
           mark_val_used(prog_info, fun_name, val);
         }
       },

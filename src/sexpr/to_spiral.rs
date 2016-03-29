@@ -44,7 +44,7 @@ pub fn decl_from_sexpr(decl: &sexpr::Elem) -> Result<Decl, String> {
   match *decl {
     sexpr::Elem::List(ref list) => match list.first() {
       Some(&sexpr::Elem::Identifier(ref id)) => match &id[..] {
-        "export" => return export_from_sexprs(list.tail()),
+        "export" => return export_from_sexprs(&list[1..]),
         _ => (),
       },
       _ => (),
@@ -74,9 +74,9 @@ pub fn stmt_from_sexpr(stmt: &sexpr::Elem) -> Result<Stmt, String> {
   match *stmt {
     sexpr::Elem::List(ref list) => match list.first() {
       Some(&sexpr::Elem::Identifier(ref id)) => match &id[..] {
-        "fun" => return fun_def_from_sexprs(list.tail()),
-        "var" => return var_def_from_sexprs(list.tail()),
-        "import" => return import_from_sexprs(list.tail()),
+        "fun" => return fun_def_from_sexprs(&list[1..]),
+        "var" => return var_def_from_sexprs(&list[1..]),
+        "import" => return import_from_sexprs(&list[1..]),
         _ => { },
       },
       _ => { },

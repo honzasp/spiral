@@ -2,7 +2,7 @@ use spine;
 
 #[derive(PartialEq, Debug)]
 pub enum Onion {
-  Letcont(Vec<spine::ContDef>, Box<Onion>),
+  //Letcont(Vec<spine::ContDef>, Box<Onion>),
   Letjoin(Box<OnionContDef>, Box<spine::Term>),
   Letfun(Vec<spine::FunDef>, Box<Onion>),
   Letobj(spine::ObjDef, Box<Onion>),
@@ -19,8 +19,8 @@ pub struct OnionContDef {
 impl Onion {
   pub fn subst_term(self, term: spine::Term) -> spine::Term {
     match self {
-      Onion::Letcont(cont_defs, onion) =>
-        spine::Term::Letcont(cont_defs, box onion.subst_term(term)),
+      //Onion::Letcont(cont_defs, onion) =>
+        //spine::Term::Letcont(cont_defs, box onion.subst_term(term)),
       Onion::Letjoin(onion_cont_def, body) =>
         spine::Term::Letcont(vec![onion_cont_def.subst_term(term)], body),
       Onion::Letfun(fun_defs, onion) =>
@@ -34,8 +34,8 @@ impl Onion {
 
   pub fn subst_onion(self, onion: Onion) -> Onion {
     match self {
-      Onion::Letcont(cont_defs, body_onion) =>
-        Onion::Letcont(cont_defs, box body_onion.subst_onion(onion)),
+      //Onion::Letcont(cont_defs, body_onion) =>
+        //Onion::Letcont(cont_defs, box body_onion.subst_onion(onion)),
       Onion::Letjoin(onion_cont_def, body) =>
         Onion::Letjoin(box onion_cont_def.subst_onion(onion), body),
       Onion::Letfun(fun_defs, body_onion) =>

@@ -7,3 +7,4 @@ authors = ["Jan Špaček <patek.mail@gmail.com>"]
 docopt = "0.6.51"
 tempdir = "0.3.3"
 rustc-serialize = "0.3.7"
+bit-set = "0.4.0"

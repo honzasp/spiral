@@ -1,5 +1,6 @@
 use std::collections::{HashSet, HashMap};
 use grit;
+use map_in_place::{map_in_place};
 
 pub fn optimize(mut prog: grit::ProgDef) -> grit::ProgDef {
   let mut inlinable = HashMap::new();
@@ -13,7 +14,7 @@ pub fn optimize(mut prog: grit::ProgDef) -> grit::ProgDef {
     }
 
     if new_inlinable {
-      prog.fun_defs = prog.fun_defs.map_in_place(|fun_def| {
+      prog.fun_defs = map_in_place(prog.fun_defs, |fun_def| {
         fun_inline(&inlinable, fun_def)
       });
     } else {
@@ -27,7 +28,7 @@ struct LabelGen {
 }
 impl LabelGen {
   fn gen_label(&mut self, base: &str) -> grit::Label {
-    for i in (1..) {
+    for i in 1.. {
       let label = grit::Label(format!("{}#{}", base, i));
       if self.used_labels.insert(label.clone()) {
         return label
@@ -114,14 +115,14 @@ fn inject_fun_def(target_fun_def: &mut grit::FunDef, label_gen: &mut LabelGen,
           panic!("fun with call should not have been inlined"),
         grit::Op::ExternCall(ret_var, ext_name, args) =>
           grit::Op::ExternCall(injected_var(&inject_env, ret_var),
-            ext_name, args.map_in_place(|a| injected_val(&inject_env, a))),
+            ext_name, map_in_place(args, |a| injected_val(&inject_env, a))),
         grit::Op::AllocClos(closs) =>
-          grit::Op::AllocClos(closs.map_in_place(|(var, closure_name, captures)| {
+          grit::Op::AllocClos(map_in_place(closs, |(var, closure_name, captures)| {
             (injected_var(&inject_env, var), closure_name,
-              captures.map_in_place(|c| injected_val(&inject_env, c)))
+              map_in_place(captures, |c| injected_val(&inject_env, c)))
           })),
         grit::Op::Assign(var_vals) =>
-          grit::Op::Assign(var_vals.map_in_place(|(var, val)| {
+          grit::Op::Assign(map_in_place(var_vals, |(var, val)| {
             (injected_var(&inject_env, var), injected_val(&inject_env, val))
           })),
       }

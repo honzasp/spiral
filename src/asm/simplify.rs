@@ -17,7 +17,7 @@ pub fn simplify_fun(fun: asm::FunDef) -> asm::FunDef {
 }
 
 fn remove_noop_jumps(blocks: &mut [asm::Block]) {
-  for idx in (1..blocks.len()) {
+  for idx in 1..blocks.len() {
     let noop_jump = match blocks[idx - 1].instrs.last() {
       Some(&asm::Instr::Jump(asm::Imm::Label(ref label))) => 
         Some(label) == blocks[idx].label.as_ref(),

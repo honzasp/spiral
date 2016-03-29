@@ -286,7 +286,7 @@ fn translate_let_expr_tail(st: &mut ProgSt, env: &Env,
       let (expr_onion, expr_val) = try!(translate_expr(st, env, expr));
       let inner_env = env.bind_vars(vec![(var.clone(), expr_val)]);
       Ok(expr_onion.subst_term(try!(translate_let_expr_tail(st, &inner_env,
-          var_binds.tail(), body_stmts, result_cont))))
+          &var_binds[1..], body_stmts, result_cont))))
     },
   }
 }

@@ -23,7 +23,7 @@ pub fn alloc(fun_def: &grit::FunDef) -> SlotAlloc {
       var_neighs.chain(slot_neighs).collect()
     };
 
-    for color in (0..) {
+    for color in 0.. {
       if !neigh_set.contains(&grit::Slot(color)) {
         assert_eq!(coloring[var.0], None);
         coloring[var.0] = Some(grit::Slot(color));

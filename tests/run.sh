@@ -27,8 +27,7 @@ do
       "$asm_file" "$grit_file" "$spine_file"
 
     ok=""
-    if "$SPIRAL" $SPIRAL_FLAGS "$test_file" \
-      --output "$fast_exec_file" --runtime "$FAST_RUNTIME"
+    if "$SPIRAL" $SPIRAL_FLAGS --output "$fast_exec_file" --runtime "$FAST_RUNTIME" -- "$test_file"
     then
       export SPIRAL_TEST_ENV="haskell curry"
       "$fast_exec_file" "alan turing" "alonzo church" >"$real_output_file" 2>&1
@@ -46,13 +45,12 @@ do
       ok_count=$((ok_count+1))
     else
       printf "  ${RED}FAILED${CLEAR}\n"
-      "$SPIRAL" $SPIRAL_FLAGS "$test_file" \
-        --output "$debug_exec_file" --runtime "$DEBUG_RUNTIME"
+      "$SPIRAL" $SPIRAL_FLAGS --output "$debug_exec_file" --runtime "$DEBUG_RUNTIME" -- "$test_file" 
       if [ "--dump" = "$2" ]
       then
-        "$SPIRAL" $SPIRAL_FLAGS "$test_file" --output "$asm_file" --emit gas
-        "$SPIRAL" $SPIRAL_FLAGS "$test_file" --output "$grit_file" --emit grit
-        "$SPIRAL" $SPIRAL_FLAGS "$test_file" --output "$spine_file" --emit spine
+        "$SPIRAL" $SPIRAL_FLAGS --output "$asm_file" --emit gas -- "$test_file"
+        "$SPIRAL" $SPIRAL_FLAGS --output "$grit_file" --emit grit -- "$test_file"
+        "$SPIRAL" $SPIRAL_FLAGS --output "$spine_file" --emit spine -- "$test_file"
       fi
       err_count=$((err_count+1))
     fi

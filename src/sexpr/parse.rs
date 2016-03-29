@@ -109,7 +109,7 @@ fn read_char<'a>(input: &'a str) -> Result<(Elem, &'a str), String> {
     _ => return Err(format!("Char must start with '''")),
   };
 
-  let mut character;
+  let character;
   if let Some((ch, rest)) = input.slice_shift_char() {
     if ch == '\\' {
       if let Some((esc, rest)) = rest.slice_shift_char() {
