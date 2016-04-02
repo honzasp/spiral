@@ -214,5 +214,26 @@ namespace spiral {
         return false_val.u32;
       }
     }
+
+    auto spiral_std_str_cmp(Bg* bg, void*, uint32_t str_1, uint32_t str_2) -> uint32_t {
+      auto str_1_obj = str_from_val(bg, Val(str_1));
+      auto str_2_obj = str_from_val(bg, Val(str_2));
+
+      for(uint32_t i = 0; ; ++i) {
+        if(i >= str_1_obj->length && i >= str_2_obj->length) {
+          return Val::wrap_int(0).u32;
+        } else if(i >= str_1_obj->length) {
+          return Val::wrap_int(-256).u32;
+        } else if(i >= str_2_obj->length) {
+          return Val::wrap_int(256).u32;
+        }
+
+        int32_t ch_1 = str_1_obj->data[i];
+        int32_t ch_2 = str_2_obj->data[i];
+        if(ch_1 != ch_2) {
+          return Val::wrap_int(ch_1 - ch_2).u32;
+        }
+      }
+    }
   }
 }

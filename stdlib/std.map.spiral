@@ -1,0 +1,67 @@
+(module std.map
+  (import std)
+  (import std.cons)
+
+  (import std.string)
+  (import std.tuple)
+
+  (fun node-make (key value left right)
+    (tuple-4 key value left right))
+  (fun node-key (node) (get-0 node))
+  (fun node-value (node) (get-1 node))
+  (fun node-left (node) (get-2 node))
+  (fun node-right (node) (get-3 node))
+
+  (fun map-make (root cmp)
+    (tuple-3 "map" root cmp))
+  (fun map-root (m) (get-1 m))
+  (fun map-cmp (m) (get-2 m))
+
+  (fun map? (m)
+    (and (tuple-3? m) (eqv? (get-0 m) "map")))
+  (fun map-new (cmp)
+    (map-make false cmp))
+  (export map-new map?)
+
+  (fun map-len (m)
+    (node-len (map-root m)))
+  (fun node-len (n)
+    (if n (+ 1 (+ (node-len (node-left n)) (node-len (node-right n)))) 0))
+  (export map-len)
+
+  (fun map-get (m key)
+    (map-get-or m key (lambda () false)))
+  (fun map-get-or (m key not-found)
+    (node-get (map-root m) (map-cmp m) not-found key))
+  (fun node-get (node cmp not-found key)
+    (if node
+      (let ((order (cmp (node-key node) key)))
+        (cond ((< order 0) (node-get (node-left node) cmp not-found key))
+              ((> order 0) (node-get (node-right node) cmp not-found key))
+              (true        (node-value node))))
+      (not-found)))
+  (export map-get map-get-or)
+
+  (fun map-set (m key value)
+    (map-make (node-set (map-root m) (map-cmp m) key value)
+              (map-cmp m)))
+  (fun node-set (node cmp key value)
+    (if node
+      (let ((order (cmp (node-key node) key)))
+        (cond ((< order 0) 
+                (node-make (node-key node) (node-value node)
+                  (node-set (node-left node) cmp key value) (node-right node)))
+              ((> order 0)
+                (node-make (node-key node) (node-value node)
+                  (node-left node) (node-set (node-right node) cmp key value)))
+              (true
+                (node-make key value (node-left node) (node-right node)))))
+      (node-make key value false false)))
+  (export map-set)
+
+  (fun map-from-assoc (cmp assoc)
+    (fun iter (assoc map)
+      (if (null? assoc) map
+        (iter (cdr assoc) (map-set map (caar assoc) (cdar assoc)))))
+    (iter assoc (map-new cmp)))
+  (export map-from-assoc))

@@ -1,0 +1,7 @@
+test map? ok
+test map-len ok
+test map-get ok
+test map-get-or ok
+test map-set ok
+test big map of integers ok
+test big map of strings ok

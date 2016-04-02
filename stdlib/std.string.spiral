@@ -18,4 +18,7 @@
   
   (fun str->int (str) (extern spiral_std_str_to_int str))
   (fun str->number (str) (extern spiral_std_str_to_number str))
-  (export str->int str->number))
+  (export str->int str->number)
+  
+  (fun str-cmp (a b) (extern spiral_std_str_cmp a b))
+  (export str-cmp))

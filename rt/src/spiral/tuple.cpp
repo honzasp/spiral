@@ -1,9 +1,11 @@
 #include <cstdarg>
 #include <cstdlib>
+#include <new>
 #include "spiral/core.hpp"
 #include "spiral/equiv.hpp"
 #include "spiral/gc.hpp"
 #include "spiral/print.hpp"
+#include "spiral/stack_root.hpp"
 #include "spiral/tuple.hpp"
 
 namespace spiral {
@@ -74,7 +76,8 @@ namespace spiral {
     }
   }
 
-  void tuple_drop(Bg*, void*) {
+  void tuple_drop(Bg*, void* obj_ptr) {
+    (void)obj_ptr;
   }
 
   auto tuple_eqv(Bg*, void* l_ptr, void* r_ptr) -> bool {
@@ -105,18 +108,29 @@ namespace spiral {
         bg_panic(bg, "tuple length must be non-negative");
       }
 
+      uint8_t tmp_buffer[16 * sizeof(StackRoot)];
       auto len = static_cast<uint32_t>(len_val.unwrap_int());
+      if(len >= 16) {
+        bg_panic(bg, "tuple length must be less than 16");
+      }
+
+      StackRoot* field_roots = reinterpret_cast<StackRoot*>(&tmp_buffer[0]);
+      std::va_list args;
+      va_start(args, len_);
+      for(uint32_t i = 0; i < len; ++i) {
+        ::new (&field_roots[i]) StackRoot(bg, Val(va_arg(args, uint32_t)));
+      }
+      va_end(args);
+
       auto tuple_obj = static_cast<TupleObj*>(bg_get_obj_space(bg, sp,
             sizeof(TupleObj) + 4 * len));
       tuple_obj->otable = &tuple_otable;
       tuple_obj->length = len;
 
-      std::va_list args;
-      va_start(args, len_);
-      for(uint32_t i = 0; i < len; ++i) {
-        tuple_obj->data[i].u32 = va_arg(args, uint32_t);
+      for(uint32_t i = len; i-- > 0; ) {
+        tuple_obj->data[i] = field_roots[i].unroot(bg);
+        field_roots[i].~StackRoot();
       }
-      va_end(args);
 
       return tuple_to_val(tuple_obj).u32;
     }

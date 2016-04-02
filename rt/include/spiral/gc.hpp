@@ -5,7 +5,8 @@
 namespace spiral {
   struct GcCtx {
     Bg* bg;
-    Chunk* to_heap_chunk;
+    Chunk* to_heap_begin;
+    Chunk* to_heap_last;
     uint32_t copied_bytes;
     uint32_t non_heap_alive_bytes;
   };

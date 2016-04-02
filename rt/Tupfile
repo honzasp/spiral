@@ -4,7 +4,8 @@ AR = ar
 CXX_FLAGS = -Wall -Wextra -std=c++11 -Iinclude -fno-exceptions -fno-rtti \
   -mstackrealign -m32
 CXX_DEBUG_FLAGS = $(CXX_FLAGS) -g -O0
-CXX_FAST_FLAGS = $(CXX_FLAGS) -O3 -DNDEBUG
+CXX_FAST_FLAGS = $(CXX_FLAGS) -O3 -DNDEBUG \
+  -Wno-unused-parameter -Wno-unused-variable
 AS_FLAGS = -march=i386 --32
 
 !cxx_debug_c = |> ^ c++ -c %f^ $(CXX) $(CXX_DEBUG_FLAGS) -c %f -o %o |>

@@ -55,6 +55,9 @@ namespace spiral {
   }
 
   void bg_free_chunk(Bg* bg, Chunk* chunk) {
+    for(uint32_t i = 0; i < chunk->capacity; ++i) {
+      chunk->memory[i] = 0xff;
+    }
     bg_free_mem(bg, chunk);
   }
 

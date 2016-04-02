@@ -7,14 +7,15 @@ namespace spiral {
   void gc_collect(Bg* bg, void* sp) {
     GcCtx gc_ctx;
     gc_ctx.bg = bg;
-    gc_ctx.to_heap_chunk = bg_alloc_chunk(bg, 0);
-    gc_ctx.to_heap_chunk->next_chunk = 0;
+    gc_ctx.to_heap_begin = bg_alloc_chunk(bg, 0);
+    gc_ctx.to_heap_begin->next_chunk = 0;
+    gc_ctx.to_heap_last = gc_ctx.to_heap_begin;
     gc_ctx.copied_bytes = 0;
     gc_ctx.non_heap_alive_bytes = 0;
 
     gc_evacuate_stack(&gc_ctx, sp);
     gc_evacuate_roots(&gc_ctx, sp);
-    for(Chunk* chunk = gc_ctx.to_heap_chunk; chunk != 0; chunk = chunk->next_chunk) {
+    for(Chunk* chunk = gc_ctx.to_heap_begin; chunk != 0; chunk = chunk->next_chunk) {
       gc_scavenge_chunk(&gc_ctx, chunk);
     }
 
@@ -26,7 +27,7 @@ namespace spiral {
       dealloc_chunk = next_chunk;
     }
 
-    bg->heap_chunk = gc_ctx.to_heap_chunk;
+    bg->heap_chunk = gc_ctx.to_heap_begin;
     bg->fresh_allocated_bytes = 0;
     bg->last_alive_bytes = gc_ctx.copied_bytes + gc_ctx.non_heap_alive_bytes;
   }
@@ -74,11 +75,13 @@ namespace spiral {
   }
 
   auto gc_get_copy_space(GcCtx* gc_ctx, uint32_t len) -> void* {
-    auto target_chunk = gc_ctx->to_heap_chunk;
+    auto target_chunk = gc_ctx->to_heap_last;
     if(target_chunk->length + len > target_chunk->capacity) {
       auto new_chunk = bg_alloc_chunk(gc_ctx->bg, len);
-      new_chunk->next_chunk = target_chunk;
-      target_chunk = gc_ctx->to_heap_chunk = new_chunk;
+      assert(target_chunk->next_chunk == 0);
+      target_chunk->next_chunk = new_chunk;
+      gc_ctx->to_heap_last = new_chunk;
+      target_chunk = new_chunk;
     }
 
     auto ptr = target_chunk->memory + target_chunk->length;
