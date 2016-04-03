@@ -1,0 +1,8 @@
+(module std.combinator
+  (fun identity (x) x)
+  (fun constant-0 (x) (lambda () x))
+  (fun constant-1 (x) (lambda (a) x))
+  (fun constant-2 (x) (lambda (a b) x))
+  (fun constant-3 (x) (lambda (a b c) x))
+  (fun constant-4 (x) (lambda (a b c d) x))
+  (export identity constant-0 constant-1 constant-2 constant-3 constant-4))
