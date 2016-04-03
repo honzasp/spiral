@@ -19,6 +19,7 @@ do
     debug_exec_file=`echo "$test_file" | sed 's/spiral/dexec/'`
     output_file=`echo "$test_file" | sed 's/spiral/out/'`
     real_output_file="${output_file}~"
+    perf_file=`echo "$test_file" | sed 's/spiral/perf/'`
     asm_file=`echo "$test_file" | sed 's/spiral/s/'`
     grit_file=`echo "$test_file" | sed 's/spiral/grit/'`
     spine_file=`echo "$test_file" | sed 's/spiral/spine/'`
@@ -30,7 +31,8 @@ do
     if "$SPIRAL" $SPIRAL_FLAGS --output "$fast_exec_file" --runtime "$FAST_RUNTIME" -- "$test_file"
     then
       export SPIRAL_TEST_ENV="haskell curry"
-      "$fast_exec_file" "alan turing" "alonzo church" >"$real_output_file" 2>&1
+      perf stat -o "$perf_file" -- "$fast_exec_file"  "alan turing" "alonzo church" \
+        >"$real_output_file" 2>&1
       if diff "$output_file" "$real_output_file" >/dev/null 
       then
         ok="yes"
@@ -46,13 +48,14 @@ do
     else
       printf "  ${RED}FAILED${CLEAR}\n"
       "$SPIRAL" $SPIRAL_FLAGS --output "$debug_exec_file" --runtime "$DEBUG_RUNTIME" -- "$test_file" 
-      if [ "--dump" = "$2" ]
-      then
-        "$SPIRAL" $SPIRAL_FLAGS --output "$asm_file" --emit gas -- "$test_file"
-        "$SPIRAL" $SPIRAL_FLAGS --output "$grit_file" --emit grit -- "$test_file"
-        "$SPIRAL" $SPIRAL_FLAGS --output "$spine_file" --emit spine -- "$test_file"
-      fi
       err_count=$((err_count+1))
+    fi
+
+    if [ "--dump" = "$2" ]
+    then
+      "$SPIRAL" $SPIRAL_FLAGS --output "$asm_file" --emit gas -- "$test_file"
+      "$SPIRAL" $SPIRAL_FLAGS --output "$grit_file" --emit grit -- "$test_file"
+      "$SPIRAL" $SPIRAL_FLAGS --output "$spine_file" --emit spine -- "$test_file"
     fi
   fi
 done

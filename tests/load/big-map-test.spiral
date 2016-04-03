@@ -1,0 +1,15 @@
+(program
+  (import std)
+  (import std.map)
+  (import std.test)
+
+  (test "big map of integers added in order" (lambda (t)
+    (let ((limit 100000)
+          (m (do ((i 0 (+ i 1))
+                  (m (map-new -)
+                     (map-set m i (* 42 i))))
+                 ((>= i limit) m))))
+      (do ((i 0 (+ i 1)))
+          ((>= i limit))
+        (let ((k (mod (* i 123) 53)))
+          (assert-eqv t (map-get m k) (* 42 k))))))))

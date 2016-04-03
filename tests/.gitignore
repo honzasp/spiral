@@ -5,6 +5,7 @@
 *.s
 *.txt
 *.out~
+*.perf
 !*.spiral
 !files/*.txt
 files/_*
