@@ -9,6 +9,7 @@
                   (m (map-new -)
                      (map-set m i (* 42 i))))
                  ((>= i limit) m))))
+      (assert-not t (map-validate m))
       (do ((i 0 (+ i 1)))
           ((>= i limit))
         (let ((k (mod (* i 123) 53)))
