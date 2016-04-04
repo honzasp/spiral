@@ -14,6 +14,12 @@
   (fun node-left (node) (get-3 node))
   (fun node-right (node) (get-4 node))
 
+  (fun node-level-or-0 (node)
+    (if node (node-level node) 0))
+
+  (fun node-adopt (node left right)
+    (node-make (node-key node) (node-value node) (node-level node) left right))
+
   (fun map-make (root cmp)
     (tuple-3 "map" root cmp))
   (fun map-root (m) (get-1 m))
@@ -79,7 +85,7 @@
   (fun node-set (node cmp key value)
     (fun continue (left right)
       (node-skew (node-split
-        (node-make (node-key node) (node-value node) (node-level node) left right))))
+        (node-adopt node left right))))
     (if node
       (let ((order (cmp (node-key node) key)))
         (cond ((> order 0) 
@@ -92,8 +98,6 @@
       (node-make key value 1 false false)))
   (export map-set)
 
-  (fun node-level-or-0 (node)
-    (if node (node-level node) 0))
   (fun node-decrease (node)
     (if node
       (let ((level (node-level node))
@@ -111,14 +115,13 @@
           node))
       node))
   (fun node-split-right (node)
-    (node-make (node-key node) (node-value node) (node-level node)
+    (node-adopt node
       (node-left node) (node-split (node-right node))))
   (fun node-skew-right-right (node)
     (if (node-right node)
       (let ((right (node-right node))
             (right-right (node-right right)))
-        (node-make (node-key node) (node-value node) (node-level node)
-          (node-left node)
+        (node-adopt node (node-left node)
           (node-make (node-key right) (node-value right) (node-level right)
             (node-left right) (node-skew right-right))))
       node))
@@ -131,8 +134,6 @@
     (map-make (node-remove (map-root m) (map-cmp m) key)
               (map-cmp m)))
   (fun node-remove (node cmp key)
-    (fun continue (left right)
-      (node-make (node-key node) (node-value node) (node-level node) left right))
     (fun rebalance (node)
       (node-split-right (node-split 
         (node-skew-right-right (node-skew (node-decrease node))))))
@@ -140,8 +141,8 @@
       (let ((order (cmp (node-key node) key))
             (left (node-left node))
             (right (node-right node)))
-        (cond ((> order 0) (continue (node-remove left cmp key) right))
-              ((< order 0) (continue left (node-remove right cmp key)))
+        (cond ((> order 0) (node-adopt node (node-remove left cmp key) right))
+              ((< order 0) (node-adopt node left (node-remove right cmp key)))
               (left
                 (let ((rightmost (node-find-rightmost left))
                       (leaf-key (node-key rightmost))
