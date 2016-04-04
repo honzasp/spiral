@@ -16,6 +16,10 @@
       null))))
     (assert-eq t (map-len m1) 2)))
 
+  (test "map-empty?" (lambda (t)
+    (assert t (map-empty? (map-new -)))
+    (assert-not t (map-empty? (map-from-assoc - (cons (cons 1 "one") null))))))
+
   (test "map-get" (lambda (t)
     (var m (map-from-assoc str-cmp
       (cons (cons "one" 1)

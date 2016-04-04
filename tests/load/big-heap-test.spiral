@@ -1,0 +1,26 @@
+(program
+  (import std)
+  (import std.test)
+  (import std.heap)
+
+  (fun list-of-ints (n)
+    (do ((i n (- i 1))
+         (xs null (cons i xs)))
+        ((< i 0) xs)))
+
+  (test "big heap of integers from list" (lambda (t)
+    (let ((prime 104729)
+          (xs (do ((i 0 (+ i 1))
+                   (xs null (cons (mod (* i 123) prime) xs)))
+                  ((>= i prime) xs)))
+          (h (heap-from-list - xs)))
+      (assert-equal t (heap-to-list h) (list-of-ints (- prime 1))))))
+
+  (test "big heap of integers to list" (lambda (t)
+    (let ((prime 104729)
+          (h (do ((i 0 (+ i 1))
+                  (h (heap-new -)
+                     (heap-insert h (mod (* i 123) prime))))
+                 ((>= i prime) h))))
+      (assert-equal t (heap-to-list h) (list-of-ints (- prime 1)))))))
+

@@ -1,0 +1,9 @@
+test heap? ok
+test heap-len ok
+test heap-empty? ok
+test heap-minimum ok
+test heap-remove-minimum ok
+test heap-to-list ok
+test heap-insert ok
+test heap-singleton ok
+test heap-merge ok

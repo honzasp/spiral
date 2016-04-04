@@ -1,0 +1,64 @@
+(program
+  (import std)
+  (import std.test)
+  (import std.heap)
+  (import std.string)
+
+  (test "heap?" (lambda (t)
+    (assert t (heap? (heap-new str-cmp)))
+    (assert-not t (heap? "not a heap"))))
+
+  (test "heap-len" (lambda (t)
+    (let ((h1 (heap-from-list str-cmp
+                (cons "a" (cons "c" (cons "b" null))))))
+      (assert-eq t (heap-len h1) 3)
+      (assert-eq t (heap-len (heap-new -)) 0))))
+
+  (test "heap-empty?" (lambda (t)
+    (assert t (heap-empty? (heap-new -)))
+    (assert-not t (heap-empty? (heap-from-list - (cons 10 null))))))
+
+  (test "heap-minimum" (lambda (t)
+    (let ((h1 (heap-from-list -
+                (cons 10 (cons 15 (cons 8 (cons 3 null))))))
+          (h2 (heap-from-list str-cmp
+                (cons "f" (cons "a" (cons "c" null))))))
+      (assert-eqv t (heap-minimum h1) 3)
+      (assert-eqv t (heap-minimum h2) "a"))))
+
+  (test "heap-remove-minimum" (lambda (t)
+    (let ((h1 (heap-from-list -
+                (cons 100 (cons 150 (cons 80 (cons 100 null))))))
+          (h2 (heap-remove-minimum h1))
+          (h3 (heap-remove-minimum h2))
+          (h4 (heap-remove-minimum h3))
+          (h5 (heap-remove-minimum h4)))
+      (assert-eqv t (heap-minimum h1) 80)
+      (assert-eqv t (heap-minimum h2) 100)
+      (assert-eqv t (heap-minimum h3) 100)
+      (assert-eqv t (heap-minimum h4) 150)
+      (assert t (heap-empty? h5)))))
+
+  (test "heap-to-list" (lambda (t)
+    (let ((h1 (heap-from-list -
+                (cons 10 (cons 8 (cons 11 (cons 3 (cons 20 null)))))))
+          (l1 (heap-to-list h1)))
+      (assert-equal t l1 (cons 3 (cons 8 (cons 10 (cons 11 (cons 20 null)))))))))
+
+  (test "heap-insert" (lambda (t)
+    (let ((h1 (heap-insert (heap-insert (heap-insert (heap-new -) 10) 15) 12)))
+      (assert-equal t (heap-to-list h1) (cons 10 (cons 12 (cons 15 null)))))))
+
+  (test "heap-singleton" (lambda (t)
+    (let ((h1 (heap-singleton - 10)))
+      (assert-equal t (heap-to-list h1) (cons 10 null)))))
+
+  (test "heap-merge" (lambda (t)
+    (let ((h1 (heap-from-list - (cons 1 (cons 3 (cons 4 (cons 7 null))))))
+          (h2 (heap-from-list - (cons 4 (cons 2 (cons 8 (cons 10 null))))))
+          (h3 (heap-from-list - (cons 10 (cons 8 (cons 3 (cons 11 null)))))))
+      (assert-equal t (heap-to-list (heap-merge h1 h2))
+        (cons 1 (cons 2 (cons 3 (cons 4 (cons 4 (cons 7 (cons 8 (cons 10 null)))))))))
+      (assert-equal t (heap-to-list (heap-merge h1 h3))
+        (cons 1 (cons 3 (cons 3 (cons 4 (cons 7 (cons 8 (cons 10 (cons 11 null)))))))))))))
+

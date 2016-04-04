@@ -1,5 +1,6 @@
 test map? ok
 test map-len ok
+test map-empty? ok
 test map-get ok
 test map-get-or ok
 test map-set ok

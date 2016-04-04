@@ -1,8 +1,7 @@
 (module std.map
   (import std)
-  (import std.cons)
   (import std.combinator)
-
+  (import std.cons)
   (import std.string)
   (import std.tuple)
 
@@ -30,6 +29,10 @@
   (fun map-new (cmp)
     (map-make false cmp))
   (export map-new map?)
+
+  (fun map-empty? (m)
+    (if (map-root m) false true))
+  (export map-empty?)
 
   (fun map-len (m)
     (node-len (map-root m)))

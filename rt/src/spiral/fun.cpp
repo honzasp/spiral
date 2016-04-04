@@ -113,20 +113,20 @@ namespace spiral {
 
   extern "C" {
     auto spiral_rt_alloc_closure(Bg* bg, void* sp, void* fun_addr,
-        uint32_t capture_count) -> uint32_t 
+        uint32_t capture_count_) -> uint32_t 
     {
-      auto capture_count_val = Val(capture_count);
+      auto capture_count_val = Val(capture_count_);
       assert(capture_count_val.is_int());
-      assert(capture_count_val.unwrap_int() > 0);
+      auto capture_count = capture_count_val.unwrap_int();
+      assert(capture_count > 0);
       assert(fun_table_from_addr(fun_addr)->capture_count ==
-          static_cast<uint32_t>(capture_count_val.unwrap_int()));
+          static_cast<uint32_t>(capture_count));
 
-      auto mem = bg_get_obj_space(bg, sp, sizeof(FunObj) 
-          + 4 * capture_count_val.unwrap_int());
+      auto mem = bg_get_obj_space(bg, sp, sizeof(FunObj) + 4 * capture_count);
       auto fun_obj = static_cast<FunObj*>(mem);
       fun_obj->otable = &fun_otable;
       fun_obj->fun_addr = fun_addr;
-      for(uint32_t i = 0; i < capture_count; ++i) {
+      for(int32_t i = 0; i < capture_count; ++i) {
         fun_obj->captures[i] = Val(0);
       }
       return Val::wrap_fun(fun_obj).u32;

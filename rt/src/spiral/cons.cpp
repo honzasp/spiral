@@ -99,7 +99,27 @@ namespace spiral {
   auto cons_equal(Bg* bg, void* l_ptr, void* r_ptr) -> bool {
     auto l_cons = static_cast<ConsObj*>(l_ptr);
     auto r_cons = static_cast<ConsObj*>(r_ptr);
-    return equal(bg, l_cons->car, r_cons->car) && equal(bg, l_cons->cdr, r_cons->cdr);
+    for(;;) {
+      if(!equal(bg, l_cons->car, r_cons->car)) {
+        return false;
+      }
+
+      auto l_tail = l_cons->cdr;
+      auto r_tail = r_cons->cdr;
+      if(l_tail == r_tail) {
+        return true;
+      }
+
+      if(l_tail.is_obj() && l_tail.get_otable() == &cons_otable) {
+        if(r_tail.is_obj() && r_tail.get_otable() == &cons_otable) {
+          l_cons = cons_from_obj_ptr(l_tail.unwrap_obj<void>());
+          r_cons = cons_from_obj_ptr(r_tail.unwrap_obj<void>());
+          continue;
+        }
+        return false;
+      }
+      return equal(bg, l_tail, r_tail);
+    }
   }
 
   extern "C" {
