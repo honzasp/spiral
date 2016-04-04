@@ -21,11 +21,22 @@ standard library.
 ## How to use
 
 To install and try the Spiral compiler, first get the [Rust
-compiler](https://www.rust-lang.org) with Cargo, the Rust package manager. You
-will also need `clang` and `tup` to build the runtime.
+compiler](https://www.rust-lang.org). **You will need to install the nightly
+version, as the compiler requires unstable Rust features.** To build the
+runtime, please install `clang` and `tup`.
 
 Then, `cargo build` from the top directory will compile the compiler (it will be
 placed in `target/debug/spiral`), `tup` in the `rt/` directory will build the
 runtime library (the debug version will be placed in `rt/build/runtime_debug.a`,
 the fast version in `rt/build/runtime_fast.a`). Then you can run the tests with
 `./tests/run.sh`.
+
+### Compiled programs and Valgrind
+
+When Spiral programs pass arguments to callers, they first write the arguments
+on the stack below the current stack frame and then adjust the stack pointer.
+This is perfectly safe, but it makes Valgrind very unhappy, producing billions
+of errors about invalid writes (when the arguments are written below the stack
+pointer) and uninitialized values (when these arguments are subsequently used).
+To fool valgrind, call it with `--undef-value-errors=no
+--workaround-gcc296-bugs=yes`.
