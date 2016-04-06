@@ -3,5 +3,8 @@ test set-len ok
 test set-empty? ok
 test set-contains? ok
 test set-to-list ok
+test set-get-index ok
+test set-find-index ok
+test set-remove-index ok
 test set-insert ok
 test set-remove ok

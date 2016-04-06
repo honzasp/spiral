@@ -61,12 +61,27 @@
             left-left (node-left right-left))
           (node-build x (node-right right-left) right)))))
 
-  (fun node-contains? (cmp node x)
+  (fun node-find (cmp node offset x)
     (and node
-      (let ((order (cmp (node-key node) x)))
-        (cond ((< order 0) (node-contains? cmp (node-right node) x))
-              ((> order 0) (node-contains? cmp (node-left node) x))
-              (true true)))))
+      (let ((order (cmp (node-key node) x))
+            (left-size (node-size-or-0 (node-left node))))
+        (cond ((< order 0) 
+                (node-find cmp (node-right node)
+                  (+ offset (+ 1 left-size)) x))
+              ((> order 0) 
+                (node-find cmp (node-left node) offset x))
+              (true (+ offset left-size))))))
+
+  (fun node-get-index (node idx)
+    (if node
+      (let ((left-size (node-size-or-0 (node-left node))))
+        (cond ((< idx left-size)
+                (node-get-index (node-left node) idx))
+              ((> idx left-size)
+                (node-get-index (node-right node) (- idx (+ 1 left-size))))
+              (true
+                (node-key node))))
+      (/ 1 0)))
 
   (fun node-to-list (node)
     (and node
@@ -84,6 +99,7 @@
               (true
                 (node-build x (node-left node) (node-right node)))))
       (node-make x 1 false false)))
+
   (fun node-remove (cmp node x)
     (and node
       (let ((key (node-key node))
@@ -94,6 +110,19 @@
                 (node-remove cmp (node-left node) x) (node-right node)))
               (true
                 (node-join (node-left node) (node-right node)))))))
+
+  (fun node-remove-index (node idx)
+    (if node
+      (let ((left-size (node-size-or-0 (node-left node))))
+        (cond ((< idx left-size) (node-balance (node-key node)
+                (node-remove-index (node-left node) idx) (node-right node)))
+              ((> idx left-size) (node-balance (node-key node)
+                (node-left node) (node-remove-index (node-right node)
+                  (- idx (+ left-size 1)))))
+              (true
+                (node-join (node-left node) (node-right node)))))
+      (/ 1 0)))
+
   (fun node-join (left right)
     (cond ((and left right)
             (let ((min-key (node-min right))
@@ -159,10 +188,18 @@
   (export set-len set-empty?)
 
   (fun set-contains? (set x)
-    (node-contains? (set-cmp set) (set-root set) x))
+    (if (node-find (set-cmp set) (set-root set) 0 x) true false))
   (fun set-to-list (set)
     (node-to-list (set-root set)))
   (export set-contains? set-to-list)
+
+  (fun set-find-index (set x)
+    (node-find (set-cmp set) (set-root set) 0 x))
+  (fun set-get-index (set idx)
+    (node-get-index (set-root set) idx))
+  (fun set-remove-index (set idx)
+    (set-make (set-cmp set) (node-remove-index (set-root set) idx)))
+  (export set-find-index set-get-index set-remove-index)
 
   (fun set-insert (set x)
     (set-make (set-cmp set) (node-insert (set-cmp set) (set-root set) x)))

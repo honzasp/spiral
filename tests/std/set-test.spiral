@@ -45,6 +45,29 @@
       (assert-equal t (set-to-list s1) l1s)
       (assert-equal t (set-to-list s2) l2s))))
 
+  (test "set-get-index" (lambda (t)
+    (let ((l1 (cons 10 (cons 4 (cons 6 (cons 8 (cons 2 null))))))
+          (s1 (set-from-list - l1)))
+      (assert-eqv t (set-get-index s1 2) 6)
+      (assert-eqv t (set-get-index s1 0) 2)
+      (assert-eqv t (set-get-index s1 4) 10))))
+
+  (test "set-find-index" (lambda (t)
+    (let ((l1 (cons "bar" (cons "baz" (cons "barbar" (cons "africa" null)))))
+          (s1 (set-from-list str-cmp l1)))
+      (assert-equal t (set-to-list s1)
+        (cons "africa" (cons "bar" (cons "barbar" (cons "baz" null)))))
+      (assert-eqv t (set-find-index s1 "bar") 1)
+      (assert-eqv t (set-find-index s1 "baz") 3)
+      (assert-eqv t (set-find-index s1 "foo") false))))
+
+  (test "set-remove-index" (lambda (t)
+    (let ((l1 (cons 10 (cons 4 (cons 6 (cons 8 (cons 2 null))))))
+          (s1 (set-from-list - l1))
+          (s2 (set-remove-index s1 2)))
+      (assert-equal t (set-to-list s2)
+        (cons 2 (cons 4 (cons 8 (cons 10 null))))))))
+
   (test "set-insert" (lambda (t)
     (let ((s1 (set-from-list -
                 (cons 2 (cons 3 (cons 5 (cons 7 (cons 11 (cons 13 null))))))))
