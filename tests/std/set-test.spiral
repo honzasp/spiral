@@ -1,0 +1,81 @@
+(program
+  (import std)
+  (import std.set)
+  (import std.test)
+  (import std.string)
+
+  (test "set?" (lambda (t)
+    (assert t (set? (set-new -)))
+    (assert-not t (set? "not a set"))))
+
+  (test "set-len" (lambda (t)
+    (let ((s1 (set-from-list -
+                (cons 10 (cons 20 (cons 5 null))))))
+      (assert-eq t (set-len (set-new -)) 0)
+      (assert-eq t (set-len s1) 3))))
+
+  (test "set-empty?" (lambda (t)
+    (let ((s1 (set-from-list str-cmp
+                (cons "a" (cons "b" (cons "BOOM" null))))))
+      (assert t (set-empty? (set-new -)))
+      (assert-not t (set-empty? s1)))))
+
+  (test "set-contains?" (lambda (t)
+    (let ((s1 (set-from-list -
+                (cons 2 (cons 3 (cons 5 (cons 7 (cons 11 null)))))))
+          (s2 (set-from-list str-cmp
+                (cons "two" (cons "three" (cons "five" (cons "seven" null)))))))
+      (assert t (set-contains? s1 7))
+      (assert t (set-contains? s1 2))
+      (assert-not t (set-contains? s1 4))
+      (assert-not t (set-contains? s1 (neg 10)))
+      (assert t (set-contains? s2 "three"))
+      (assert t (set-contains? s2 "five"))
+      (assert-not t (set-contains? s2 "seventy")))))
+
+  (test "set-to-list" (lambda (t)
+    (let ((l1 (cons 1 (cons 4 (cons 3 (cons 2 null)))))
+          (s1 (set-from-list - l1))
+          (l1s (cons 1 (cons 2 (cons 3 (cons 4 null)))))
+          (l2 (cons "aba" (cons "baba" (cons "abra" (cons "bagr" null)))))
+          (s2 (set-from-list str-cmp l2))
+          (l2s (cons "aba" (cons "abra" (cons "baba" (cons "bagr" null))))))
+      (assert-not t (set-validate s1))
+      (assert-not t (set-validate s2))
+      (assert-equal t (set-to-list s1) l1s)
+      (assert-equal t (set-to-list s2) l2s))))
+
+  (test "set-insert" (lambda (t)
+    (let ((s1 (set-from-list -
+                (cons 2 (cons 3 (cons 5 (cons 7 (cons 11 (cons 13 null))))))))
+          (s2 (set-insert s1 4))
+          (s3 (set-insert s2 6))
+          (s4 (set-insert s1 5)))
+      (assert-not t (set-validate s1))
+      (assert-not t (set-validate s2))
+      (assert-not t (set-validate s3))
+      (assert-not t (set-validate s4))
+      (assert-equal t (set-to-list s2)
+        (cons 2 (cons 3 (cons 4 (cons 5 (cons 7 (cons 11 (cons 13 null))))))))
+      (assert-equal t (set-to-list s3)
+        (cons 2 (cons 3 (cons 4 (cons 5 (cons 6 
+          (cons 7 (cons 11 (cons 13 null)))))))))
+      (assert-equal t (set-to-list s4)
+        (cons 2 (cons 3 (cons 5 (cons 7 (cons 11 (cons 13 null))))))))))
+
+  (test "set-remove" (lambda (t)
+    (let ((s1 (set-from-list -
+                (cons 1 (cons 2 (cons 3 (cons 5 (cons 8 null)))))))
+          (s2 (set-remove s1 3))
+          (s3 (set-remove s2 5))
+          (s4 (set-remove s3 7)))
+      (assert-not t (set-validate s1))
+      (assert-not t (set-validate s2))
+      (assert-not t (set-validate s3))
+      (assert-not t (set-validate s4))
+      (assert-equal t (set-to-list s2)
+        (cons 1 (cons 2 (cons 5 (cons 8 null)))))
+      (assert-equal t (set-to-list s3)
+        (cons 1 (cons 2 (cons 8 null))))
+      (assert-equal t (set-to-list s4)
+        (cons 1 (cons 2 (cons 8 null))))))))

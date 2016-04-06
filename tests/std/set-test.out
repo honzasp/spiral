@@ -1,0 +1,7 @@
+test set? ok
+test set-len ok
+test set-empty? ok
+test set-contains? ok
+test set-to-list ok
+test set-insert ok
+test set-remove ok

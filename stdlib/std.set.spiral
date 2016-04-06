@@ -1,0 +1,177 @@
+(module std.set
+  (import std)
+  (import std.cons)
+  (import std.string)
+  (import std.tuple)
+
+  (fun node-make (key size left right)
+    (tuple-4 key size left right))
+  (fun node-key (node) (get-0 node))
+  (fun node-size (node) (get-1 node))
+  (fun node-left (node) (get-2 node))
+  (fun node-right (node) (get-3 node))
+
+  (var delta 3)
+  (var ratio 2)
+
+  (fun node-size-or-0 (node)
+    (if node (node-size node) 0))
+  (fun node-build (key left right)
+    (let ((size (+ 1 (+ (node-size-or-0 left) (node-size-or-0 right)))))
+      (node-make key size left right)))
+
+  (fun node-balance (x left right)
+    (let ((size-l (node-size-or-0 left))
+          (size-r (node-size-or-0 right))
+          (size-x (+ 1 (+ size-l size-r))))
+      (cond ((<= size-x 2) 
+              (node-make x size-x left right))
+            ((> size-r (* delta size-l))
+              (node-rotate-l x left right))
+            ((> size-l (* delta size-r))
+              (node-rotate-r x left right))
+            (true
+              (node-make x size-x left right)))))
+
+  (fun node-rotate-l (x left right)
+    (let ((left-right (node-left right))
+          (right-right (node-right right))
+          (size-lr (node-size-or-0 left-right))
+          (size-rr (node-size-or-0 right-right)))
+      (if (< size-lr (* ratio size-rr))
+        (node-build (node-key right)
+          (node-build x left left-right)
+          right-right)
+        (node-build (node-key left-right)
+          (node-build x left (node-left left-right))
+          (node-build (node-key right) 
+            (node-right left-right) right-right)))))
+
+  (fun node-rotate-r (x left right)
+    (let ((left-left (node-left left))
+          (right-left (node-right left))
+          (size-ll (node-size-or-0 left-left))
+          (size-rl (node-size-or-0 right-left)))
+      (if (< size-rl (* ratio size-ll))
+        (node-build (node-key left)
+          left-left
+          (node-build x right-left right))
+        (node-build (node-key right-left)
+          (node-build (node-key left)
+            left-left (node-left right-left))
+          (node-build x (node-right right-left) right)))))
+
+  (fun node-contains? (cmp node x)
+    (and node
+      (let ((order (cmp (node-key node) x)))
+        (cond ((< order 0) (node-contains? cmp (node-right node) x))
+              ((> order 0) (node-contains? cmp (node-left node) x))
+              (true true)))))
+
+  (fun node-to-list (node)
+    (and node
+      (list-append (node-to-list (node-left node))
+        (cons (node-key node) (node-to-list (node-right node))))))
+
+  (fun node-insert (cmp node x)
+    (if node
+      (let ((key (node-key node))
+            (order (cmp key x)))
+        (cond ((< order 0) (node-balance key 
+                (node-left node) (node-insert cmp (node-right node) x)))
+              ((> order 0) (node-balance key 
+                (node-insert cmp (node-left node) x) (node-right node)))
+              (true
+                (node-build x (node-left node) (node-right node)))))
+      (node-make x 1 false false)))
+  (fun node-remove (cmp node x)
+    (and node
+      (let ((key (node-key node))
+            (order (cmp key x)))
+        (cond ((< order 0) (node-balance key 
+                (node-left node) (node-remove cmp (node-right node) x)))
+              ((> order 0) (node-balance key 
+                (node-remove cmp (node-left node) x) (node-right node)))
+              (true
+                (node-join (node-left node) (node-right node)))))))
+  (fun node-join (left right)
+    (cond ((and left right)
+            (let ((min-key (node-min right))
+                  (new-right (node-remove-min right)))
+              (node-balance min-key left new-right)))
+          (left left)
+          (right right)))
+
+  (fun node-min (node)
+    (if (node-left node)
+      (node-min (node-left node))
+      (node-key node)))
+  (fun node-remove-min (node)
+    (if (node-left node)
+      (node-balance (node-key node) 
+        (node-remove-min (node-left node))
+        (node-right node))
+      (node-right node)))
+
+  (fun node-from-list (cmp xs)
+    (fun go (xs acc)
+      (if xs
+        (go (cdr xs) (node-insert cmp acc (car xs)))
+        acc))
+    (go xs false))
+
+  (fun node-validate (cmp node)
+    (and node
+      (let ((left (node-left node))
+            (right (node-right node))
+            (size-l (node-size-or-0 left))
+            (size-r (node-size-or-0 right))
+            (size (+ 1 (+ size-l size-r))))
+        (cond
+          ((/= size (node-size node))
+            (str-cat-2 "node size is wrong: " (stringify node)))
+          ((and (> size 2) (> size-l (* delta size-r)))
+            (str-cat-2 "left child is too heavy: " (stringify node)))
+          ((and (> size 2) (> size-r (* delta size-l)))
+            (str-cat-2 "right child is too heavy: " (stringify node)))
+          ((and left (>= (cmp (node-key left) (node-key node)) 0))
+            (str-cat-2 "left child is not lesser than root: " (stringify node)))
+          ((and right (<= (cmp (node-key right) (node-key node)) 0))
+            (str-cat-2 "right child is not greater than root: " (stringify node)))
+          (true
+            (or (node-validate cmp left) (node-validate cmp right)))))))
+
+  (fun set-make (cmp root)
+    (tuple-3 "set" cmp root))
+  (fun set-cmp (set) (get-1 set))
+  (fun set-root (set) (get-2 set))
+
+  (fun set-new (cmp)
+    (set-make cmp false))
+  (fun set? (set)
+    (and (tuple-3? set) (eqv? (get-0 set) "set")))
+  (export set-new set?)
+
+  (fun set-len (set)
+    (node-size-or-0 (set-root set)))
+  (fun set-empty? (set)
+    (not (set-root set)))
+  (export set-len set-empty?)
+
+  (fun set-contains? (set x)
+    (node-contains? (set-cmp set) (set-root set) x))
+  (fun set-to-list (set)
+    (node-to-list (set-root set)))
+  (export set-contains? set-to-list)
+
+  (fun set-insert (set x)
+    (set-make (set-cmp set) (node-insert (set-cmp set) (set-root set) x)))
+  (fun set-remove (set x)
+    (set-make (set-cmp set) (node-remove (set-cmp set) (set-root set) x)))
+  (fun set-from-list (cmp xs)
+    (set-make cmp (node-from-list cmp xs)))
+  (export set-insert set-remove set-from-list)
+  
+  (fun set-validate (set)
+    (node-validate (set-cmp set) (set-root set)))
+  (export set-validate))
