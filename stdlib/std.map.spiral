@@ -44,7 +44,7 @@
     (map-get-or m key (constant-0 false)))
   (fun map-get-or (m key not-found)
     (node-find (map-root m) (map-cmp m) key identity not-found))
-  (fun map-contains (m key)
+  (fun map-contains? (m key)
     (node-find (map-root m) (map-cmp m) key (constant-1 true) (constant-0 false)))
   (fun node-find (node cmp key found not-found)
     (if node
@@ -53,7 +53,7 @@
               ((< order 0) (node-find (node-right node) cmp key found not-found))
               (true        (found (node-value node)))))
       (not-found)))
-  (export map-get map-get-or map-contains)
+  (export map-get map-get-or map-contains?)
 
   (fun node-skew (node)
     (if (and node (node-left node)
@@ -87,7 +87,7 @@
               (map-cmp m)))
   (fun node-set (node cmp key value)
     (fun continue (left right)
-      (node-skew (node-split
+      (node-split (node-skew
         (node-adopt node left right))))
     (if node
       (let ((order (cmp (node-key node) key)))
@@ -120,6 +120,8 @@
   (fun node-split-right (node)
     (node-adopt node
       (node-left node) (node-split (node-right node))))
+  (fun node-skew-right (node)
+    (node-adopt node (node-left node) (node-skew (node-right node))))
   (fun node-skew-right-right (node)
     (if (node-right node)
       (let ((right (node-right node))
@@ -139,13 +141,16 @@
   (fun node-remove (node cmp key)
     (fun rebalance (node)
       (node-split-right (node-split 
-        (node-skew-right-right (node-skew (node-decrease node))))))
+        (node-skew-right-right (node-skew-right (node-skew 
+          (node-decrease node)))))))
+    (fun continue (left right)
+      (rebalance (node-adopt node left right)))
     (if node
       (let ((order (cmp (node-key node) key))
             (left (node-left node))
             (right (node-right node)))
-        (cond ((> order 0) (node-adopt node (node-remove left cmp key) right))
-              ((< order 0) (node-adopt node left (node-remove right cmp key)))
+        (cond ((> order 0) (continue (node-remove left cmp key) right))
+              ((< order 0) (continue left (node-remove right cmp key)))
               (left
                 (let ((rightmost (node-find-rightmost left))
                       (leaf-key (node-key rightmost))
@@ -165,8 +170,8 @@
   (export map-from-assoc)
 
   (fun map-validate (map)
-    (node-validate (map-root map) (map-cmp map)))
-  (fun node-validate (node cmp)
+    (node-validate (map-cmp map) (map-root map)))
+  (fun node-validate (cmp node)
     (if node
       (let ((left (node-left node))
             (right (node-right node))
@@ -175,20 +180,23 @@
             (right-level (node-level-or-0 right)))
         (cond
           ((/= left-level (- level 1))
-            "a left child has wrong level")
+            (str-cat-2 "a left child has wrong level: " (stringify node)))
           ((> right-level level)
-            "a right child has higher level than its parent")
+            (str-cat-2 "a right child has higher level than its parent: "
+              (stringify node)))
           ((< right-level (- level 1))
-            (str-cat-4 "a right child has level less than its parent minus one: "
-                       (stringify node) "; " (stringify right)))
+            (str-cat-2 "a right child has level less than its parent minus one: "
+                       (stringify node)))
           ((and right (<= level (node-level-or-0 (node-right right))))
-            (str-cat-4 "a right grandchild does not have level less than its grandparent: "
-                       (stringify node) "; " (stringify (node-right right))))
+            (str-cat-2 "a right grandchild does not have level less than its grandparent: "
+                       (stringify node)))
           ((and left (>= (cmp (node-key left) (node-key node)) 0))
-            (str-cat-4 "a left child does not have key lesser than its parent: "
-                       (stringify node) "; " (stringify left)))
+            (str-cat-2 "a left child does not have key lesser than its parent: "
+                       (stringify node)))
           ((and right (<= (cmp (node-key right) (node-key node)) 0))
-            (str-cat-4 "a right child does not have key greater than its parent: "
-                       (stringify node) "; " (stringify right)))))
+            (str-cat-2 "a right child does not have key greater than its parent: "
+                       (stringify node)))
+          (true
+            (or (node-validate cmp left) (node-validate cmp right)))))
       false))
   (export map-validate))
