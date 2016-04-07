@@ -1,0 +1,6 @@
+(module std.hash
+  (import std.core)
+
+  (fun hash-int (x) x)
+  (export hash-int))
+    

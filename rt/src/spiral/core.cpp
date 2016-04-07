@@ -80,7 +80,9 @@ namespace spiral {
 
   [[noreturn]]
   void bg_panic(Bg*, const char* msg) {
+    std::fflush(stdout);
     std::fprintf(stderr, "Panic: %s\n", msg);
+    std::fflush(stderr);
     std::abort();
   }
 }

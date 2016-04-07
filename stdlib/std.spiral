@@ -3,6 +3,7 @@
   (export true false)
   (export + - * / div mod)
   (export < <= == /= >= >)
+  (export min max)
   (export eqv? equal?)
   (export println)
 

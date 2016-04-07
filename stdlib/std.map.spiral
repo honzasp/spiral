@@ -19,13 +19,14 @@
   (fun node-adopt (node left right)
     (node-make (node-key node) (node-value node) (node-level node) left right))
 
+  (var :map (sym-new "map"))
   (fun map-make (root cmp)
-    (tuple-3 "map" root cmp))
+    (tuple-3 :map root cmp))
   (fun map-root (m) (get-1 m))
   (fun map-cmp (m) (get-2 m))
 
   (fun map? (m)
-    (and (tuple-3? m) (eqv? (get-0 m) "map")))
+    (and (tuple-3? m) (eqv? (get-0 m) :map)))
   (fun map-new (cmp)
     (map-make false cmp))
   (export map-new map?)

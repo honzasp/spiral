@@ -170,15 +170,16 @@
           (true
             (or (node-validate cmp left) (node-validate cmp right)))))))
 
+  (var :set (sym-new "set"))
   (fun set-make (cmp root)
-    (tuple-3 "set" cmp root))
+    (tuple-3 :set cmp root))
   (fun set-cmp (set) (get-1 set))
   (fun set-root (set) (get-2 set))
 
   (fun set-new (cmp)
     (set-make cmp false))
   (fun set? (set)
-    (and (tuple-3? set) (eqv? (get-0 set) "set")))
+    (and (tuple-3? set) (eqv? (get-0 set) :set)))
   (export set-new set?)
 
   (fun set-len (set)

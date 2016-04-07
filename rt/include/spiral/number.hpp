@@ -54,6 +54,9 @@ namespace spiral {
     auto spiral_std_acos(Bg* bg, void* sp, uint32_t a) -> uint32_t;
     auto spiral_std_atan(Bg* bg, void* sp, uint32_t a) -> uint32_t;
     auto spiral_std_atan_2(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t;
+
+    auto spiral_std_ifloor(Bg* bg, void* sp, uint32_t a) -> uint32_t;
+    auto spiral_std_iceil(Bg* bg, void* sp, uint32_t b) -> uint32_t;
   }
 }
 #endif

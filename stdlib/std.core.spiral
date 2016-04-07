@@ -19,6 +19,10 @@
   (fun >  (a b) (extern spiral_std_gt a b))
   (export < <= == /= >= >)
 
+  (fun max (a b) (if (< b a) a b))
+  (fun min (a b) (if (< b a) b a))
+  (export min max)
+
   (fun eqv? (a b) (extern spiral_std_eqv a b))
   (fun equal? (a b) (extern spiral_std_equal a b))
   (export eqv? equal?)

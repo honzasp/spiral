@@ -180,6 +180,23 @@ namespace spiral {
     return double_new(bg, sp, dbl_op(a_dbl)).u32;
   }
 
+  template<typename I, typename D>
+  static auto unop_dbl_int(Bg* bg, void*, uint32_t a, I int_op, D dbl_op) -> uint32_t {
+    auto a_val = Val(a);
+    int32_t result;
+
+    if(a_val.is_int()) {
+      result = int_op(a_val.is_int());
+    } else if(a_val.is_obj() && a_val.get_otable() == &double_otable) {
+      auto a_dbl_obj = a_val.unwrap_obj<DoubleObj>();
+      result = dbl_op(a_dbl_obj->num);
+    } else {
+      bg_panic(bg, "unary operation did not get a number");
+    }
+
+    return Val::wrap_int(result).u32;
+  }
+
   template<typename I>
   static auto binop_int(Bg* bg, void*, uint32_t a, uint32_t b, I int_op) -> uint32_t {
     auto a_val = Val(a), b_val = Val(b);
@@ -240,12 +257,14 @@ namespace spiral {
           [](double a, double b){ return a / b; });
     }
     auto spiral_std_idiv(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t {
-      return binop_int(bg, sp, a, b,
-          [](int32_t a, int32_t b){ return a / b; });
+      return binop_int(bg, sp, a, b, [](int32_t a, int32_t b) {
+          return a >= 0 ? a / b : -((b - a - 1) / b); 
+        });
     }
     auto spiral_std_imod(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t {
-      return binop_int(bg, sp, a, b,
-          [](int32_t a, int32_t b){ return a % b; });
+      return binop_int(bg, sp, a, b, [](int32_t a, int32_t b) {
+          return a >= 0 ? a % b : b - ((b - a - 1) % b) - 1; 
+        });
     }
 
     auto spiral_std_lt(Bg* bg, void*, uint32_t a, uint32_t b) -> uint32_t {
@@ -326,6 +345,15 @@ namespace spiral {
     }
     auto spiral_std_atan_2(Bg* bg, void* sp, uint32_t a, uint32_t b) -> uint32_t {
       return binop_dbl(bg, sp, a, b, [](double a, double b){ return std::atan2(a, b); });
+    }
+
+    auto spiral_std_ifloor(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl_int(bg, sp, a, [](int32_t i) { return i; },
+            [](double x) { return int32_t(std::floor(x)); });
+    }
+    auto spiral_std_iceil(Bg* bg, void* sp, uint32_t a) -> uint32_t {
+      return unop_dbl_int(bg, sp, a, [](int32_t i) { return i; },
+            [](double x) { return int32_t(std::ceil(x)); });
     }
   }
 }

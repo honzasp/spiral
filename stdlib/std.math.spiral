@@ -22,4 +22,8 @@
   (fun acos (a) (extern spiral_std_acos a))
   (fun atan (a) (extern spiral_std_atan a))
   (fun atan-2 (a b) (extern spiral_std_atan_2 a b))
-  (export sin cos tan asin acos atan atan-2))
+  (export sin cos tan asin acos atan atan-2)
+
+  (fun floor-int (x) (extern spiral_std_ifloor x))
+  (fun ceiling-int (x) (extern spiral_std_iceil x))
+  (export floor-int ceiling-int))

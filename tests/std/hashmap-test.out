@@ -1,0 +1,8 @@
+test hashmap? ok
+test hashmap-len ok
+test hashmap-empty? ok
+test hashmap-get ok
+test hashmap-get-or ok
+test hashmap-contains? ok
+test hashmap-remove! ok
+test big hashmap of integers ok

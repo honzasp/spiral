@@ -19,4 +19,11 @@
         (iterate (+ 1 i))
         false))
     (iterate 0))
-  (export array-empty? array-first array-last array-each))
+  (export array-empty? array-first array-last array-each)
+
+  (fun array-new-filled (len value)
+    (var ary (array-new))
+    (do ((i 0 (+ i 1)))
+        ((>= i len) ary)
+      (array-push! ary value)))
+  (export array-new-filled))

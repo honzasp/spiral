@@ -14,13 +14,14 @@
   (fun node-singleton (key)
     (node-make key 1 false false))
 
+  (var :heap (sym-new "heap"))
   (fun heap-make (cmp root)
-    (tuple-3 "heap" root cmp))
+    (tuple-3 :heap root cmp))
   (fun heap-root (heap) (get-1 heap))
   (fun heap-cmp (heap) (get-2 heap))
 
   (fun heap? (heap)
-    (and (tuple-3? heap) (eqv? (get-0 heap) "heap")))
+    (and (tuple-3? heap) (eqv? (get-0 heap) :heap)))
   (fun heap-new (cmp)
     (heap-make cmp false))
   (fun heap-singleton (cmp key)
