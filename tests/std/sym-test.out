@@ -1,0 +1,2 @@
+test sym? ok
+test sym-get ok

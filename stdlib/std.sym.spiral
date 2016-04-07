@@ -1,0 +1,7 @@
+(module std.sym
+  (import std.core)
+
+  (fun sym-new (val) (extern spiral_std_sym_new val))
+  (fun sym? (sym) (extern spiral_std_is_sym sym))
+  (fun sym-get (sym) (extern spiral_std_sym_get sym))
+  (export sym-new sym? sym-get))

@@ -3,6 +3,11 @@
   (import std.test)
   (import std.array)
 
+  (test "ref?" (lambda (t)
+    (assert t (ref? (ref-new 99)))
+    (assert-not t (ref? (sym-new "a sym")))
+    (assert-not t (ref? "not a ref"))))
+
   (test "ref-get" (lambda (t)
     (let ((r0 (ref-new 1000))
           (r1 (ref-new "baz")))

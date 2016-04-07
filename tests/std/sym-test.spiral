@@ -1,0 +1,14 @@
+(program
+  (import std)
+  (import std.test)
+
+  (test "sym?" (lambda (t)
+    (assert t (sym? (sym-new "pi")))
+    (assert-not t (sym? (ref-new "pi")))
+    (assert-not t (sym? "pi"))))
+
+  (test "sym-get" (lambda (t)
+    (let ((s0 (sym-new 1000))
+          (s1 (sym-new "foo")))
+      (assert-eqv t (sym-get s0) 1000)
+      (assert-eqv t (sym-get s1) "foo")))))

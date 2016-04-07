@@ -5,3 +5,4 @@ test equivalent tuples ok
 test equivalent cons ok
 test equivalent funs ok
 test equivalent refs ok
+test equivalent syms ok

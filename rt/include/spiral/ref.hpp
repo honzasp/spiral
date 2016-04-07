@@ -6,6 +6,7 @@ namespace spiral {
   struct RefObj {
     const ObjTable* otable;
     Val value;
+    bool is_mutable;
   };
 
   auto ref_from_val(Bg* bg, Val val) -> RefObj*;
@@ -27,6 +28,10 @@ namespace spiral {
     auto spiral_std_is_ref(Bg* bg, void* sp, uint32_t ref_) -> uint32_t;
     auto spiral_std_ref_get(Bg* bg, void* sp, uint32_t ref_) -> uint32_t;
     auto spiral_std_ref_set(Bg* bg, void* sp, uint32_t ref_, uint32_t val_) -> uint32_t;
+
+    auto spiral_std_sym_new(Bg* bg, void* sp, uint32_t val_) -> uint32_t;
+    auto spiral_std_is_sym(Bg* bg, void* sp, uint32_t sym_) -> uint32_t;
+    auto spiral_std_sym_get(Bg* bg, void* sp, uint32_t sym_) -> uint32_t;
   }
 }
 #endif

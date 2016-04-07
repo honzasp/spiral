@@ -1,2 +1,3 @@
+test ref? ok
 test ref-get ok
 test ref-set! ok
