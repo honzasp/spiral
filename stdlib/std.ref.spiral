@@ -1,0 +1,8 @@
+(module std.ref
+  (import std.core)
+
+  (fun ref-new (val) (extern spiral_std_ref_new val))
+  (fun ref? (val) (extern spiral_std_is_ref val))
+  (fun ref-get (ref) (extern spiral_std_ref_get ref))
+  (fun ref-set! (ref val) (extern spiral_std_ref_set ref val))
+  (export ref-new ref? ref-get ref-set!))

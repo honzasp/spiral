@@ -22,4 +22,7 @@
   (export get-0 get-1 get-2 get-3)
   
   (import std.string)
-  (export str-cat-0 str-cat-1 str-cat-2 str-cat-3 str-cat-4))
+  (export str-cat-0 str-cat-1 str-cat-2 str-cat-3 str-cat-4)
+  
+  (import std.ref)
+  (export ref-new ref? ref-get ref-set!))
