@@ -6,6 +6,7 @@ namespace spiral {
   struct RefObj {
     const ObjTable* otable;
     Val value;
+    uint32_t id;
     bool is_mutable;
   };
 

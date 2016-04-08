@@ -13,6 +13,9 @@ namespace spiral {
     bg.top_stack_root = 0;
     bg.argc = argc;
     bg.argv = argv;
+    bg.last_ref_id = 0;
+    bg.hash_k0 = 0xdeadbeefdeadbeefull;
+    bg.hash_k1 = 0xdeadbeefdeadbeefull;
 
     bg.heap_chunk = bg_alloc_chunk(&bg, 0);
     bg.heap_chunk->next_chunk = 0;

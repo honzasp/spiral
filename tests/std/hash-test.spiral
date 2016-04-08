@@ -1,0 +1,32 @@
+(program
+  (import std)
+  (import std.hash)
+  (import std.test)
+
+  (test "hash string" (lambda (t)
+    (fun hash-str (k0 k1 str)
+      (var h (hasher-new-keyed k0 k1))
+      (hasher-push-str! h str)
+      (hasher-finish! h))
+    (assert-eqv t (hash-str 0 0 "") 58130647)
+    (assert-eqv t (hash-str 0 0 "hello") (neg 2097720647))
+    (assert-eqv t (hash-str 42 24 "some random ramblings") 129406028)
+    (assert-eqv t (hash-str 1000 2000 (str-cat-2 
+      "SipHash is a family of pseudorandom functions (a.k.a. keyed hash "
+      "functions) optimized for speed on short messages.")) 246329911)))
+      
+  (test "hash integer" (lambda (t)
+    (fun hash-int (k0 k1 x)
+      (var h (hasher-new-keyed k0 k1))
+      (hasher-push-int! h x)
+      (hasher-finish! h))
+    (assert-eqv t (hash-int 0 0 10) 122547643)
+    (assert-eqv t (hash-int 20 30 1000) 42131877)))
+
+  (test "hash strings and integers" (lambda (t)
+    (var h (hasher-new-keyed 42 3456))
+    (hasher-push-str! h "quick brown fox ")
+    (hasher-push-str! h "jumps over the lazy dog")
+    (hasher-push-int! h 10)
+    (hasher-push-int! h 20)
+    (assert-eqv t (hasher-finish! h) (neg 1950814318)))))

@@ -87,5 +87,3 @@
       (if (< i prime-3)
         (assert-not t (hashmap-contains? h0 (k-from-i i)))
         (assert-eqv t (hashmap-get h0 (k-from-i i)) i))))))
-         
-        

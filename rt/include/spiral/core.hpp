@@ -22,6 +22,8 @@ namespace spiral {
     StackRoot* top_stack_root;
     int argc;
     char** argv;
+    uint32_t last_ref_id;
+    uint64_t hash_k0, hash_k1;
   };
 
   struct ObjTable {

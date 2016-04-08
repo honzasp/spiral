@@ -1,6 +1,18 @@
 (module std.hash
   (import std.core)
 
-  (fun hash-int (x) x)
-  (export hash-int))
+  (fun hash-int (x) (extern spiral_std_hash_int x))
+  (fun hash-str (str) (extern spiral_std_hash_str str))
+  (fun hash-sym (sym) (extern spiral_std_hash_sym sym))
+  (export hash-int hash-str hash-sym)
+  
+  (fun hasher-new () (extern spiral_std_hasher_new))
+  (fun hasher-new-keyed (k0 k1) (extern spiral_std_hasher_new_keyed k0 k1))
+  (fun hasher-finish! (h) (extern spiral_std_hasher_finish h))
+  (export hasher-new hasher-new-keyed hasher-finish!)
+
+  (fun hasher-push-str! (h str) (extern spiral_std_hasher_push_str h str))
+  (fun hasher-push-int! (h x) (extern spiral_std_hasher_push_int h x))
+  (fun hasher-push-sym! (h sym) (extern spiral_std_hasher_push_sym h sym))
+  (export hasher-push-str! hasher-push-int! hasher-push-sym!))
     

@@ -37,7 +37,8 @@ namespace spiral {
 
   void ref_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
     auto ref_obj = ref_from_obj_ptr(obj_ptr);
-    buffer_printf(bg, buf, "(%s %p ", ref_obj->is_mutable ? "ref" : "sym", obj_ptr);
+    buffer_printf(bg, buf, "(%s 0x%x ",
+        ref_obj->is_mutable ? "ref" : "sym", ref_obj->id);
     stringify(bg, buf, ref_obj->value);
     buffer_push_byte(bg, buf, ')');
   }
@@ -51,6 +52,7 @@ namespace spiral {
     auto new_obj = static_cast<RefObj*>(gc_get_copy_space(gc_ctx, sizeof(RefObj)));
     new_obj->otable = &ref_otable;
     new_obj->value = old_obj->value;
+    new_obj->id = old_obj->id;
     new_obj->is_mutable = old_obj->is_mutable;
     auto new_val = ref_to_val(new_obj);
     gc_write_fwd_ptr(gc_ctx, obj_ptr, new_val);
@@ -85,6 +87,7 @@ namespace spiral {
       auto ref_obj = static_cast<RefObj*>(bg_get_obj_space(bg, sp, sizeof(RefObj)));
       ref_obj->otable = &ref_otable;
       ref_obj->value = val_root.get();
+      ref_obj->id = ++bg->last_ref_id;
       ref_obj->is_mutable = true;
       val_root.unroot(bg);
       return ref_to_val(ref_obj).u32;
@@ -122,6 +125,7 @@ namespace spiral {
       auto sym_obj = static_cast<RefObj*>(bg_get_obj_space(bg, sp, sizeof(RefObj)));
       sym_obj->otable = &ref_otable;
       sym_obj->value = val_root.get();
+      sym_obj->id = ++bg->last_ref_id;
       sym_obj->is_mutable = false;
       val_root.unroot(bg);
       return ref_to_val(sym_obj).u32;
