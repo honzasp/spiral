@@ -3,6 +3,7 @@
 #include <cstdio>
 #include "spiral/core.hpp"
 #include "spiral/gc.hpp"
+#include "spiral/string.hpp"
 
 namespace spiral {
   auto bg_init(int argc, char** argv) -> Bg {
@@ -87,5 +88,12 @@ namespace spiral {
     std::fprintf(stderr, "Panic: %s\n", msg);
     std::fflush(stderr);
     std::abort();
+  }
+
+  extern "C" {
+    auto spiral_std_panic(Bg* bg, void*, uint32_t msg_) -> uint32_t {
+      auto msg = str_from_val(bg, Val(msg_));
+      bg_panic(bg, reinterpret_cast<const char*>(msg->data));
+    }
   }
 }

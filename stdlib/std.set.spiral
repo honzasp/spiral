@@ -81,7 +81,7 @@
                 (node-get-index (node-right node) (- idx (+ 1 left-size))))
               (true
                 (node-key node))))
-      (/ 1 0)))
+      (panic "index out of bounds in set")))
 
   (fun node-to-list (node)
     (and node
@@ -121,7 +121,7 @@
                   (- idx (+ left-size 1)))))
               (true
                 (node-join (node-left node) (node-right node)))))
-      (/ 1 0)))
+      (panic "index out of bounds in set remove")))
 
   (fun node-join (left right)
     (cond ((and left right)

@@ -28,4 +28,5 @@
   (export eqv? equal?)
 
   (fun println (x) (extern spiral_std_println x))
-  (export println))
+  (fun panic (msg) (extern spiral_std_panic msg))
+  (export println panic))

@@ -58,7 +58,7 @@
           (cmp-2 (heap-cmp heap-2)))
       (if (eqv? cmp cmp-2)
         (heap-make cmp (node-merge cmp (heap-root heap-1) (heap-root heap-2)))
-        (/ 1 0))))
+        (panic "heaps to merge must have eqv comparators"))))
   (fun heap-insert (heap key)
     (let ((cmp (heap-cmp heap)))
       (heap-make cmp (node-merge cmp (heap-root heap) (node-singleton key)))))

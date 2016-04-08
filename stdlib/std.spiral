@@ -5,7 +5,7 @@
   (export < <= == /= >= >)
   (export min max)
   (export eqv? equal?)
-  (export println)
+  (export println panic)
 
   (import std.math)
   (export neg)

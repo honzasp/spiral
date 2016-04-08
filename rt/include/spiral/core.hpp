@@ -46,5 +46,9 @@ namespace spiral {
   auto bg_get_obj_space(Bg* bg, void* sp, uint32_t len) -> void*;
   
   [[noreturn]] void bg_panic(Bg* bg, const char* msg);
+
+  extern "C" {
+    auto spiral_std_panic(Bg* bg, void* sp, uint32_t msg_) -> uint32_t;
+  }
 }
 #endif

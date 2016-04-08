@@ -63,7 +63,7 @@
   (fun hashmap-get-or (h key not-found)
     (lookup h key bucket-value not-found))
   (fun hashmap-get (h key)
-    (lookup h key bucket-value (lambda () (/ 1 0))))
+    (lookup h key bucket-value (lambda () (panic "key not found in hashmap"))))
   (fun hashmap-contains? (h key)
     (lookup h key (constant-1 true) (constant-0 false)))
   (export hashmap-get-or hashmap-get hashmap-contains?)
