@@ -1,8 +1,9 @@
 (module std.string
+  (fun str? (str) (extern spiral_std_is_str str))
   (fun str-len (str) (extern spiral_std_str_len str))
   (fun str-get (str idx) (extern spiral_std_str_get str idx))
   (fun stringify (x) (extern spiral_std_stringify x))
-  (export str-len str-get stringify)
+  (export str? str-len str-get stringify)
 
   (fun str-cat-0 () (extern spiral_std_str_cat 0))
   (fun str-cat-1 (a) (extern spiral_std_str_cat 1 a))

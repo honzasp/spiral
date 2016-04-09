@@ -25,6 +25,7 @@ namespace spiral {
   extern const ObjTable str_otable;
 
   extern "C" {
+    auto spiral_std_is_str(Bg* bg, void* sp, uint32_t str_) -> uint32_t;
     auto spiral_std_str_len(Bg* bg, void* sp, uint32_t str) -> uint32_t;
     auto spiral_std_str_get(Bg* bg, void* sp, uint32_t str, uint32_t idx) -> uint32_t;
     auto spiral_std_str_cat(Bg* bg, void* sp, uint32_t count, ...) -> uint32_t;

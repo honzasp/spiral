@@ -29,4 +29,10 @@
   (export ref-new ref? ref-get ref-set!)
   
   (import std.sym)
-  (export sym-new sym? sym-get))
+  (export sym-new sym? sym-get)
+
+  (fun TRACE!!! (what x)
+    (println (str-cat-3 what ": " (stringify x)))
+    x)
+  (export TRACE!!!))
+

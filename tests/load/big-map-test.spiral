@@ -1,6 +1,6 @@
 (program
   (import std)
-  (import std.map)
+  (import std.redmap)
   (import std.test)
 
   (test "big map of integers added in order" (lambda (t)

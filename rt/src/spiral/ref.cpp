@@ -37,10 +37,13 @@ namespace spiral {
 
   void ref_stringify(Bg* bg, Buffer* buf, void* obj_ptr) {
     auto ref_obj = ref_from_obj_ptr(obj_ptr);
-    buffer_printf(bg, buf, "(%s 0x%x ",
-        ref_obj->is_mutable ? "ref" : "sym", ref_obj->id);
-    stringify(bg, buf, ref_obj->value);
-    buffer_push_byte(bg, buf, ')');
+    if(ref_obj->is_mutable) {
+      buffer_printf(bg, buf, "<ref 0x%x>", ref_obj->id);
+    } else {
+      buffer_push_cstr(bg, buf, "<sym ");
+      stringify(bg, buf, ref_obj->value);
+      buffer_printf(bg, buf, ":0x%x>", ref_obj->id);
+    }
   }
 
   auto ref_length(void*) -> uint32_t {

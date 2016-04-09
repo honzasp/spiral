@@ -112,6 +112,11 @@ namespace spiral {
   }
 
   extern "C" {
+    auto spiral_std_is_str(Bg*, void*, uint32_t str_) -> uint32_t {
+      return Val::wrap_bool(Val(str_).is_obj() && 
+          Val(str_).get_otable() == &str_otable).u32;
+    }
+
     auto spiral_std_str_len(Bg* bg, void*, uint32_t str_) -> uint32_t {
       auto obj = str_from_val(bg, Val(str_));
       return Val::wrap_int(static_cast<int32_t>(obj->length)).u32;
