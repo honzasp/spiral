@@ -534,6 +534,8 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
     }).collect();
   let mut saved_in_reg: Option<grit::Slot> = None;
 
+  //println!("mass_move {:?} <- {:?}", slots, vals);
+
   while !assigns.is_empty() {
     let required_slots: HashSet<grit::Slot> = assigns.iter().cloned()
       .filter_map(|i| match vals[i] {
@@ -545,17 +547,29 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
             None
           }
         },
-        grit::Val::Arg(slot) => Some(grit::Slot(slot)),
+        grit::Val::Arg(slot) => 
+          if Some(grit::Slot(slot)) != saved_in_reg {
+            Some(grit::Slot(slot))
+          } else {
+            None
+          },
         grit::Val::Capture(_) => None,
         grit::Val::Combinator(_) | grit::Val::Obj(_) => None,
         grit::Val::Int(_) | grit::Val::True |
         grit::Val::False | grit::Val::Undefined => None,
       }).collect();
 
+    ////println!("next round");
+    //println!("  assigns {:?}", assigns);
+    //println!("  required_slots {:?}", required_slots);
+
     let mut satisfied = Vec::new();
     for i in assigns.iter().cloned() {
       let lslot = &slots[i];
+      //println!("  try {} ({:?} <- {:?})", i, slots[i], vals[i]);
       if !required_slots.contains(lslot) {
+        //println!("    yay!");
+        //let ix = instrs.len();
         match vals[i] {
           grit::Val::Var(ref rvar) => {
             let rslot = st.var_to_slot(rvar);
@@ -594,6 +608,7 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
             instrs.push(asm::Instr::MoveMemImm(st.slot_mem(lslot), asm::Imm::False)),
           grit::Val::Undefined => (),
         }
+        //println!("    {:?}", &instrs[ix..]);
         satisfied.push(i);
       }
     }
@@ -603,8 +618,10 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
       let save_slot = required_slots.iter().next().unwrap();
       instrs.push(asm::Instr::MoveRegMem(asm::Reg::EDX, st.slot_mem(save_slot)));
       saved_in_reg = Some(save_slot.clone());
+      //println!("  nothing satisfied, saving slot {:?}", save_slot);
     } else {
       for i in satisfied.iter() {
+        //println!("  removing satisfied {}", i);
         assigns.remove(i);
       }
     }
