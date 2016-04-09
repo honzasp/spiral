@@ -1,6 +1,6 @@
 (program
   (import std)
-  (import std.redmap)
+  (import std.map)
   (import std.test)
 
   (test "big map of integers added in order" (lambda (t)
@@ -9,7 +9,6 @@
                   (m (map-new -)
                      (map-set m i (* 42 i))))
                  ((>= i limit) m))))
-      (assert-not t (map-validate m))
       (do ((i 0 (+ i 1)))
           ((>= i limit))
         (let ((k (mod (* i 123) 53)))
@@ -21,7 +20,6 @@
                   (m (map-new -)
                      (map-set m (mod (* 123 i) prime) i)))
                  ((>= i prime) m))))
-      (assert-not t (map-validate m))
       (do ((i 0 (+ i 1)))
           ((>= i prime))
         (let ((k (mod (* 123 i) prime)))
