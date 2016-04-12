@@ -42,7 +42,7 @@
   (export map-len)
 
   (fun map-get (m key)
-    (map-get-or m key (constant-0 false)))
+    (map-get-or m key (lambda () (panic "key not found in map"))))
   (fun map-get-or (m key not-found)
     (node-find (map-root m) (map-cmp m) key identity not-found))
   (fun map-contains? (m key)

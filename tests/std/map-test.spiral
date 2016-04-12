@@ -27,8 +27,7 @@
       (cons (cons "three" 3)
       null)))))
     (assert-eqv t (map-get m "two") 2)
-    (assert-eqv t (map-get m "three") 3)
-    (assert-eqv t (map-get m "four") false)))
+    (assert-eqv t (map-get m "three") 3)))
 
   (test "map-get-or" (lambda (t)
     (var m (map-from-assoc str-cmp

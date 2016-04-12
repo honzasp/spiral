@@ -194,8 +194,8 @@
     (node-to-list (set-root set)))
   (export set-contains? set-to-list)
 
-  (fun set-find-index (set x)
-    (node-find (set-cmp set) (set-root set) 0 x))
+  (fun set-find-index (set key)
+    (node-find (set-cmp set) (set-root set) 0 key))
   (fun set-get-index (set idx)
     (node-get-index (set-root set) idx))
   (fun set-remove-index (set idx)
