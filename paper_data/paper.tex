@@ -1,0 +1,145 @@
+\documentclass[a4paper,9pt,oneside,twocolumn,article]{memoir}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage[fixlanguage]{babelbib}
+\usepackage{geometry}
+
+\selectbiblanguage{english}
+\def\Cplusplus{{C\nolinebreak[4]\hspace{-.05em}\raisebox{.4ex}{\tiny\bfseries ++}}}
+
+\geometry{
+  marginparsep=0cm,marginparwidth=0cm,
+  inner=1.5cm,outer=1.5cm,
+  top=0cm,bottom=1.5cm,
+}
+
+\hypersetup{
+  unicode=true,
+  pdftitle={Standard library data structures for Spiral},
+  pdfauthor={Jan Špaček},
+  hidelinks,
+}
+
+\setbeforesecskip{0.1cm}
+\setaftersecskip{0.1cm}
+\setlength{\beforechapskip}{0.1cm}
+\setlength{\afterchapskip}{0.1cm}
+\setlength{\bibitemsep}{0.0cm}
+
+\begin{document}
+
+\title{Standard library data structures for Spiral}
+\date{April 2016}
+\author{Jan Špaček}
+\maketitle
+
+\chapter{Introduction}
+
+Spiral \cite{spiral} is an untyped impure functional language. Its standard
+library provides various primitive data structures (cons cells, tuples, strings,
+arrays), implemented in the runtime library, but it lacked any higher-level data
+structures, like finite maps, sets or heaps. We present a toolbox of data
+structures implemented in Spiral that extend the library with persistent maps,
+sets and heaps and mutable hash tables. We have also added some new primitives
+(symbols and mutable references) and fixed a handful of bugs in the runtime.
+
+\chapter{Persistent maps}
+
+Persistent maps are located in module \texttt{std.map}. The data structure is
+implemented as an AA~tree \cite{andersson1993balanced}, which is a~binary
+representation of a~2,3-tree, where only right edges can be horizontal. AA~trees
+need to store the rank in every node and are rebalanced using two operations,
+\texttt{skew} (remove horizontal left edges) and \texttt{split} (remove two
+consecutive horizontal right edges).
+
+\section{Red-black trees}
+
+There is also an alternative implementation of persistent maps in module
+\texttt{std.redmap}, employing red-black trees. Very compact functional
+insertion into red-black trees is presented in  \cite{okasaki1999purely}. The key
+idea is that a~tree with red root and one red child can be trivially restored to
+a~valid red-black tree by blackening the root. By temporarily allowing this
+violation of the invariant, we can implement \texttt{insert} recursively by
+propagating the red color up in the tree.
+
+Functional deletion was given 15~years later in \cite{germane2014deletion}.
+Similar to insertion, deletion is often described as propagating an extra black.
+We can introduce a~third color, black-black, and rebalance the tree in
+a~recursive bottom-up fashion, as we did for insertion. There are more cases to
+consider, but they are relatively straightforward. This is in contrast to
+an~effective imperative implementation, as described in
+\cite{thomas2001introduction}, where the extra black is only conceptual.
+
+\chapter{Persistent sets}
+
+Persistent sets, residing in module \texttt{std.set}, use weight-balanced binary
+trees \cite{adams1992implementing}. Our implementation was inspired by the
+\texttt{containers} package in Haskell \cite{containers}. The tree is balanced
+to keep the ratio of the weights of the left and right subtree of every node
+bounded, so a~bottom-up recursive implementation is very natural. One advantage
+of this balancing scheme is that the sizes of the trees can be used to
+effectively index into the set.
+
+\chapter{Persistent heaps}
+
+Our implementation of persistent heaps from module \texttt{std.heap} uses
+weight-biased variant of leftist heaps described in \cite{okasaki1999purely}.
+The weight-biased leftist property asserts that the size of a~right subtree must
+not be greater than the size of a~left subtree, so the right spine of the tree
+is at most logarithmic in the size of the tree. Heaps can therefore be
+efficiently merged along their right spines. The main reason for balancing on
+the weight instead of the rank (length of right spine) is that we have constant
+time access to the number of elements in the heap.
+
+\chapter{Hash maps}
+
+Hash maps are typical data structures that absolutely require mutation, thus
+cannot be (reasonably) implemented in a pure functional way. Fortunately, impure
+data structures are as welcome in Spiral as the pure ones. The hash map from
+module \texttt{std.hashmap} uses Robin Hood hashing \cite{celis1986robin} with
+linear probing \cite{robinhood,robinhooddel}, as does \texttt{HashMap} from the
+Rust standard library \cite{ruststd}.
+
+The idea of Robin Hood hashing is that upon insertion, the buckets are linearly
+probed until an empty bucket is found. However, if we find that the inserted
+entry is further away from its initial bucket than the entry in the probed
+bucket, we swap them and continue the process with the displaced entry. After
+removing an entry, we shift the following entries backward until we hit an empty
+bucket or an entry that resides in its initial bucket (has probe length 0).
+
+\section{Hashing}
+
+Our hashing function is SipHash-2-4 \cite{aumasson2012siphash}, which is claimed
+to be cryptographically safe. The core algorithm is implemented in the runtime
+written in \Cplusplus{}, because hashing must be fast and requires raw integer
+operations, none of which is available in Spiral. The Spiral interface to the
+hasher is exported from \texttt{std.hash}.
+
+\chapter{Implementation details}
+
+Aside from hashing, we also extended the runtime to support mutable references
+and symbols. References are mutable boxes that contain exactly one value, which
+can be used in imperative algorithms as mutable variables (we needed them for
+hash maps). Symbols are unique objects that can be used as markers or keys in
+containers. For convenience, symbols wrap a value (usually a string), mostly as
+an aid for debugging. At the moment, symbols are used to represent color in
+red-black trees and as markers in data structures (they are represented as
+tuples, where the first element is the symbol with the name of the structure).
+
+\chapter{Conclusion}
+
+We were surprised that even though Spiral is very immature, we found the
+language quite expressive. The biggest obstacle is the poor error reporting:
+Spiral itself collects no stack traces, so a~C~debugger was essential in
+debugging the programs. Unfortunately, the non-standard calling convention and
+aggressive inlining performed by the Spiral compiler often made the stack traces
+unusable, so debugging often resorted to sprinkling the code with
+\texttt{println}s.
+
+{\small \raggedright
+\bibliographystyle{babplain}
+\bibliography{refs}}
+
+\end{document}

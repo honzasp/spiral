@@ -1,0 +1,12 @@
+RERUN = "(undefined references|Rerun)"
+RERUNBIB = "No file.*.bbl|Citation.*undefined"
+
+!pdflatex = |> ^ pdflatex %B^ pdflatex -halt-on-error %B && \
+  (egrep -q $(RERUNBIB) %B.log && bibtex %B; true) && \
+  (egrep -q $(RERUN) %B.log && pdflatex %B; true) && \
+  (egrep -q $(RERUN) %B.log && pdflatex %B; true) \
+  |> | %B.aux %B.log %B.out %B.blg %B.bbl
+
+: paper.tex |> !pdflatex |> paper.pdf
+
+.gitignore
