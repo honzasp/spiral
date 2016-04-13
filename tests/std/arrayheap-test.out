@@ -1,0 +1,7 @@
+test arrayheap? ok
+test arrayheap-empty? ok
+test arrayheap-len ok
+test arrayheap-minimum ok
+test arrayheap-remove-minimum! ok
+test arrayheap-from-array ok
+test heapsort! ok

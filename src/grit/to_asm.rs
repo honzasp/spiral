@@ -559,7 +559,7 @@ fn mass_move(st: &mut FunSt, instrs: &mut Vec<asm::Instr>,
         grit::Val::False | grit::Val::Undefined => None,
       }).collect();
 
-    ////println!("next round");
+    //println!("next round");
     //println!("  assigns {:?}", assigns);
     //println!("  required_slots {:?}", required_slots);
 
